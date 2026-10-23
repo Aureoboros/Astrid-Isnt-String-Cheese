@@ -14,10 +14,10 @@ import org.firstinspires.ftc.teamcode.control.PositionHoldControls.Transition;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 
-/**
- * Driver TeleOp that resists pushes: whenever nobody is driving, the robot holds the field pose
- * where it stopped and drives itself back there if it is pushed from any direction or turned.
- */
+// Hey it's me it's Verity. No actually it's Eshanvi on her other acct. So you see i was a bit of a bum and was very confused by the current organization of the files so to get the code sorted in the right way i unfortunately had to employ claude. Sigh... 
+// But for future reference, this will likely not happen again once i get used to not just dumping everything in teamcode and hoping for the best. Which will be soon... ish...
+// Anyways this is for the thing where it tries to resist movement. I unfortunately do not have the robot and hence cannot test it. I pray that it does some good.
+
 @TeleOp(name = "TeleOp: Hold Position", group = "Competition")
 public final class HoldPositionTeleOp extends LinearOpMode {
   @Override
