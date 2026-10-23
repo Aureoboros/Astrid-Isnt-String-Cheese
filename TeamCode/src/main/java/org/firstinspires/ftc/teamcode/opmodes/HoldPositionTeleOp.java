@@ -16,6 +16,7 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 
 // Hey it's me it's Verity. No actually it's Eshanvi on her other acct. So you see i was a bit of a bum and was very confused by the current organization of the files so to get the code sorted in the right way i unfortunately had to employ claude. Sigh... 
 // But for future reference, this will likely not happen again once i get used to not just dumping everything in teamcode and hoping for the best. Which will be soon... ish...
+// For context all of the code i just pushed started in the claude thing, then i edited it in the claude thing, then i got too lazy to copypasta it here so i just sorta let claude do it. I swear i can at least write import statements.
 // Anyways this is for the thing where it tries to resist movement. I unfortunately do not have the robot and hence cannot test it. I pray that it does some good.
 
 @TeleOp(name = "TeleOp: Hold Position", group = "Competition")
