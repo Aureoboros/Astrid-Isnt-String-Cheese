@@ -22,10 +22,10 @@ public final class Constants {
       .leftRearMotorName(RobotConfig.Hardware.BACK_LEFT)
       .rightFrontMotorName(RobotConfig.Hardware.FRONT_RIGHT)
       .rightRearMotorName(RobotConfig.Hardware.BACK_RIGHT)
-      .leftFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
-      .leftRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-      .rightFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
-      .rightRearMotorDirection(DcMotorSimple.Direction.REVERSE)
+      .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
+      .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
+      .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
+      .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
       .useBrakeModeInTeleOp(true);
 
   private Constants() {}

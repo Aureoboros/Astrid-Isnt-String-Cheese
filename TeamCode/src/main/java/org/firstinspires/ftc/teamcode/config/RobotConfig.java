@@ -30,8 +30,8 @@ public final class RobotConfig {
      * The installed drivetrain maps the standard mecanum forward/strafe patterns to the opposite
      * physical axes and directions. Keep this enabled for the current wiring.
      */
-    public static final boolean SWAP_FORWARD_AND_STRAFE = true;
-    public static final boolean REVERSE_ROTATION = true;
+    public static final boolean SWAP_FORWARD_AND_STRAFE = false;
+    public static final boolean REVERSE_ROTATION = false;
 
     private Drive() {}
   }

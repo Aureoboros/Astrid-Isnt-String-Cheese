@@ -41,8 +41,8 @@ public final class MecanumDrive {
     backLeft = hardwareMap.get(DcMotor.class, backLeftName);
     backRight = hardwareMap.get(DcMotor.class, backRightName);
 
-    frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
-    backRight.setDirection(DcMotorSimple.Direction.REVERSE);
+    frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+    backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
   }
 
   public void driveRobotCentric(double drive, double strafe, double rotate) {
