@@ -6,7 +6,7 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.ArrayList;
@@ -20,11 +20,11 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
  * Drives every {@link Shape} in order from one starting spot and reports how far the robot ends
  * from where it started after each one. Needs at least 4 ft of clear floor ahead and to the left.
  */
-@Autonomous(name = "Test: Square Test", group = "Pedro Pathing")
+@TeleOp(name = "Test: Square Test", group = "Pedro Pathing")
 public final class SquareTestAuto extends LinearOpMode {
   private static final double MAX_POWER = 0.35;
   // Diagnostic tolerances allow modest drift while the physical follower is being tuned.
-  private static final double STEP_TIMEOUT_SECONDS = 15.0;
+  private static final double STEP_TIMEOUT_SECONDS = 1000000.0;
   private static final double POSITION_TOLERANCE_INCHES = 1.5;
   private static final double HEADING_TOLERANCE_RADIANS = Math.toRadians(5.0);
   private static final double SETTLE_SECONDS = 0.1;
