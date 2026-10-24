@@ -14,7 +14,7 @@ public final class SquareTestRoutesTest {
     assertArrayEquals(
         new Shape[] {
           Shape.SQUARE_6_INCH, Shape.SQUARE_1_FOOT, Shape.SQUARE_4_FOOT,
-          Shape.SQUARE_4_FOOT_TURNING, Shape.TRIANGLE_2_FOOT
+          Shape.SQUARE_1_FOOT_ROTATED, Shape.TRIANGLE_2_FOOT
         },
         Shape.values());
   }
@@ -30,13 +30,34 @@ public final class SquareTestRoutesTest {
   }
 
   @Test
-  public void turningSquareKeepsSquareSidesAndAddsThirtyDegreesAtEachCorner() {
-    assertCorners(Shape.SQUARE_4_FOOT_TURNING.getCorners(),
-        0, 0, 0,
-        48, 0, 0, 48, 0, 30,
-        48, 48, 30, 48, 48, 60,
-        0, 48, 60, 0, 48, 90,
-        0, 0, 90, 0, 0, 120);
+  public void rotatedSquareTurnsOnceThenKeepsThirtyDegreeHeadingOnAllFourSides() {
+    double forwardX = 12 * Math.cos(Math.toRadians(30));
+    double forwardY = 12 * Math.sin(Math.toRadians(30));
+    assertCorners(Shape.SQUARE_1_FOOT_ROTATED.getCorners(),
+        0, 0, 0, 0, 0, 30,
+        forwardX, forwardY, 30,
+        forwardX - forwardY, forwardY + forwardX, 30,
+        -forwardY, forwardX, 30,
+        0, 0, 30);
+  }
+
+  @Test
+  public void rotatedSquareHasFourEqualPerpendicularSidesAndReturnsHome() {
+    List<Corner> corners = Shape.SQUARE_1_FOOT_ROTATED.getCorners();
+    assertEquals(6, corners.size());
+    assertTrue(corners.get(0).samePositionAs(corners.get(1)));
+    for (int i = 2; i < corners.size(); i++) {
+      Corner a = corners.get(i - 1);
+      Corner b = corners.get(i);
+      assertEquals(12, Math.hypot(b.getX() - a.getX(), b.getY() - a.getY()), EPSILON);
+      if (i > 2) {
+        Corner previous = corners.get(i - 2);
+        double dot = (a.getX() - previous.getX()) * (b.getX() - a.getX())
+            + (a.getY() - previous.getY()) * (b.getY() - a.getY());
+        assertEquals(0, dot, EPSILON);
+      }
+    }
+    assertTrue(corners.get(corners.size() - 1).samePositionAs(corners.get(0)));
   }
 
   @Test

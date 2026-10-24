@@ -98,8 +98,25 @@ test does not automatically apply that calibration.
 ## Automatic square test tolerances
 
 `Test: Square Test` (`SquareTestAuto`) accepts each corner within **1.5 inches** and **5 degrees**
-for **0.1 seconds**, with a **15-second timeout per step**. These looser diagnostic limits let
+for **0.1 seconds**. The step timeout is defined by `SquareTestAuto.STEP_TIMEOUT_SECONDS`;
+the current value is **1,000,000 seconds**, effectively disabling timeout protection. Use a
+practical bounded value before unattended testing. These looser diagnostic limits let
 the sequence progress with modest drift while the follower is being tuned. Telemetry shows the
 active tolerance and timeout. The 35% power limit and immediate abort on a non-READY Pinpoint
 status are unchanged. A timeout still stops the remaining test; it does not skip an unfinished leg.
 These settings apply only to `SquareTestAuto`, not the operator-stepped 12-inch movement test.
+
+The shape order is 6-inch square, 1-foot square, 4-foot square, **1-foot square rotated +30°**, then
+the 2-foot triangle. The rotated square turns counterclockwise once at the starting point,
+then drives four 12-inch sides while keeping a 30° heading. Its corners are approximately
+`(0, 0) → (10.39, 6) → (4.39, 16.39) → (-6, 10.39) → (0, 0)` inches.
+Clear at least 4 ft ahead, 4 ft left, and 6 inches behind the start for the full sequence,
+plus the robot's footprint and
+additional safety margin. The triangle re-aligns to heading 0° before its diagonal legs.
+
+Explicit turns (including reorientation at a shape's start when already near its starting position)
+use heading-only control and completion; translation PID is disabled during those turns and restored
+before driving. Apparent translation during a turn no longer blocks progression. This does **not**
+calibrate or correct the Pinpoint pod offsets; measure them before evaluating absolute path accuracy.
+Telemetry distinguishes Turning from Driving, and abort results retain the final position/heading
+errors. An aborted final shape is no longer incorrectly reported as All shapes complete.

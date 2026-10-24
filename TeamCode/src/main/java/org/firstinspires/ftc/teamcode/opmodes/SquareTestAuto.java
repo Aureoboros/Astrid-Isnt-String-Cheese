@@ -12,13 +12,14 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.SquareTestCompletion;
 import org.firstinspires.ftc.teamcode.pedroPathing.SquareTestRoutes.Corner;
 import org.firstinspires.ftc.teamcode.pedroPathing.SquareTestRoutes.Shape;
 import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 
 /**
  * Drives every {@link Shape} in order from one starting spot and reports how far the robot ends
- * from where it started after each one. Needs at least 4 ft of clear floor ahead and to the left.
+ * from where it started after each one. The rotated square also extends behind the starting point.
  */
 @TeleOp(name = "Test: Square Test", group = "Pedro Pathing")
 public final class SquareTestAuto extends LinearOpMode {
@@ -34,13 +35,14 @@ public final class SquareTestAuto extends LinearOpMode {
   private GoBildaPinpointDriver pinpoint;
   private final List<String> results = new ArrayList<>();
   private String status = "Ready";
+  private int completedShapes;
 
   @Override
   public void runOpMode() {
     telemetry.setMsTransmissionInterval(50);
     telemetry.addLine("Keep still during Pinpoint calibration.");
     telemetry.addLine("Place the robot at the RIGHT corner; shapes go forward, then left.");
-    telemetry.addLine("Clear at least 4 ft ahead and 4 ft to the left.");
+    telemetry.addLine("Clear 4 ft ahead, 4 ft left, and 6 in behind, plus robot footprint.");
     OdometryTelemetry.add(telemetry);
     telemetry.update();
     follower = Constants.createFollower(hardwareMap);
@@ -59,12 +61,13 @@ public final class SquareTestAuto extends LinearOpMode {
         if (!runShape(shape)) {
           break;
         }
+        completedShapes++;
         status = "Finished " + shape.getLabel();
         if (!pause(PAUSE_BETWEEN_SHAPES_SECONDS)) {
           break;
         }
       }
-      if (opModeIsActive() && results.size() == Shape.values().length) {
+      if (opModeIsActive() && completedShapes == Shape.values().length) {
         status = "All shapes complete";
       }
       follower.breakFollowing();
@@ -89,8 +92,16 @@ public final class SquareTestAuto extends LinearOpMode {
         previous = target;
         continue;
       }
-      if (previous == null || target.samePositionAs(previous)) {
-        // Turn in place (or re-align before the shape) by holding the target pose.
+      boolean turnOnly = (previous != null && target.samePositionAs(previous))
+          || (previous == null && positionError(target) <= POSITION_TOLERANCE_INCHES);
+      boolean oldUseTranslational = follower.useTranslational;
+      if (turnOnly) {
+        // Do not chase apparent translation while rotating with uncalibrated pod offsets.
+        Pose current = follower.getPose();
+        follower.useTranslational = false;
+        follower.holdPoint(new Pose(current.getX(), current.getY(),
+            Math.toRadians(target.getHeadingDegrees())), false);
+      } else if (previous == null) {
         follower.holdPoint(toPose(target));
       } else {
         Pose start = follower.getPose();
@@ -98,9 +109,19 @@ public final class SquareTestAuto extends LinearOpMode {
         path.setConstantHeadingInterpolation(Math.toRadians(target.getHeadingDegrees()));
         follower.followPath(path, true);
       }
-      if (!driveUntilSettled(shape, i, corners.size() - 1, target)) {
+      boolean settled;
+      try {
+        settled = driveUntilSettled(shape, i, corners.size() - 1, target, turnOnly);
+      } finally {
+        if (turnOnly) {
+          follower.breakFollowing();
+          follower.useTranslational = oldUseTranslational;
+        }
+      }
+      if (!settled) {
         follower.breakFollowing();
-        results.add(String.format("%s: ABORTED at step %d (%s)", shape.getLabel(), i, status));
+        results.add(String.format("%s: ABORTED at step %d (%s); error %.2f in / %.1f deg",
+            shape.getLabel(), i, status, positionError(target), Math.toDegrees(headingError(target))));
         return false;
       }
       worstCornerError = Math.max(worstCornerError, positionError(target));
@@ -110,13 +131,14 @@ public final class SquareTestAuto extends LinearOpMode {
     Corner home = corners.get(corners.size() - 1);
     Pose pose = follower.getPose();
     results.add(String.format(
-        "%s: ends %.2f in / %.1f° from start; worst corner %.2f in; at X %.2f, Y %.2f",
-        shape.getLabel(), positionError(home), Math.toDegrees(headingError(home)),
+        "%s: ends %.2f in from start; heading %.1f° (target error %.1f°); worst corner %.2f in; at X %.2f, Y %.2f",
+        shape.getLabel(), positionError(home), Math.toDegrees(pose.getHeading()), Math.toDegrees(headingError(home)),
         worstCornerError, pose.getX(), pose.getY()));
     return true;
   }
 
-  private boolean driveUntilSettled(Shape shape, int step, int lastStep, Corner target) {
+  private boolean driveUntilSettled(Shape shape, int step, int lastStep, Corner target,
+      boolean turnOnly) {
     ElapsedTime timer = new ElapsedTime();
     double settledSince = -1;
     while (opModeIsActive()) {
@@ -126,7 +148,7 @@ public final class SquareTestAuto extends LinearOpMode {
         return false;
       }
       double elapsed = timer.seconds();
-      if (!atTarget(target)) {
+      if (!atTarget(target, turnOnly)) {
         settledSince = -1;
       } else if (settledSince < 0) {
         settledSince = elapsed;
@@ -137,7 +159,9 @@ public final class SquareTestAuto extends LinearOpMode {
         status = "Timed out";
         return false;
       }
-      status = String.format("Running %s, step %d / %d", shape.getLabel(), step, lastStep);
+      status = String.format("%s %s, step %d / %d",
+          turnOnly ? "Turning" : "Driving", shape.getLabel(), step, lastStep);
+      telemetry.addData("Completion Mode", turnOnly ? "Heading only" : "Position + heading");
       showTelemetry(target, step, lastStep);
       idle();
     }
@@ -180,8 +204,12 @@ public final class SquareTestAuto extends LinearOpMode {
   }
 
   private boolean atTarget(Corner target) {
-    return positionError(target) <= POSITION_TOLERANCE_INCHES
-        && Math.abs(headingError(target)) <= HEADING_TOLERANCE_RADIANS;
+    return atTarget(target, false);
+  }
+
+  private boolean atTarget(Corner target, boolean turnOnly) {
+    return SquareTestCompletion.atTarget(positionError(target), headingError(target), turnOnly,
+        POSITION_TOLERANCE_INCHES, HEADING_TOLERANCE_RADIANS);
   }
 
   private double positionError(Corner target) {

@@ -6,15 +6,15 @@ import java.util.List;
 
 /**
  * Hardware-independent shapes for the square test, in field inches and degrees from the starting
- * pose (0, 0, 0°). Every shape starts at its right corner and runs counterclockwise: forward first,
- * then left. Positive X is forward and positive Y is left at the starting heading.
+ * pose (0, 0, 0°). Squares run forward, left, backward, right in their configured orientation.
+ * Positive X is forward and positive Y is left at the starting heading.
  */
 public final class SquareTestRoutes {
   public static final double SIDE_6_INCHES = 6.0;
   public static final double SIDE_1_FOOT = 12.0;
   public static final double SIDE_4_FEET = 48.0;
   public static final double TRIANGLE_SIDE_INCHES = 24.0;
-  public static final double CORNER_TURN_DEGREES = 30.0;
+  public static final double ROTATED_SQUARE_HEADING_DEGREES = 30.0;
 
   private SquareTestRoutes() {}
 
@@ -22,7 +22,8 @@ public final class SquareTestRoutes {
     SQUARE_6_INCH("6-inch square", square(SIDE_6_INCHES, 0)),
     SQUARE_1_FOOT("1-foot square", square(SIDE_1_FOOT, 0)),
     SQUARE_4_FOOT("4-foot square", square(SIDE_4_FEET, 0)),
-    SQUARE_4_FOOT_TURNING("4-foot square, +30° per corner", square(SIDE_4_FEET, CORNER_TURN_DEGREES)),
+    SQUARE_1_FOOT_ROTATED("1-foot square rotated +30°",
+        square(SIDE_1_FOOT, ROTATED_SQUARE_HEADING_DEGREES)),
     TRIANGLE_2_FOOT("2-foot equilateral triangle", triangle(TRIANGLE_SIDE_INCHES));
 
     private final String label;
@@ -64,21 +65,23 @@ public final class SquareTestRoutes {
   }
 
   /**
-   * Square from the right corner: forward, left, backward, right. With a nonzero corner turn the
-   * robot stops at each corner, turns in place by that amount, then drives the next straight side.
+   * Rotate once at the starting corner, then drive all four rotated sides at a constant heading.
+   * The returned route includes the explicit initial turn when the rotation is nonzero.
    */
-  static List<Corner> square(double side, double cornerTurnDegrees) {
+  static List<Corner> square(double side, double rotationDegrees) {
     double[][] positions = {{side, 0}, {side, side}, {0, side}, {0, 0}};
-    Corner[] corners = new Corner[1 + positions.length * (cornerTurnDegrees == 0 ? 1 : 2)];
+    Corner[] corners = new Corner[1 + positions.length + (rotationDegrees == 0 ? 0 : 1)];
     int index = 0;
-    double heading = 0;
-    corners[index++] = new Corner(0, 0, heading);
+    corners[index++] = new Corner(0, 0, 0);
+    if (rotationDegrees != 0) {
+      corners[index++] = new Corner(0, 0, rotationDegrees);
+    }
+    double radians = Math.toRadians(rotationDegrees);
+    double cos = Math.cos(radians);
+    double sin = Math.sin(radians);
     for (double[] position : positions) {
-      corners[index++] = new Corner(position[0], position[1], heading);
-      if (cornerTurnDegrees != 0) {
-        heading += cornerTurnDegrees;
-        corners[index++] = new Corner(position[0], position[1], heading);
-      }
+      corners[index++] = new Corner(position[0] * cos - position[1] * sin,
+          position[0] * sin + position[1] * cos, rotationDegrees);
     }
     return Collections.unmodifiableList(Arrays.asList(corners));
   }
