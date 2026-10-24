@@ -23,10 +23,11 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 @Autonomous(name = "Test: Square Test", group = "Pedro Pathing")
 public final class SquareTestAuto extends LinearOpMode {
   private static final double MAX_POWER = 0.35;
-  private static final double STEP_TIMEOUT_SECONDS = 10.0;
-  private static final double POSITION_TOLERANCE_INCHES = 0.5;
-  private static final double HEADING_TOLERANCE_RADIANS = Math.toRadians(2.0);
-  private static final double SETTLE_SECONDS = 0.2;
+  // Diagnostic tolerances allow modest drift while the physical follower is being tuned.
+  private static final double STEP_TIMEOUT_SECONDS = 15.0;
+  private static final double POSITION_TOLERANCE_INCHES = 1.5;
+  private static final double HEADING_TOLERANCE_RADIANS = Math.toRadians(5.0);
+  private static final double SETTLE_SECONDS = 0.1;
   private static final double PAUSE_BETWEEN_SHAPES_SECONDS = 1.0;
 
   private Follower follower;
@@ -168,6 +169,9 @@ public final class SquareTestAuto extends LinearOpMode {
     }
     telemetry.addData("Pinpoint Status", pinpoint.getDeviceStatus());
     telemetry.addData("Motor Power Limit", "%.0f%%", MAX_POWER * 100);
+    telemetry.addData("Corner Tolerance", "%.1f in / %.1f deg for %.2f s",
+        POSITION_TOLERANCE_INCHES, Math.toDegrees(HEADING_TOLERANCE_RADIANS), SETTLE_SECONDS);
+    telemetry.addData("Step Timeout", "%.0f s", STEP_TIMEOUT_SECONDS);
     for (String result : results) {
       telemetry.addLine(result);
     }

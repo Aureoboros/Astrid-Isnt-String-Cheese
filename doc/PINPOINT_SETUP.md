@@ -94,3 +94,12 @@ reciprocal in `RobotConfig.Pinpoint.TICKS_PER_INCH` and rebuild. Repeat forward/
 left/right measurements; Pinpoint has one shared resolution for both pods. The previous
 12-inch-actual versus 26-inch-reported result suggests approximately 500.56 ticks/inch, but this
 test does not automatically apply that calibration.
+
+## Automatic square test tolerances
+
+`Test: Square Test` (`SquareTestAuto`) accepts each corner within **1.5 inches** and **5 degrees**
+for **0.1 seconds**, with a **15-second timeout per step**. These looser diagnostic limits let
+the sequence progress with modest drift while the follower is being tuned. Telemetry shows the
+active tolerance and timeout. The 35% power limit and immediate abort on a non-READY Pinpoint
+status are unchanged. A timeout still stops the remaining test; it does not skip an unfinished leg.
+These settings apply only to `SquareTestAuto`, not the operator-stepped 12-inch movement test.
