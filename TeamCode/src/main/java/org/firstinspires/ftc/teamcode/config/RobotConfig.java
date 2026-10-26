@@ -96,6 +96,10 @@ public final class RobotConfig {
   }
 
   public static final class Autonomous {
+    // Actual bumper-to-bumper STARTING footprint, not wheelbase; presets assume wall contact.
+    // Defaults use the R102 maximum. Measure these before using the BIOBUZZ field presets.
+    public static final double START_LENGTH_INCHES = 18.0;
+    public static final double START_WIDTH_INCHES = 18.0;
     public static final double POSITION_TOLERANCE_INCHES = 1.5;
     public static final double HEADING_TOLERANCE_DEGREES = 2.0;
     public static final double MAX_DRIVE_POWER = 0.6;
