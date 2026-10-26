@@ -16,6 +16,7 @@ import org.firstinspires.ftc.teamcode.config.RobotConfig;
 public final class AprilTagTracker {
   private final Limelight3A limelight;
   private List<AprilTagObservation> observations = Collections.emptyList();
+  private double resultTimestamp = Double.NaN;
 
   public AprilTagTracker(HardwareMap hardwareMap) {
     this(hardwareMap, RobotConfig.Hardware.LIMELIGHT);
@@ -34,6 +35,7 @@ public final class AprilTagTracker {
   public void stop() {
     limelight.stop();
     observations = Collections.emptyList();
+    resultTimestamp = Double.NaN;
   }
 
   public void update() {
@@ -42,6 +44,7 @@ public final class AprilTagTracker {
         || !result.isValid()
         || result.getStaleness() > RobotConfig.Localization.APRILTAG_RESULT_STALE_MS) {
       observations = Collections.emptyList();
+      resultTimestamp = Double.NaN;
       return;
     }
 
@@ -63,7 +66,11 @@ public final class AprilTagTracker {
               fiducial.getTargetYDegrees()));
     }
     observations = Collections.unmodifiableList(currentObservations);
+    resultTimestamp = result.getTimestamp();
   }
+
+  /** Limelight frame timestamp; repeated polls of one frame must not count as new evidence. */
+  public double getResultTimestamp() { return resultTimestamp; }
 
   public List<AprilTagObservation> getObservations() {
     return observations;
