@@ -48,4 +48,34 @@ public final class HiveShotControllerTest {
   @Test(expected = IllegalArgumentException.class) public void invalidPulseRejected() {
     new HiveShotController(0, Double.NaN);
   }
+  @Test public void firstFourShotBatchCompletesWithoutClaimingTip() {
+    HiveShotController c = new HiveShotController(0, 0.15, 4, false);
+    for (int i = 0; i < 600 && !c.isDone(); i++) {
+      c.update(i / 100.0, true, true, false, false, true, true);
+    }
+    assertEquals(HiveShotController.State.COMPLETE, c.getState());
+    assertEquals(4, c.getCompletedPulses()); assertEquals(4, c.getPulses());
+    assertFalse(c.isTipConfirmed()); assertFalse(c.feederOn());
+  }
+  @Test public void finalFourShotBatchMustObserveTip() {
+    HiveShotController c = new HiveShotController(0, 0.15, 4, true);
+    for (int i = 0; i < 500; i++) { c.update(i / 100.0, true, true, false, false, true, true); }
+    assertEquals(4, c.getCompletedPulses()); assertFalse(c.isDone());
+    c.update(5.1, true, false, true, true, true, true);
+    assertEquals(HiveShotController.State.COMPLETE, c.getState()); assertTrue(c.isTipConfirmed());
+  }
+  @Test public void finalBatchWithoutTipTimesOutDespiteFourCompletedPulses() {
+    HiveShotController c = new HiveShotController(0, 0.15, 4, true);
+    for (int i = 0; i <= 600; i++) { c.update(i / 100.0, true, true, false, false, true, true); }
+    assertEquals(4, c.getCompletedPulses()); assertEquals(HiveShotController.State.FAILED, c.getState());
+    assertFalse(c.isTipConfirmed());
+  }
+  @Test public void partialFeedIsNotCountedAsCompletedPollen() {
+    HiveShotController c = feeding();
+    c.update(0.41, true, true, false, false, false, true);
+    assertEquals(0, c.getCompletedPulses()); assertEquals(HiveShotController.State.FAILED, c.getState());
+  }
+  @Test(expected = IllegalArgumentException.class) public void moreThanFourPulsesRejected() {
+    new HiveShotController(0, 0.15, 5, false);
+  }
 }

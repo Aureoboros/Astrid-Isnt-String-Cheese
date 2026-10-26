@@ -68,4 +68,61 @@ public final class HiveAutoRouteTest {
       }
     }
   }
+
+  @Test public void newPlanHasFourShotBatchesTwoFlowersThenOwnGarden() {
+    HiveAutoRoute.Stage[] stages = HiveAutoRoute.Stage.values();
+    assertEquals(7, stages.length);
+    assertEquals(HiveAutoRoute.Stage.PRELOAD_SHOT, stages[0]);
+    assertEquals(HiveAutoRoute.Stage.FLOWER_1_PICKUP, stages[1]);
+    assertEquals(HiveAutoRoute.Stage.FIRST_REFILL_SHOT, stages[2]);
+    assertEquals(HiveAutoRoute.Stage.FLOWER_2_PICKUP, stages[3]);
+    assertEquals(HiveAutoRoute.Stage.SECOND_INITIAL_SHOT, stages[4]);
+    assertEquals(HiveAutoRoute.Stage.GARDEN_PICKUP, stages[5]);
+    assertEquals(HiveAutoRoute.Stage.SECOND_REFILL_SHOT, stages[6]);
+    assertFalse(stages[0].requiresTip()); assertTrue(stages[2].requiresTip());
+    assertFalse(stages[4].requiresTip()); assertTrue(stages[6].requiresTip());
+  }
+
+  @Test public void pickupPosesMirrorAndEachCreepIsEightInchesForward() {
+    HiveAutoRoute red = new HiveAutoRoute(Alliance.RED), blue = new HiveAutoRoute(Alliance.BLUE);
+    for (HiveAutoRoute.Stage stage : HiveAutoRoute.Stage.values()) {
+      compare(red.approach(stage), blue.approach(stage));
+      if (!stage.isPickup()) { continue; }
+      Waypoint p = red.pickupTarget(stage), b = blue.pickupTarget(stage);
+      assertEquals(144 - p.getX(), b.getX(), 1e-6); assertEquals(144 - p.getY(), b.getY(), 1e-6);
+      List<Waypoint> approach = red.approach(stage); Waypoint from = approach.get(approach.size() - 1);
+      double h = Math.toRadians(p.getHeadingDegrees());
+      assertEquals(8, (p.getX() - from.getX()) * Math.cos(h) + (p.getY() - from.getY()) * Math.sin(h), 1e-6);
+      assertEquals(from.getHeadingDegrees(), p.getHeadingDegrees(), 1e-6);
+    }
+  }
+
+  @Test public void fullPickupRouteStaysInFieldOwnHalfAndOutsideNominalFrame() {
+    BiobuzzFieldMap field = new BiobuzzFieldMap(18, 18);
+    double radius = Math.hypot(9, 9);
+    for (Alliance a : Alliance.values()) {
+      HiveAutoRoute r = new HiveAutoRoute(a);
+      Waypoint previous = field.startPose(r.start());
+      java.util.ArrayList<Waypoint> points = new java.util.ArrayList<>();
+      for (HiveAutoRoute.Stage stage : HiveAutoRoute.Stage.values()) {
+        points.addAll(r.approach(stage));
+        if (stage.isPickup()) { points.add(r.pickupTarget(stage)); }
+      }
+      points.addAll(r.parkFrom(points.get(points.size() - 1)));
+      for (Waypoint next : points) {
+        for (int sample = 0; sample <= 100; sample++) {
+          double t = sample / 100.0;
+          double x = previous.getX() + t * (next.getX() - previous.getX());
+          double y = previous.getY() + t * (next.getY() - previous.getY());
+          double h = previous.getHeadingDegrees() + t * (next.getHeadingDegrees() - previous.getHeadingDegrees());
+          assertTrue(field.footprintInsideField(new Waypoint(x, y, h)));
+          double extentX = 9 * (Math.abs(Math.cos(Math.toRadians(h))) + Math.abs(Math.sin(Math.toRadians(h))));
+          assertTrue(a == Alliance.RED ? x + extentX <= 72 : x - extentX >= 72);
+          assertFalse(x > 72 - 49.46 / 2 - radius && x < 72 + 49.46 / 2 + radius
+              && y > 72 - 38.95 / 2 - radius && y < 72 + 38.95 / 2 + radius);
+        }
+        previous = next;
+      }
+    }
+  }
 }
