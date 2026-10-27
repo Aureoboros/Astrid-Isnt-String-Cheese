@@ -1,18 +1,5 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
-import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
-
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.changes;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrent;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrentAndHistory;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.follower;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.stopRobot;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.telemetryM;
-
-import com.bylazar.configurables.PanelsConfigurables;
-import com.bylazar.configurables.annotations.Configurable;
-import com.bylazar.configurables.annotations.IgnoreConfigurable;
 import com.bylazar.field.FieldManager;
 import com.bylazar.field.PanelsField;
 import com.bylazar.field.Style;
@@ -20,105 +7,164 @@ import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
-import com.pedropathing.geometry.*;
-import com.pedropathing.math.*;
-import com.pedropathing.paths.*;
-import com.pedropathing.telemetry.SelectableOpMode;
-import com.pedropathing.util.*;
-import static com.pedropathing.math.MathFunctions.quadraticFit;
-
-import android.annotation.SuppressLint;
-
-import com.qualcomm.hardware.lynx.LynxModule;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.util.PoseHistory;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.AnalogInput;
-import com.qualcomm.robotcore.util.ElapsedTime;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 
-import java.util.ArrayList;
-import java.util.List;
-import org.firstinspires.ftc.teamcode.config.RobotConfig;
-
-@TeleOp(name = "Tuna")
-public class XYZPushTuna extends OpMode {
-    public static double DISTANCE = 40;
-    private boolean forward = true;
-
-    private Path forwards;
-    private Path backwards;
-
-    public static Follower follower;
-
+/** Standalone X/Y/heading push-resistance test; independent of the Tuning menu's static state. */
+@TeleOp(name = "Tuna", group = "Pedro Pathing")
+public final class XYZPushTuna extends OpMode {
+    private static final double MAX_POWER = 0.25;
+    private static final double ROBOT_RADIUS = 9;
+    private static final Style ROBOT_STYLE = new Style("", "#3F51B5", 0.75);
+    private static final Style HISTORY_STYLE = new Style("", "#4CAF50", 0.75);
+    private Follower follower;
+    private GoBildaPinpointDriver pinpoint;
+    private TelemetryManager panelsTelemetry;
+    private FieldManager panelsField;
+    private PoseHistory poseHistory;
+    private Pose holdTarget;
+    private boolean holding;
+    private String status = "INIT: keep robot still during Pinpoint calibration";
 
     @Override
     public void init() {
+        telemetry.setMsTransmissionInterval(50);
+        follower = Constants.createFollower(hardwareMap);
+        pinpoint = ((PinpointLocalizer) follower.getPoseTracker().getLocalizer()).getPinpoint();
+        follower.setMaxPower(MAX_POWER);
         follower.setStartingPose(new Pose(72, 72, 0));
+        poseHistory = follower.getPoseHistory();
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        panelsField = PanelsField.INSTANCE.getField();
+        if (panelsField != null) {
+            panelsField.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
+        }
+        showTelemetry();
     }
 
-    /**
-     * This initializes the Follower and creates the forward and backward Paths.
-     */
     @Override
     public void init_loop() {
-        telemetryM.debug("This will activate the translational PIDF(s)");
-        telemetryM.debug("The robot will try to stay in place while you push it laterally.");
-        telemetryM.debug("You can adjust the PIDF values to tune the robot's translational PIDF(s).");
-        OdometryTelemetry.add(telemetryM);
-        telemetryM.update(telemetry);
-        follower.update();
-        drawCurrent();
-        telemetryM.debug("This will activate the heading PIDF(s).");
-        telemetryM.debug("The robot will try to stay at a constant heading while you try to turn it.");
-        telemetryM.debug("You can adjust the PIDF values to tune the robot's heading PIDF(s).");
-        OdometryTelemetry.add(telemetryM);
-        telemetryM.update(telemetry);
-        follower.update();
-        drawCurrent();
+        // Sensors only: INIT must not command a position hold or move the robot.
+        follower.updatePose();
+        status = sensorReady() ? "INIT: READY; Play captures the current pose"
+                : "INIT: waiting for Pinpoint READY / finite pose";
+        showTelemetry();
     }
 
     @Override
     public void start() {
+        follower.updatePose();
+        if (!sensorReady()) {
+            abort("STOPPED: Pinpoint was not ready at Play; reinitialize to retry");
+            showTelemetry();
+            return;
+        }
+        // Capture at Play to avoid driving back to an old INIT pose after manual movement.
+        Pose current = follower.getPose();
+        holdTarget = new Pose(current.getX(), current.getY(), current.getHeading());
         follower.deactivateAllPIDFs();
         follower.activateTranslational();
         follower.activateHeading();
-        forwards = new Path(new BezierLine(new Pose(72, 72, 0), new Pose(DISTANCE + 72, 72, 0)));
-        forwards.setConstantHeadingInterpolation(0);
-        backwards = new Path(new BezierLine(new Pose(DISTANCE + 72, 72, 0), new Pose(72, 72, 0)));
-        backwards.setConstantHeadingInterpolation(0);
-        follower.followPath(forwards);
+        follower.holdPoint(holdTarget, false);
+        holding = true;
+        status = "HOLDING: gently displace X/Y or turn; robot returns to captured pose";
     }
 
-    /**
-     * This runs the OpMode, updating the Follower as well as printing out the debug statements to the Telemetry
-     */
     @Override
     public void loop() {
-        follower.update();
-        drawCurrentAndHistory();
+        try {
+            follower.updatePose();
+            if (holding) {
+                if (gamepad1.b || gamepad2.b) {
+                    abort("STOPPED by B; reinitialize to restart holding");
+                } else if (!sensorReady()) {
+                    abort("STOPPED: Pinpoint fault / invalid pose; reinitialize to retry");
+                } else {
+                    follower.update();
+                    if (!sensorReady()) {
+                        abort("STOPPED: Pinpoint fault / invalid pose; reinitialize to retry");
+                    }
+                }
+            }
+            showTelemetry();
+        } catch (RuntimeException e) {
+            abort("STOPPED after runtime error");
+            throw e;
+        }
+    }
 
-        if (!follower.isBusy()) {
-            if (forward) {
-                forward = false;
-                follower.followPath(backwards);
-            } else {
-                forward = true;
-                follower.followPath(forwards);
+    @Override
+    public void stop() { abort("STOPPED"); }
+
+    private void abort(String reason) {
+        holding = false;
+        status = reason;
+        if (follower != null) { follower.breakFollowing(); }
+    }
+
+    private boolean sensorReady() {
+        Pose p = follower.getPose();
+        return pinpoint.getDeviceStatus() == GoBildaPinpointDriver.DeviceStatus.READY
+                && Double.isFinite(p.getX()) && Double.isFinite(p.getY()) && Double.isFinite(p.getHeading());
+    }
+
+    private void showTelemetry() {
+        Pose p = follower.getPose();
+        telemetry.addData("Status", status);
+        telemetry.addLine("Play captures hold pose | B: stop hold | Motor power limited to 25%");
+        telemetry.addLine("Tune shared Constants.followerConstants translational / heading PIDF.");
+        telemetry.addData("Pose Source", "Pinpoint: two pods + onboard IMU; local tuning origin (72,72)");
+        telemetry.addData("Pose", "X %.2f, Y %.2f in; heading %.1f deg",
+                p.getX(), p.getY(), Math.toDegrees(p.getHeading()));
+        telemetry.addData("Pinpoint Status", pinpoint.getDeviceStatus());
+        telemetry.addData("Raw Odo X / Y Ticks", "%d / %d", pinpoint.getEncoderX(), pinpoint.getEncoderY());
+        if (panelsTelemetry != null) { panelsTelemetry.addData("Status", status); }
+        if (holdTarget != null) {
+            double angle = holdTarget.getHeading() - p.getHeading();
+            double headingError = Math.toDegrees(Math.atan2(Math.sin(angle), Math.cos(angle)));
+            telemetry.addData("Hold Target", "X %.2f, Y %.2f in; heading %.1f deg",
+                    holdTarget.getX(), holdTarget.getY(), Math.toDegrees(holdTarget.getHeading()));
+            telemetry.addData("Error X / Y", "%.2f / %.2f in",
+                    holdTarget.getX() - p.getX(), holdTarget.getY() - p.getY());
+            telemetry.addData("Heading Error", "%.2f deg", headingError);
+            if (panelsTelemetry != null) {
+                panelsTelemetry.addData("Zero Line", 0);
+                panelsTelemetry.addData("Error X (in)", holdTarget.getX() - p.getX());
+                panelsTelemetry.addData("Error Y (in)", holdTarget.getY() - p.getY());
+                panelsTelemetry.addData("Heading Error (deg)", headingError);
             }
         }
+        OdometryTelemetry.add(telemetry);
+        if (panelsTelemetry != null) {
+            OdometryTelemetry.add(panelsTelemetry);
+            panelsTelemetry.update(telemetry);
+        } else { telemetry.update(); }
+        drawOwnHistory(p);
+    }
 
-        telemetryM.debug("Push the robot laterally to test the Translational PIDF(s).");
-        telemetryM.addData("Zero Line", 0);
-        telemetryM.addData("Error X", follower.errorCalculator.getTranslationalError().getXComponent());
-        telemetryM.addData("Error Y", follower.errorCalculator.getTranslationalError().getYComponent());
-        OdometryTelemetry.add(telemetryM);
-        telemetryM.update(telemetry);
-
-        telemetryM.debug("Turn the robot manually to test the Heading PIDF(s).");
-        telemetryM.addData("Zero Line", 0);
-        telemetryM.addData("Error", follower.errorCalculator.getHeadingError());
-        OdometryTelemetry.add(telemetryM);
-        telemetryM.update(telemetry);
+    private void drawOwnHistory(Pose current) {
+        if (panelsField == null || poseHistory == null || !Double.isFinite(current.getX())
+                || !Double.isFinite(current.getY()) || !Double.isFinite(current.getHeading())) { return; }
+        double[] x = poseHistory.getXPositionsArray(), y = poseHistory.getYPositionsArray();
+        panelsField.setStyle(HISTORY_STYLE);
+        for (int i = 0; i + 1 < x.length; i++) {
+            if (Double.isFinite(x[i]) && Double.isFinite(y[i])
+                    && Double.isFinite(x[i + 1]) && Double.isFinite(y[i + 1])) {
+                panelsField.moveCursor(x[i], y[i]);
+                panelsField.line(x[i + 1], y[i + 1]);
+            }
+        }
+        panelsField.setStyle(ROBOT_STYLE);
+        panelsField.moveCursor(current.getX(), current.getY());
+        panelsField.circle(ROBOT_RADIUS);
+        panelsField.moveCursor(current.getX(), current.getY());
+        panelsField.line(current.getX() + ROBOT_RADIUS * Math.cos(current.getHeading()),
+                current.getY() + ROBOT_RADIUS * Math.sin(current.getHeading()));
+        panelsField.update();
     }
 }
