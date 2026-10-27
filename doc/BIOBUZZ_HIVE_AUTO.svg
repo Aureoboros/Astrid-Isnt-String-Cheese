@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="670" viewBox="0 0 720 670">
+  <defs>
+    <marker id="red" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#b91c1c"/></marker>
+    <marker id="blue" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#1d4ed8"/></marker>
+  </defs>
+  <rect width="720" height="670" fill="#fafafa"/>
+  <g font-family="sans-serif" fill="#1f2937">
+    <text x="36" y="34" font-size="21" font-weight="bold">BIOBUZZ — two hive-tip attempts + park</text>
+    <text x="36" y="58" font-size="13">Nominal robot-center routes · Guarded draft · Physical calibration required</text>
+    <rect x="100" y="108" width="432" height="432" fill="#fff" stroke="#374151" stroke-width="3"/>
+    <path d="M172,108V540 M244,108V540 M316,108V540 M388,108V540 M460,108V540 M100,180H532 M100,252H532 M100,324H532 M100,396H532 M100,468H532" fill="none" stroke="#d1d5db"/>
+    <path d="M316,108V540" stroke="#6b7280" stroke-dasharray="5 5"/>
+    <rect x="100" y="180" width="33" height="69" fill="#fecaca" stroke="#b91c1c"/>
+    <rect x="499" y="399" width="33" height="69" fill="#bfdbfe" stroke="#1d4ed8"/>
+    <text x="38" y="194" font-size="12">Red park</text>
+    <text x="545" y="450" font-size="12">Blue park</text>
+    <rect x="242" y="265.6" width="148.4" height="116.9" rx="5" fill="#e5e7eb" stroke="#6b7280"/>
+    <text x="316" y="324" text-anchor="middle" font-size="13">HIVE FRAME</text>
+    <text x="277.75" y="294" text-anchor="middle" fill="#b91c1c" font-size="12">Red hive</text>
+    <text x="354.25" y="354" text-anchor="middle" fill="#1d4ed8" font-size="12">Blue hive</text>
+    <g fill="#fde68a" stroke="#92400e"><circle cx="104" cy="396" r="7"/><circle cx="244" cy="112" r="7"/><circle cx="388" cy="536" r="7"/><circle cx="528" cy="252" r="7"/></g>
+    <rect x="100" y="528" width="72" height="12" fill="#fecaca"/>
+    <rect x="460" y="108" width="72" height="12" fill="#bfdbfe"/>
+    <path d="M208,513 L208,477 L208,444 L277.75,444" fill="none" stroke="#b91c1c" stroke-width="3" marker-end="url(#red)"/>
+    <path d="M277.75,444 L184,444 L184,396 L169,396 L145,396 L184,396 L184,444 L277.75,444 L184,444 L184,204 L244,204 L244,177 L244,153 L244,177 L244,204 L277.75,204 L184,204 L184,480 L136,480 L136,504 L136,480 L184,480 L184,204 L277.75,204" fill="none" stroke="#b91c1c" stroke-width="3" marker-end="url(#red)"/>
+    <path d="M277.75,204 L184,204 L184,216 L136,216" fill="none" stroke="#b91c1c" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#red)"/>
+    <path d="M424,135 L424,171 L424,204 L354.25,204" fill="none" stroke="#1d4ed8" stroke-width="3" marker-end="url(#blue)"/>
+    <path d="M354.25,204 L448,204 L448,252 L463,252 L487,252 L448,252 L448,204 L354.25,204 L448,204 L448,444 L388,444 L388,471 L388,495 L388,471 L388,444 L354.25,444 L448,444 L448,168 L496,168 L496,144 L496,168 L448,168 L448,444 L354.25,444" fill="none" stroke="#1d4ed8" stroke-width="3" marker-end="url(#blue)"/>
+    <path d="M354.25,444 L448,444 L448,432 L496,432" fill="none" stroke="#1d4ed8" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#blue)"/>
+    <g fill="#b91c1c"><circle cx="208" cy="513" r="5"/><circle cx="277.75" cy="444" r="6"/><circle cx="277.75" cy="204" r="6"/><circle cx="136" cy="216" r="5"/></g>
+    <g fill="#1d4ed8"><circle cx="424" cy="135" r="5"/><circle cx="354.25" cy="204" r="6"/><circle cx="354.25" cy="444" r="6"/><circle cx="496" cy="432" r="5"/></g>
+    <text x="212" y="530" font-size="12" fill="#b91c1c">Red start</text>
+    <text x="430" y="133" font-size="12" fill="#1d4ed8">Blue start</text>
+    <text x="255" y="464" font-size="12" fill="#b91c1c">Batches 1/2</text>
+    <text x="253" y="191" font-size="12" fill="#b91c1c">Batches 3/4</text>
+    <text x="336" y="191" font-size="12" fill="#1d4ed8">Batches 1/2</text>
+    <text x="336" y="464" font-size="12" fill="#1d4ed8">Batches 3/4</text>
+    <g fill="#15803d"><circle cx="145" cy="396" r="6"/><circle cx="244" cy="153" r="6"/><circle cx="136" cy="504" r="6"/><circle cx="487" cy="252" r="6"/><circle cx="388" cy="495" r="6"/><circle cx="496" cy="144" r="6"/></g>
+    <text x="111" y="382" font-size="12" fill="#15803d">Flower 1</text>
+    <text x="213" y="144" font-size="12" fill="#15803d">Flower 2</text>
+    <text x="103" y="493" font-size="12" fill="#15803d">Garden 3</text>
+    <text x="475" y="237" font-size="12" fill="#15803d">Flower 1</text>
+    <text x="372" y="516" font-size="12" fill="#15803d">Flower 2</text>
+    <text x="507" y="149" font-size="12" fill="#15803d">Garden 3</text>
+    <text x="100" y="560" font-size="12">(0,0)</text>
+    <text x="270" y="572" font-size="14">AUDIENCE / +X →</text>
+    <text x="39" y="120" font-size="12">+Y ↑</text>
+    <text x="36" y="610" font-size="13">Batch 1 → flower 1 → batch 2 / tip → flower 2 → batch 3 → garden → batch 4 / tip → park.</text>
+    <text x="36" y="633" font-size="13">Four pollen per batch/pickup. Green: pickup poses. Dashed: parking. Return legs overlap.</text>
+    <text x="36" y="654" font-size="12">Not a collision map; check frame/CELL sweep, flowers, mechanisms and teammate clearance.</text>
+  </g>
+</svg>

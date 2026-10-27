@@ -33,6 +33,13 @@ translation and heading come from `pinpoint`, with two pods and its onboard IMU.
 
 ## Robot configuration names
 
+For the 2026–27 BIOBUZZ field coordinate matrix, red/blue wall-aligned start presets, and INIT
+selection in `BIOBUZZ: Field Location Auto`, see [BIOBUZZ field locations](../doc/BIOBUZZ_FIELD_LOCATIONS.md).
+This new OpMode uses absolute field coordinates; existing local-origin diagnostics are unchanged.
+
+For the Driver Station-listed two-tip-and-park autonomous draft, its plotted red/blue routes, shooting interlocks
+and required physical commissioning, see [BIOBUZZ hive autonomous](../doc/BIOBUZZ_HIVE_AUTO.md).
+
 These names are case-sensitive and must exactly match the devices configured on the Robot
 Controller. Change them in `RobotConfig.Hardware` if the configuration uses different names.
 
