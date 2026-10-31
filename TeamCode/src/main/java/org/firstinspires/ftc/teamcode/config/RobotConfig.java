@@ -48,6 +48,8 @@ public final class RobotConfig {
     // Must match the Limelight IP configured in the Robot Controller hardware configuration.
     public static final String LIMELIGHT_API_HOST = "172.29.2.1";
     public static final boolean ALLOW_ALL_APRILTAG_IDS = true;
+    /** BIOBUZZ AprilTag black-square edge length: 3.25 inches, in Limelight's millimeters. */
+    public static final double APRILTAG_SIZE_MM = 82.55;
     public static final int POLL_RATE_HZ = 100;
     public static final long APRILTAG_RESULT_STALE_MS = 250;
 

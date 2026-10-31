@@ -29,13 +29,13 @@ public final class AprilTagTracker {
     limelight.setPollRateHz(RobotConfig.Localization.POLL_RATE_HZ);
     pipelineSwitchSucceeded =
         limelight.pipelineSwitch(RobotConfig.Localization.APRILTAG_PIPELINE);
-    idFilterStatus = !RobotConfig.Localization.ALLOW_ALL_APRILTAG_IDS
-        ? "Camera filter unchanged"
-        : !pipelineSwitchSucceeded
-            ? "FAILED: pipeline switch failed"
-            : LimelightPipelineConfiguration.applyAllowAllIds(
-                RobotConfig.Localization.LIMELIGHT_API_HOST,
-                RobotConfig.Localization.APRILTAG_PIPELINE);
+    idFilterStatus = !pipelineSwitchSucceeded
+        ? "FAILED: pipeline switch failed"
+        : LimelightPipelineConfiguration.apply(
+            RobotConfig.Localization.LIMELIGHT_API_HOST,
+            RobotConfig.Localization.APRILTAG_PIPELINE,
+            RobotConfig.Localization.ALLOW_ALL_APRILTAG_IDS,
+            RobotConfig.Localization.APRILTAG_SIZE_MM);
   }
 
   public void start() {
