@@ -1,15 +1,14 @@
 package org.firstinspires.ftc.teamcode.navigation;
 
 /**
- * A 6 x 6 tile coordinate field laid over Pedro's 0-144 inch field.
- *
- * <p>Grid points run from (0, 0) to (6, 6); one grid unit is one 24-inch field tile. AprilTag 40
- * marks grid point (2, 1). All headings are field-relative radians, counter-clockwise from +X.
+ * A 6 x 6 foot coordinate field. Grid points run from (0, 0) to (6, 6) feet; Pedro still works in
+ * inches internally, so (6, 6) is (72, 72) inches. AprilTag 40 marks grid point (2, 1). All headings
+ * are field-relative radians, counter-clockwise from +X.
  */
 public final class GridField {
   public static final int MIN = 0;
   public static final int MAX = 6;
-  public static final double TILE_INCHES = 24.0;
+  public static final double INCHES_PER_UNIT = 12.0;
 
   public static final int ANCHOR_TAG_ID = 40;
   public static final int ANCHOR_GRID_X = 2;
@@ -21,11 +20,11 @@ public final class GridField {
   private GridField() {}
 
   public static double toInches(double gridUnits) {
-    return gridUnits * TILE_INCHES;
+    return gridUnits * INCHES_PER_UNIT;
   }
 
   public static double toGrid(double inches) {
-    return inches / TILE_INCHES;
+    return inches / INCHES_PER_UNIT;
   }
 
   public static int clamp(int gridValue) {

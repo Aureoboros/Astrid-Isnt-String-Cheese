@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.navigation.GridField;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 /**
- * 6 x 6 grid navigation. During INIT the robot reads AprilTag 40 (grid point 2,1) to find where it
+ * 6 x 6 foot grid navigation. During INIT the robot reads AprilTag 40 (grid point 2,1) to find where it
  * is. After Play, the D-pad picks a grid point (up/down = Y, right/left = X), A drives there in a
  * straight line, then the robot turns to face the field center (3, 3). B cancels a move.
  */
@@ -205,11 +205,11 @@ public final class GridFieldNav extends LinearOpMode {
     Pose pose = follower.getPose();
     telemetry.addData("Status", status);
     telemetry.addData("Tag " + GridField.ANCHOR_TAG_ID, tagVisible ? "visible" : "not visible");
-    telemetry.addData("Robot (grid)", "X %.2f, Y %.2f",
+    telemetry.addData("Robot (ft)", "X %.2f, Y %.2f",
         GridField.toGrid(pose.getX()), GridField.toGrid(pose.getY()));
     telemetry.addData("Robot (in)", "X %.1f, Y %.1f, heading %.1f deg",
         pose.getX(), pose.getY(), Math.toDegrees(pose.getHeading()));
-    telemetry.addData("Target (grid)", "(%d, %d)", targetX, targetY);
+    telemetry.addData("Target (ft)", "(%d, %d)", targetX, targetY);
     telemetry.addLine("D-pad: up/down = Y, right/left = X | A = go | B = cancel");
     telemetry.update();
   }
