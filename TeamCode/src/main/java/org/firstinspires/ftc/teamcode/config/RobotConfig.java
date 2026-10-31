@@ -44,6 +44,10 @@ public final class RobotConfig {
     }
 
     public static final int APRILTAG_PIPELINE = 0;
+    // Camera/server address, NOT the DHCP client address assigned to the Hub or Mac.
+    // Must match the Limelight IP configured in the Robot Controller hardware configuration.
+    public static final String LIMELIGHT_API_HOST = "172.29.2.1";
+    public static final boolean ALLOW_ALL_APRILTAG_IDS = true;
     public static final int POLL_RATE_HZ = 100;
     public static final long APRILTAG_RESULT_STALE_MS = 250;
 

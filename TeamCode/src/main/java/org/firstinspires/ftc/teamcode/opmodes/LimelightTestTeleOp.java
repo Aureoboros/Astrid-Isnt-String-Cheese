@@ -22,6 +22,8 @@ public final class LimelightTestTeleOp extends LinearOpMode {
     tracker.start();
     try {
       telemetry.addLine("Press A on either gamepad to freeze/unfreeze measurements.");
+      telemetry.addData("Pipeline switch", tracker.didPipelineSwitchSucceed());
+      telemetry.addData("AprilTag ID filter", tracker.getIdFilterStatus());
       OdometryTelemetry.add(telemetry);
       telemetry.update();
       waitForStart();
@@ -38,6 +40,8 @@ public final class LimelightTestTeleOp extends LinearOpMode {
         }
 
         telemetry.addData("Connected", tracker.isConnected());
+        telemetry.addData("Pipeline switch", tracker.didPipelineSwitchSucceed());
+        telemetry.addData("AprilTag ID filter", tracker.getIdFilterStatus());
         telemetry.addData("Display", frozen ? "FROZEN" : "LIVE");
         telemetry.addData("Tags", displayedTags.size());
         for (AprilTagObservation tag : displayedTags) {

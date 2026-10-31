@@ -87,6 +87,11 @@ tag, it provides forward and left offset, horizontal distance, straight-line 3D 
 height relative to the robot origin. Accurate height values require the Limelight's position and
 orientation to be configured correctly in the Limelight web interface.
 
+During INIT, the tracker clears pipeline 0's AprilTag ID filter to allow all IDs,
+preserving the other pipeline settings. `Test: Limelight` displays the update status.
+See [Limelight pipeline setup](../doc/LIMELIGHT_PIPELINE_SETUP.md) for the camera IP,
+failure behavior, persistent browser configuration, and tag-size calibration.
+
 ## Driver controls
 
 Both gamepads use the same robot-centric driving map:

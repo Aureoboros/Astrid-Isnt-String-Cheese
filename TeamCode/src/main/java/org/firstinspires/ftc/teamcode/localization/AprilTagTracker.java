@@ -17,6 +17,8 @@ public final class AprilTagTracker {
   private final Limelight3A limelight;
   private List<AprilTagObservation> observations = Collections.emptyList();
   private double resultTimestamp = Double.NaN;
+  private final boolean pipelineSwitchSucceeded;
+  private final String idFilterStatus;
 
   public AprilTagTracker(HardwareMap hardwareMap) {
     this(hardwareMap, RobotConfig.Hardware.LIMELIGHT);
@@ -25,7 +27,15 @@ public final class AprilTagTracker {
   public AprilTagTracker(HardwareMap hardwareMap, String deviceName) {
     limelight = hardwareMap.get(Limelight3A.class, deviceName);
     limelight.setPollRateHz(RobotConfig.Localization.POLL_RATE_HZ);
-    limelight.pipelineSwitch(RobotConfig.Localization.APRILTAG_PIPELINE);
+    pipelineSwitchSucceeded =
+        limelight.pipelineSwitch(RobotConfig.Localization.APRILTAG_PIPELINE);
+    idFilterStatus = !RobotConfig.Localization.ALLOW_ALL_APRILTAG_IDS
+        ? "Camera filter unchanged"
+        : !pipelineSwitchSucceeded
+            ? "FAILED: pipeline switch failed"
+            : LimelightPipelineConfiguration.applyAllowAllIds(
+                RobotConfig.Localization.LIMELIGHT_API_HOST,
+                RobotConfig.Localization.APRILTAG_PIPELINE);
   }
 
   public void start() {
@@ -100,4 +110,8 @@ public final class AprilTagTracker {
   public boolean isConnected() {
     return limelight.isConnected();
   }
+
+  public boolean didPipelineSwitchSucceed() { return pipelineSwitchSucceeded; }
+
+  public String getIdFilterStatus() { return idFilterStatus; }
 }
