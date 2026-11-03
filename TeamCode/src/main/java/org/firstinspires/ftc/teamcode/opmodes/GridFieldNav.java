@@ -7,6 +7,8 @@ import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import java.util.Collections;
+import java.util.List;
 import org.firstinspires.ftc.teamcode.localization.AprilTagObservation;
 import org.firstinspires.ftc.teamcode.localization.AprilTagTracker;
 import org.firstinspires.ftc.teamcode.navigation.GridField;
@@ -35,6 +37,7 @@ public final class GridFieldNav extends LinearOpMode {
 
   private Follower follower;
   private AprilTagTracker tags;
+  private List<AprilTagObservation> visibleTags = Collections.emptyList();
   private int targetX;
   private int targetY;
   private boolean targetChosen;
@@ -47,6 +50,7 @@ public final class GridFieldNav extends LinearOpMode {
     double startHeading = Math.toRadians(START_HEADING_DEGREES);
     follower = Constants.createFollower(hardwareMap);
     follower.setMaxPower(MAX_POWER);
+    // Same Limelight setup as LimelightTestTeleOp: construct (pipeline switch + ID filter), start.
     tags = new AprilTagTracker(hardwareMap);
     tags.start();
 
@@ -55,16 +59,12 @@ public final class GridFieldNav extends LinearOpMode {
     double[] xs = new double[TAG_SAMPLES];
     double[] ys = new double[TAG_SAMPLES];
     int samples = 0;
-    double lastFrame = Double.NaN;
 
     try {
       // Locate the robot from tag 40 while waiting for Play.
       while (opModeInInit() || (opModeIsActive() && samples == 0)) {
-        tags.update();
-        AprilTagObservation tag = tags.getObservation(GridField.ANCHOR_TAG_ID);
-        double frame = tags.getResultTimestamp();
-        if (tag != null && frame != lastFrame) {
-          lastFrame = frame;
+        AprilTagObservation tag = readTags();
+        if (tag != null) {
           double[] p = GridField.robotPositionFromTag(
               tag.getForwardInches(), tag.getLeftInches(), startHeading);
           int slot = samples % TAG_SAMPLES;
@@ -93,7 +93,7 @@ public final class GridFieldNav extends LinearOpMode {
             ? "Looking for AprilTag " + GridField.ANCHOR_TAG_ID + " - point the robot at it"
             : "Tag " + GridField.ANCHOR_TAG_ID + " locked (" + Math.min(samples, TAG_SAMPLES)
                 + " frames). Press Play.";
-        show(tag != null);
+        show();
         idle();
       }
       if (isStopRequested()) {
@@ -105,14 +105,14 @@ public final class GridFieldNav extends LinearOpMode {
       boolean lastA = false;
       while (opModeIsActive()) {
         follower.update();
-        tags.update();
+        readTags();
         handleDpad();
         boolean a = gamepad1.a;
         if (a && !lastA) {
           goTo(targetX, targetY);
         }
         lastA = a;
-        show(tags.getObservation(GridField.ANCHOR_TAG_ID) != null);
+        show();
         idle();
       }
     } finally {
@@ -154,7 +154,7 @@ public final class GridFieldNav extends LinearOpMode {
     double settledAt = -1;
     while (opModeIsActive()) {
       follower.update();
-      tags.update();
+      readTags();
       if (gamepad1.b) {
         follower.breakFollowing();
         status = "Cancelled with B";
@@ -177,7 +177,7 @@ public final class GridFieldNav extends LinearOpMode {
         status = "Timed out - check tuning / path";
         return false;
       }
-      show(tags.getObservation(GridField.ANCHOR_TAG_ID) != null);
+      show();
       idle();
     }
     return false;
@@ -201,10 +201,37 @@ public final class GridFieldNav extends LinearOpMode {
     lastRight = right;
   }
 
-  private void show(boolean tagVisible) {
+  /**
+   * Limelight read, same as LimelightTestTeleOp: update the tracker, take the full list of visible
+   * tags, then pick the anchor tag out of that list. Returns null when the anchor isn't visible.
+   */
+  private AprilTagObservation readTags() {
+    tags.update();
+    visibleTags = tags.getObservations();
+    for (AprilTagObservation tag : visibleTags) {
+      if (tag.getId() == GridField.ANCHOR_TAG_ID) {
+        return tag;
+      }
+    }
+    return null;
+  }
+
+  private void show() {
     Pose pose = follower.getPose();
     telemetry.addData("Status", status);
-    telemetry.addData("Tag " + GridField.ANCHOR_TAG_ID, tagVisible ? "visible" : "not visible");
+    telemetry.addData("Connected", tags.isConnected());
+    telemetry.addData("Pipeline switch", tags.didPipelineSwitchSucceed());
+    telemetry.addData("AprilTag pipeline config", tags.getIdFilterStatus());
+    telemetry.addData("Tags", visibleTags.size());
+    for (AprilTagObservation tag : visibleTags) {
+      telemetry.addData(
+          "Tag " + tag.getId(),
+          "forward %.1f, left %.1f, range %.1f, height %.1f in",
+          tag.getForwardInches(),
+          tag.getLeftInches(),
+          tag.getRangeInches(),
+          tag.getHeightInches());
+    }
     telemetry.addData("Robot (grid)", "X %.2f, Y %.2f",
         GridField.toGrid(pose.getX()), GridField.toGrid(pose.getY()));
     telemetry.addData("Robot (in)", "X %.1f, Y %.1f, heading %.1f deg",
