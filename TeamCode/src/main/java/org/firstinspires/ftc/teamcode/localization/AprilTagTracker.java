@@ -67,7 +67,7 @@ public final class AprilTagTracker {
 
       Position targetPosition = targetPose.getPosition().toUnit(DistanceUnit.INCH);
       currentObservations.add(
-          new AprilTagObservation(
+          AprilTagObservation.fromLimelightRobotSpaceInches(
               fiducial.getFiducialId(),
               targetPosition.x,
               targetPosition.y,

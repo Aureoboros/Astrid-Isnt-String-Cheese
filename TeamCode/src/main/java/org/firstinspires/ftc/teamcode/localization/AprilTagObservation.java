@@ -11,6 +11,23 @@ public final class AprilTagObservation {
   private final double horizontalAngleDegrees;
   private final double verticalAngleDegrees;
 
+  /**
+   * Converts Limelight's target-in-robot-space axes (right, down, forward) to our
+   * robot-relative axes (forward, left, up). Inputs are already converted to inches
+   * and include the mounting transform applied by Limelight; do not apply it again.
+   */
+  public static AprilTagObservation fromLimelightRobotSpaceInches(
+      int id,
+      double xRightInches,
+      double yDownInches,
+      double zForwardInches,
+      double horizontalAngleDegrees,
+      double verticalAngleDegrees) {
+    return new AprilTagObservation(
+        id, zForwardInches, -xRightInches, -yDownInches,
+        horizontalAngleDegrees, verticalAngleDegrees);
+  }
+
   public AprilTagObservation(
       int id,
       double forwardInches,

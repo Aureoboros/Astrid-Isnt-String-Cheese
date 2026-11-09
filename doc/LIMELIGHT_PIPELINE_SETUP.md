@@ -38,3 +38,30 @@ Unit tests check restricted/already-empty filters, preservation of unrelated
 settings and the original configuration, size updates when IDs are already allowed,
 the opt-out ID filter, and rejection of invalid sizes or an unexpected schema.
 Actual camera HTTP behavior still requires the hardware test above.
+
+## Robot-relative coordinates and mounting validation
+
+For `Fiducial.t6t_rs`, the SDK exposes X right, Y down, Z forward without changing
+the axes. `AprilTagTracker` converts meters to inches, then uses
+`AprilTagObservation.fromLimelightRobotSpaceInches` to map forward = Z, left = -X,
+and height = -Y. Mounting offsets/rotation have already been applied by Limelight;
+the code does not apply them a second time. This corrects the previous direct
+X/Y/Z labeling in telemetry and all downstream tracking consumers. Do not use this
+mapping for field-space odometry or `botpose`, which have different semantics.
+
+The recorded Nov 8 tag-35 frame now yields forward 21.2, left 4.9, height 36.2,
+and range 42.3 inches. Range does not change with an axis/sign conversion.
+Regression tests cover all six axis directions and the recorded frame.
+
+The confirmed lens height is 17 inches (LL Up = 0.4318 m for a floor-level robot
+origin), superseding the earlier 14.8-inch measurement. The browser configuration
+also shows LL Forward = 0.0254 m, LL Right = -0.09525 m, and pitch = 45 degrees.
+These mounting settings are preserved, not automatically replaced by the code.
+The 36.2-inch computed height still disagrees with the reported 15-inch tag-center
+height if the tag remains in the same place; verify the physical pitch and offsets.
+Fixing the axes alone does not resolve a mounting calibration error.
+
+After deploying, run **Test: Limelight** in LIVE mode with a known tag position.
+A centered tag 25 inches ahead and 15 inches above a floor-level robot origin
+should report approximately forward 25, left 0, height 15, range 29.2 inches.
+Any odometry consistency baseline must be captured again after deploying this fix.

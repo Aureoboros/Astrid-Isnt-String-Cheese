@@ -87,6 +87,12 @@ tag, it provides forward and left offset, horizontal distance, straight-line 3D 
 height relative to the robot origin. Accurate height values require the Limelight's position and
 orientation to be configured correctly in the Limelight web interface.
 
+The SDK preserves Limelight's target-in-robot-space axes: X right, Y down, Z forward.
+`AprilTagObservation.fromLimelightRobotSpaceInches` maps these to forward = Z,
+left = -X, height/up = -Y. This conversion is used by every `AprilTagTracker` consumer,
+including telemetry, odometry consistency checks, and hive height detection.
+Range is unchanged by this axis conversion; horizontal distance uses forward/left only.
+
 During INIT, the tracker clears pipeline 0's AprilTag ID filter to allow all IDs,
 sets tag size to 82.55 mm (3.25 inches), and preserves the other pipeline settings.
 `Test: Limelight` displays the update status.
