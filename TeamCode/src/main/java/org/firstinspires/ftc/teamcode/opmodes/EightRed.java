@@ -14,4 +14,17 @@ import com.qualcomm.hardware.limelightvision.LLResultTypes;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-@Autonomous(name="AutoRedBackTest with Limelight", group="Autonomous")
+@Autonomous(name="EightRed", group="Autonomous")
+public class EightRed extends LinearOpMode {
+
+    @Override
+    public void runOpMode() throws InterruptedException {
+        // Initialize your hardware here (e.g., Limelight, motors)
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            // Your autonomous program logic goes here
+        }
+    }
+}
