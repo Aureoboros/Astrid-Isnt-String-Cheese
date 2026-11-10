@@ -50,4 +50,7 @@ public final class RobotLocalization {
   public boolean isLimelightConnected() {
     return aprilTags.isConnected();
   }
+
+  /** Shared tracker for the single camera-pan owner in the legacy TeleOp wiring. */
+  public AprilTagTracker getAprilTagTracker() { return aprilTags; }
 }

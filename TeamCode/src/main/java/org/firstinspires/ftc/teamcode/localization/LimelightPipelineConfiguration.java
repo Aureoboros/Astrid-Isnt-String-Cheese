@@ -9,7 +9,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-/** Bounded INIT-only configuration requests; never run these in the movement loop. */
+/** Use during INIT or on a background worker, never on the drive loop. */
 public final class LimelightPipelineConfiguration {
   private LimelightPipelineConfiguration() {}
 
@@ -82,7 +82,39 @@ public final class LimelightPipelineConfiguration {
             - expected.get("fiducial_size").getAsDouble()) < 0.000001;
   }
 
+  /** Live read/modify/verify of mount fields only; callers must run this off the OpMode loop. */
+  public static void applyMount(String host, int pipelineIndex, CameraMountPose mount)
+      throws IOException {
+    String base = "http://" + host + ":5807";
+    JsonObject status = read(base + "/status");
+    if (!status.has("pipelineIndex") || status.get("pipelineIndex").getAsInt() != pipelineIndex) {
+      throw new IOException("Active pipeline mismatch");
+    }
+    JsonObject original = read(base + "/pipeline-atindex?index=" + pipelineIndex);
+    JsonObject updated = mount.updatePipeline(original);
+    if (!mount.matchesPipeline(original)) {
+      if (Thread.currentThread().isInterrupted()) { throw new IOException("Pan stopped"); }
+      HttpURLConnection connection = open(base + "/update-pipeline");
+      try {
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json");
+        byte[] body = updated.toString().getBytes(StandardCharsets.UTF_8);
+        connection.setFixedLengthStreamingMode(body.length);
+        try (OutputStream output = connection.getOutputStream()) { output.write(body); }
+        if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+          throw new IOException("Mount update HTTP " + connection.getResponseCode());
+        }
+      } finally { connection.disconnect(); }
+    }
+    if (Thread.currentThread().isInterrupted()) { throw new IOException("Pan stopped"); }
+    if (!mount.matchesPipeline(read(base + "/pipeline-atindex?index=" + pipelineIndex))) {
+      throw new IOException("Mount update not verified");
+    }
+  }
+
   private static JsonObject read(String address) throws IOException {
+    if (Thread.currentThread().isInterrupted()) { throw new IOException("Request cancelled"); }
     HttpURLConnection connection = open(address);
     try {
       if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {

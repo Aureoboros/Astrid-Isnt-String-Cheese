@@ -32,7 +32,9 @@ required for that manual fix.
 The supplied pipeline's `fiducial_size` was 165.1 mm (6.5 inches); INIT now corrects
 it to 82.55 mm for the manual's 3.25-inch BIOBUZZ tags. Confirm the physical
 black-square size matches this value. A size mismatch affects pose/distance scale.
-The code does not change the camera mount/extrinsics; those still need calibration.
+Without calibrated pan enabled, the code preserves camera mount/extrinsics.
+Calibrated camera pan updates yaw and lens offsets as described in
+[Camera pan setup](LIMELIGHT_PAN_SETUP.md); those settings still require physical calibration.
 
 Unit tests check restricted/already-empty filters, preservation of unrelated
 settings and the original configuration, size updates when IDs are already allowed,

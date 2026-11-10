@@ -4,6 +4,7 @@ import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.google.gson.JsonParser;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,6 +17,9 @@ import org.firstinspires.ftc.teamcode.config.RobotConfig;
 public final class AprilTagTracker {
   private final Limelight3A limelight;
   private List<AprilTagObservation> observations = Collections.emptyList();
+  private List<AprilTagAim> aimTargets = Collections.emptyList();
+  private CameraMountPose frameMount;
+  private PanPoseGate panGate;
   private double resultTimestamp = Double.NaN;
   private final boolean pipelineSwitchSucceeded;
   private final String idFilterStatus;
@@ -45,6 +49,8 @@ public final class AprilTagTracker {
   public void stop() {
     limelight.stop();
     observations = Collections.emptyList();
+    aimTargets = Collections.emptyList();
+    frameMount = null;
     resultTimestamp = Double.NaN;
   }
 
@@ -54,12 +60,21 @@ public final class AprilTagTracker {
         || !result.isValid()
         || result.getStaleness() > RobotConfig.Localization.APRILTAG_RESULT_STALE_MS) {
       observations = Collections.emptyList();
+      aimTargets = Collections.emptyList();
+      frameMount = null;
       resultTimestamp = Double.NaN;
       return;
     }
 
     List<AprilTagObservation> currentObservations = new ArrayList<>();
+    List<AprilTagAim> currentAimTargets = new ArrayList<>();
+    try {
+      frameMount = CameraMountPose.fromFrame(new JsonParser().parse(result.toString()).getAsJsonObject());
+    } catch (RuntimeException malformed) { frameMount = null; }
     for (LLResultTypes.FiducialResult fiducial : result.getFiducialResults()) {
+      if (Double.isFinite(fiducial.getTargetXDegrees())) {
+        currentAimTargets.add(new AprilTagAim(fiducial.getFiducialId(), fiducial.getTargetXDegrees()));
+      }
       Pose3D targetPose = fiducial.getTargetPoseRobotSpace();
       if (targetPose == null) {
         continue;
@@ -76,19 +91,27 @@ public final class AprilTagTracker {
               fiducial.getTargetYDegrees()));
     }
     observations = Collections.unmodifiableList(currentObservations);
+    aimTargets = Collections.unmodifiableList(currentAimTargets);
     resultTimestamp = result.getTimestamp();
   }
 
   /** Limelight frame timestamp; repeated polls of one frame must not count as new evidence. */
-  public double getResultTimestamp() { return resultTimestamp; }
+  public double getResultTimestamp() { return isRobotPoseReady() ? resultTimestamp : Double.NaN; }
+
+  public double getAimFrameTimestamp() { return resultTimestamp; }
+  public List<AprilTagAim> getAimTargets() { return aimTargets; }
+  public void attachPanGate(PanPoseGate gate) { panGate = gate; }
+  public boolean isRobotPoseReady() {
+    return panGate == null || panGate.ready(frameMount, resultTimestamp, System.nanoTime() / 1e9);
+  }
 
   public List<AprilTagObservation> getObservations() {
-    return observations;
+    return isRobotPoseReady() ? observations : Collections.emptyList();
   }
 
   /** Returns the requested tag observation, or {@code null} when that tag is not visible. */
   public AprilTagObservation getObservation(int tagId) {
-    for (AprilTagObservation observation : observations) {
+    for (AprilTagObservation observation : getObservations()) {
       if (observation.getId() == tagId) {
         return observation;
       }
@@ -99,7 +122,7 @@ public final class AprilTagTracker {
   /** Returns the nearest visible tag, or {@code null} when no tag is visible. */
   public AprilTagObservation getNearestObservation() {
     AprilTagObservation nearest = null;
-    for (AprilTagObservation observation : observations) {
+    for (AprilTagObservation observation : getObservations()) {
       if (nearest == null || observation.getRangeInches() < nearest.getRangeInches()) {
         nearest = observation;
       }

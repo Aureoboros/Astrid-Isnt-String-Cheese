@@ -8,7 +8,6 @@ import com.pedropathing.paths.Path;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.List;
@@ -16,6 +15,8 @@ import org.firstinspires.ftc.teamcode.config.HiveAutoConfig;
 import org.firstinspires.ftc.teamcode.config.RobotConfig;
 import org.firstinspires.ftc.teamcode.control.HiveShotController;
 import org.firstinspires.ftc.teamcode.control.PollenBatchInventory;
+import org.firstinspires.ftc.teamcode.control.LimelightPanController;
+import org.firstinspires.ftc.teamcode.telemetry.CameraPanTelemetry;
 import org.firstinspires.ftc.teamcode.localization.AprilTagTracker;
 import org.firstinspires.ftc.teamcode.localization.HiveTipDetector;
 import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap;
@@ -35,10 +36,10 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
   private Follower follower;
   private GoBildaPinpointDriver pinpoint;
   private AprilTagTracker tags;
+  private LimelightPanController pan;
   private ShooterSubsystem shooter;
   private DcMotor intakeFeeder;
   private DcMotor pickupIntake;
-  private CRServo servoFeeder;
   private final ElapsedTime clock = new ElapsedTime();
   private String status = "INIT";
   private Waypoint target;
@@ -69,11 +70,10 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
         pickupIntake.setPower(0);
         if (HiveAutoConfig.FEEDER == HiveAutoConfig.Feeder.INTAKE) {
           intakeFeeder = pickupIntake;
-        } else {
-          servoFeeder = hardwareMap.get(CRServo.class, RobotConfig.Hardware.SERVO_MOTOR);
         }
         setFeed(false);
         tags = new AprilTagTracker(hardwareMap);
+        pan = new LimelightPanController(hardwareMap, tags);
         tags.start();
       }
       while (opModeInInit()) {
@@ -115,6 +115,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
       if (tags != null && !tags.isConnected()) {
         status = "NO MOVEMENT: Limelight is disconnected"; show(); return;
       }
+      if (pan != null) { pan.start(); }
       for (Stage stage : Stage.values()) {
         if (!validate(field, route.approach(stage))
             || (stage.isPickup() && !field.footprintInsideField(route.pickupTarget(stage)))) {
@@ -125,6 +126,10 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
       HiveTipDetector secondCell = new HiveTipDetector(route.secondTagMin());
       for (Stage stage : Stage.values()) {
         currentStage = stage;
+        if (pan != null) {
+          pan.setTrackingEnabled(!stage.isPickup());
+          if (!stage.isPickup()) { pan.setTargetIdRange(route.tagMin(stage), route.tagMin(stage) + 3); }
+        }
         if (clock.seconds() >= scoringDeadline()) { status = "Parking reserve reached"; break; }
         if (stage.isPickup() && !inventory.canPickup()) {
           status = "Pickup blocked: expected inventory not empty (G407)"; break;
@@ -151,6 +156,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
     } finally {
       stopMechanisms();
       if (follower != null) { follower.breakFollowing(); }
+      if (pan != null) { pan.close(); }
       if (tags != null) { tags.stop(); }
     }
   }
@@ -177,7 +183,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
     try {
       while (opModeIsActive()) {
         follower.update();
-        if (tags != null) { tags.update(); }
+        updateTags();
         if (!healthy()) { return false; }
         double now = clock.seconds();
         if (!parking && now >= scoringDeadline()) {
@@ -216,7 +222,8 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
     try {
       while (opModeIsActive() && clock.seconds() < scoringDeadline()) {
         follower.update(); // Drive/heading hold continues while the feeder waits; no sleeps/worker threads.
-        tags.update();
+        if (pan != null) { pan.setTrackingEnabled(shot.getState() == HiveShotController.State.WAIT_HIGH); }
+        updateTags();
         if (!healthy()) { return false; }
         double now = clock.seconds();
         detector.update(now, tags.getResultTimestamp(), tags.getObservations());
@@ -276,7 +283,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
         double started = clock.seconds();
         while (opModeIsActive() && clock.seconds() - started < HiveAutoConfig.PICKUP_HOLD_SECONDS) {
           follower.update();
-          tags.update();
+          updateTags();
           if (!healthy() || clock.seconds() >= scoringDeadline()) {
             status = "Pickup interrupted: no refill assumed; attempt parking"; return false;
           }
@@ -327,7 +334,11 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
   private void setFeed(boolean on) {
     double power = on ? HiveAutoConfig.FEED_POWER : 0;
     if (intakeFeeder != null) { intakeFeeder.setPower(power); }
-    if (servoFeeder != null) { servoFeeder.setPower(power); }
+  }
+
+  private void updateTags() {
+    if (tags != null) { tags.update(); }
+    if (pan != null) { pan.update(); }
   }
 
   private void stopMechanisms() {
@@ -345,6 +356,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
     telemetry.addData("AUTO Time / Budget", "%.1f / %.0f s", clock.seconds(), HiveAutoConfig.AUTO_BUDGET_SECONDS);
     telemetry.addData("Vision-confirmed transitions (not official score)", confirmedTips);
     if (tags != null) {
+      if (pan != null) { CameraPanTelemetry.add(telemetry, pan, tags); }
       telemetry.addData("Limelight Connected / Visible Tags", "%s / %d", tags.isConnected(), tags.getObservations().size());
       for (org.firstinspires.ftc.teamcode.localization.AprilTagObservation tag : tags.getObservations()) {
         telemetry.addData("Tag " + tag.getId(), "distance %.1f in; estimated field height %.1f in",

@@ -92,7 +92,9 @@ In `config/HiveAutoConfig.java`:
   flowers, wall departure and parking. Set `ROUTE_VERIFIED = true` only after verification.
 - Build and deploy to the Robot Controller to see `BIOBUZZ: Two Hive Tips + Park` in the AUTO list.
   It has no `@Disabled` annotation; route verification remains required before even a dry-run move.
-- Determine whether `FEEDER` is `INTAKE` or `SERVO`; default `NONE` deliberately blocks live operation.
+- Use `FEEDER = INTAKE` for the currently supported live feeder; default `NONE`
+  deliberately blocks live operation. `SERVO` is now rejected because `servoMotor`
+  is the positional Limelight pan mount, not a pollen feeder.
   Only the selected feeder is used during shooting. The `intake` motor is independently commanded
   during collection; if it also feeds the shooter, both roles share the same hardware instance.
   Shooter and feeder stay off during pickups. Confirm signed powers and `FEED_PULSE_SECONDS` safely.

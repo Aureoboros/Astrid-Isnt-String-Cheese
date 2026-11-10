@@ -16,6 +16,8 @@ import org.firstinspires.ftc.teamcode.localization.AprilTagTracker;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.PedroAprilTagValidation;
 import org.firstinspires.ftc.teamcode.telemetry.PedroValidationTelemetry;
+import org.firstinspires.ftc.teamcode.telemetry.CameraPanTelemetry;
+import org.firstinspires.ftc.teamcode.control.LimelightPanController;
 
 /** Competition drive TeleOp with live two-wheel odometry and Limelight AprilTag telemetry. */
 @TeleOp(name = "TeleTourney", group = "Competition")
@@ -25,6 +27,7 @@ public final class TeleTourney extends LinearOpMode {
     Follower follower = Constants.createFollower(hardwareMap);
     GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, RobotConfig.Hardware.PINPOINT);
     AprilTagTracker aprilTags = new AprilTagTracker(hardwareMap);
+    LimelightPanController pan = new LimelightPanController(hardwareMap, aprilTags);
     PedroAprilTagValidation validation = new PedroAprilTagValidation(
         RobotConfig.Localization.VALIDATION_POSITION_TOLERANCE_INCHES,
         RobotConfig.Localization.VALIDATION_HEIGHT_TOLERANCE_INCHES, true);
@@ -33,6 +36,8 @@ public final class TeleTourney extends LinearOpMode {
     telemetry.addData("Status", "Drive, odometry, and Limelight initialized");
     telemetry.addLine("Left stick: drive/strafe | Triggers: rotate");
     telemetry.addLine("First visible tag anchors the check. A: re-anchor | B: clear");
+    telemetry.addLine("Camera pan: X tracking toggle | Y center (requires calibrated config)");
+    CameraPanTelemetry.add(telemetry, pan, aprilTags);
     OdometryTelemetry.add(telemetry);
     telemetry.update();
     waitForStart();
@@ -45,6 +50,8 @@ public final class TeleTourney extends LinearOpMode {
       follower.setPose(new Pose(0, 0, 0));
       follower.startTeleopDrive(true);
       aprilTags.start();
+      pan.start();
+      boolean previousX = false, previousY = false;
       while (opModeIsActive()) {
         DriveCommand command = DualGamepadDriveControls.read(gamepad1, gamepad2);
         // Pedro uses positive left strafe and counterclockwise turn; the mapper uses right/CW.
@@ -52,6 +59,11 @@ public final class TeleTourney extends LinearOpMode {
 
         follower.update();
         aprilTags.update();
+        boolean x = gamepad1.x || gamepad2.x, y = gamepad1.y || gamepad2.y;
+        if (x && !previousX) { pan.toggleTracking(); }
+        if (y && !previousY) { pan.requestCenter(); }
+        previousX = x; previousY = y;
+        pan.update();
         Pose pose = follower.getPose();
         List<AprilTagObservation> visibleTags = aprilTags.getObservations();
         AprilTagObservation nearestTag = aprilTags.getNearestObservation();
@@ -90,12 +102,14 @@ public final class TeleTourney extends LinearOpMode {
           telemetry.addData("Tag Height", "%.1f in", nearestTag.getHeightInches());
         }
         PedroValidationTelemetry.add(telemetry, validation);
+        CameraPanTelemetry.add(telemetry, pan, aprilTags);
         OdometryTelemetry.add(telemetry);
         telemetry.update();
         idle();
       }
     } finally {
       follower.breakFollowing();
+      pan.close();
       aprilTags.stop();
     }
   }

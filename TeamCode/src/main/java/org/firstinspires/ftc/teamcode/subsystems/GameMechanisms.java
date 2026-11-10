@@ -2,17 +2,17 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-/** Owns the intake, shooter, and continuous-rotation servo hardware. */
+/** Intake/shooter hardware owner; camera toggle is a request, not a second servo hardware owner. */
 public final class GameMechanisms {
   private final IntakeSubsystem intake;
   private final ShooterSubsystem shooter;
-  private final ServoMotorSubsystem servoMotor;
+  private volatile boolean cameraTrackingEnabled = true;
 
   public GameMechanisms(HardwareMap hardwareMap) {
     intake = new IntakeSubsystem(hardwareMap);
     shooter = new ShooterSubsystem(hardwareMap);
-    servoMotor = new ServoMotorSubsystem(hardwareMap);
-    stopAll();
+    intake.stop();
+    shooter.stop();
   }
 
   public void toggleIntakeDirection() {
@@ -29,7 +29,7 @@ public final class GameMechanisms {
   }
 
   public void toggleServoEnabled() {
-    servoMotor.toggleEnabled();
+    cameraTrackingEnabled = !cameraTrackingEnabled;
   }
 
   public IntakeSubsystem.Direction getIntakeDirection() {
@@ -41,7 +41,7 @@ public final class GameMechanisms {
   }
 
   public boolean isServoEnabled() {
-    return servoMotor.isEnabled();
+    return cameraTrackingEnabled;
   }
 
   public boolean isShooterActive() {
@@ -51,6 +51,6 @@ public final class GameMechanisms {
   public void stopAll() {
     intake.stop();
     shooter.stop();
-    servoMotor.stop();
+    cameraTrackingEnabled = false;
   }
 }

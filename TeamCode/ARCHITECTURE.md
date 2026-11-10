@@ -55,7 +55,26 @@ Controller. Change them in `RobotConfig.Hardware` if the configuration uses diff
 | `intake` | Motor | Intake mechanism | Controlled by A and Y |
 | `Shoot1` | 6000 RPM motor with encoder | First shooter wheel | Controlled by X |
 | `Shoot2` | 6000 RPM motor with encoder | Second shooter wheel | Controlled by X |
-| `servoMotor` | Continuous-rotation servo | Auxiliary servo mechanism | Controlled by B |
+| `servoMotor` | Full-range positional servo | Control Hub servo port 0; Limelight left/right pan mount | Automatic pan or isolated manual position test, after calibration |
+
+Confirmed mechanism wiring: **Expansion Hub motor port 0 = `intake`**, and
+**Expansion Hub motor port 2 = `Shoot1`** (motor and encoder). `Shoot2` is not
+installed yet. `Test: Shooter` supports this single-motor setup; the dual-shooter
+RPM test and other OpModes using `ShooterSubsystem` still require both shooters.
+The corresponding entries in `.run/RobotConfig.xml` have been corrected, and the
+obsolete `intakeMotor` entry on port 3 removed. That XML still contains older
+odometry/servo entries and is not a fully reconciled current robot configuration.
+Configure and activate the confirmed names/ports on the actual Robot Controller;
+editing the repository XML does not deploy hardware configuration to the hub.
+
+Confirmed servo wiring: **Control Hub servo port 0 = `servoMotor`**, configured as
+a **Full Range Servo** (`ServoFullRange` in XML). Servo port 0 is separate from
+Control Hub motor port 0. Camera control now uses `Servo` positions, not `CRServo`
+power. Automatic pan uses AprilTag horizontal image offset and updates mounting yaw
+and off-pivot lens offsets on a background worker. Safe travel and geometry must be
+calibrated in `CameraPanConfig`; movement is disabled by default. The camera servo
+is no longer available as an autonomous pollen feeder. See
+[Camera pan setup](../doc/LIMELIGHT_PAN_SETUP.md) for commissioning and controls.
 
 The two right-side motors are reversed in `MecanumDrive`, allowing the same positive drive command
 to move all four wheels forward. If a wheel spins the wrong way, first verify the physical motor
@@ -113,7 +132,7 @@ Both gamepads use the same robot-centric driving map:
 | A | Toggle intake motor on/off |
 | Y | Toggle intake direction forward/reverse |
 | X | Run both shooter motors at their configured target RPM while held |
-| B | Toggle continuous-rotation servo on/off |
+| B | Toggle camera tracking request in legacy `Limelight TeleOp` |
 
 Gamepad 1 has priority whenever it has active drive input. When gamepad 1 is idle, gamepad 2 can
 drive with the same controls. Inputs from the two controllers are never added together, and a 0.05
@@ -124,7 +143,7 @@ thread only reads movement inputs and writes drivetrain power. The mechanism thr
 handles the intake, shooter, and servo buttons. A wait or timed sequence added to the mechanism
 thread therefore does not pause drivetrain updates. The main OpMode thread continues localization
 and telemetry. Stopping the OpMode—or an exception in either worker—signals both workers to stop
-and sets all controlled motors and the servo to zero.
+and stops controlled motors. The positional camera servo holds its last angle.
 
 The mechanism buttons above apply to `Limelight TeleOp` on either gamepad. In `TeleTourney`, A
 re-anchors the Pedro/Limelight consistency check and B clears it; no mechanisms operate there. The
@@ -152,9 +171,12 @@ next release locks a new pose. `PositionHoldControls` contains the hardware-inde
 machine and is covered by desktop unit tests. How firmly the robot holds depends on the Pedro
 translational and heading PID values, which must be tuned before relying on this behavior.
 
-Mechanism power values are configured in `RobotConfig.Mechanisms`. The `servoMotor` mapping assumes
-a continuous-rotation servo (`CRServo`); a positional servo would require on/off positions instead
-of power values.
+Mechanism power values are configured in `RobotConfig.Mechanisms`. Camera-servo
+positions, yaw calibration, travel limits, and proportional pan gain are configured
+in `CameraPanConfig`. `TeleTourney` and `Test: Limelight` use X to toggle camera
+tracking and Y to request center. A/B retain their existing meanings in those modes.
+The BIOBUZZ live hive auto optionally pans within the active cell's tag-ID cluster;
+it holds the mount during pickup and after entering shooter spin-up/feeding states.
 
 ## Localization validation
 
@@ -202,16 +224,27 @@ only the listed hardware so another unconfigured mechanism does not prevent it f
 | `Test: Odometry Wheels` | Pinpoint on I²C bus 1 and its two pods | Move robot by hand; A zeros displayed pose/counts; telemetry shows status |
 | `Test: Odo 12-inch Movement` | Four drive motors and Pinpoint | Each fresh Y press: forward, left, backward, right 12 in; B aborts |
 | `Test: IMU` | Hub IMU | Rotate the robot by hand; A resets yaw |
-| `Test: Limelight` | Limelight only | View live tag measurements; A freezes/unfreezes the display |
+| `Test: Limelight` | Limelight; camera servo only if pan is enabled and calibrated | A freezes display; X toggles tracking; Y centers |
 | `Test: Intake` | Intake motor only | A toggles power; Y reverses direction |
-| `Test: Shooter` | Both shooter motors | Hold X to run both at 6000 RPM |
+| `Test: Shooter` | `Shoot1` only, Expansion Hub motor port 2 | X toggles ON/OFF; Y toggles FORWARD/REVERSE; 6000 RPM magnitude; signed target/actual/error and direction telemetry |
 | `Test: Dual Shooter RPM` | `Shoot1` and `Shoot2` only | X/A raise/lower Shoot1; Y/B raise/lower Shoot2 by 100 RPM |
-| `Test: Servo Motor` | Continuous-rotation servo only | B toggles power |
+| `Test: Servo Motor` | Positional camera servo only | B enables manual positioning/holds; D-pad left/right steps; A centers; verified safe limits required |
 | `Test: Odo vs AprilTag` | Pedro drive, Pinpoint, Limelight | A captures a reference; B clears it |
 
 Both gamepads work in every diagnostic. Lift the drive wheels off the floor before using the motor
 test, verify the selected motor name in telemetry, and keep clear of all mechanisms. Every powered
-diagnostic stops its output in a `finally` block when the OpMode ends.
+diagnostic stops motors in a `finally` block when the OpMode ends; the positional
+servo holds its last position rather than receiving a blind endpoint command.
+
+`Test: Shooter` starts OFF and FORWARD. X toggles running; releasing X leaves it
+running until the next press. Y changes direction without changing the ON/OFF state,
+so direction can be selected while stopped. Each toggle requires a fresh press;
+holding a button does not repeat, and overlapping presses on both controllers count
+as one combined press until both release that button. Forward commands +6000 RPM,
+reverse commands -6000 RPM, and OFF commands zero. Y applies the new direction
+immediately if running: stop with X and allow the mechanism to coast down before
+reversing a fast-spinning shooter. These controls affect only this single-shooter test,
+not the separate dual-shooter diagnostics or competition OpModes.
 
 The dual-shooter RPM test begins at a 6000 RPM target for each motor after Play and shows both target
 and encoder-measured RPM. Button changes are edge-triggered, so holding a button changes its target

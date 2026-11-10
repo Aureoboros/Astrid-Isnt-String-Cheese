@@ -10,12 +10,15 @@ import org.firstinspires.ftc.teamcode.localization.RobotLocalization;
 import org.firstinspires.ftc.teamcode.subsystems.GameMechanisms;
 import org.firstinspires.ftc.teamcode.subsystems.MecanumDrive;
 import org.firstinspires.ftc.teamcode.telemetry.LocalizationTelemetry;
+import org.firstinspires.ftc.teamcode.control.LimelightPanController;
+import org.firstinspires.ftc.teamcode.telemetry.CameraPanTelemetry;
 
 @TeleOp(name = "Limelight TeleOp", group = "Localization")
 public class LimelightTeleOp extends LinearOpMode {
   @Override
   public void runOpMode() {
     RobotLocalization localization = new RobotLocalization(hardwareMap);
+    LimelightPanController pan = new LimelightPanController(hardwareMap, localization.getAprilTagTracker());
     MecanumDrive drive = new MecanumDrive(hardwareMap);
     GameMechanisms mechanisms = new GameMechanisms(hardwareMap);
     TeleOpControlThreads controlThreads =
@@ -31,6 +34,8 @@ public class LimelightTeleOp extends LinearOpMode {
       telemetry.update();
 
       waitForStart();
+      if (isStopRequested()) { return; }
+      pan.start();
       controlThreads.start();
 
       while (opModeIsActive()) {
@@ -40,6 +45,8 @@ public class LimelightTeleOp extends LinearOpMode {
         }
 
         localization.update();
+        pan.setTrackingEnabled(mechanisms.isServoEnabled());
+        pan.update();
         DriveCommand command = controlThreads.getLatestDriveCommand();
 
         localizationTelemetry.add(telemetry, localization);
@@ -54,13 +61,15 @@ public class LimelightTeleOp extends LinearOpMode {
             mechanisms.isIntakeEnabled() ? "ON" : "OFF",
             mechanisms.getIntakeDirection());
         telemetry.addData("Shooter", mechanisms.isShooterActive() ? "ON" : "OFF");
-        telemetry.addData("Servo Motor", mechanisms.isServoEnabled() ? "ON" : "OFF");
+        telemetry.addData("Camera tracking request", mechanisms.isServoEnabled() ? "ON" : "OFF");
+        CameraPanTelemetry.add(telemetry, pan, localization.getAprilTagTracker());
         OdometryTelemetry.add(telemetry);
         telemetry.update();
         idle();
       }
     } finally {
       controlThreads.stop();
+      pan.close();
       localization.stop();
     }
   }

@@ -19,7 +19,7 @@ public final class HiveAutoConfig {
   public static final double PICKUP_HOLD_SECONDS = 1.5;
   public static final double SHOOT_RPM_1 = 6000;
   public static final double SHOOT_RPM_2 = 6000;
-  // Robot-space Z origin configured in Limelight, NOT lens height (lens is currently 14.8 in).
+  // Robot-space Z origin configured in Limelight, NOT lens height (lens is currently 17 in).
   public static final double ROBOT_ORIGIN_HEIGHT_INCHES = 0;
   // Provisional height bands around manual-derived centers ~34.2 / 49.9 in. Calibrate in both states.
   public static final double LOW_MIN_INCHES = 30;
@@ -33,7 +33,7 @@ public final class HiveAutoConfig {
 
   public static boolean canRun() {
     return ROUTE_VERIFIED && (DRY_RUN || (SHOOTING_AND_CAMERA_VERIFIED && PICKUPS_VERIFIED
-        && TIMED_POLLEN_COUNTING_VERIFIED && FEEDER != Feeder.NONE
+        && TIMED_POLLEN_COUNTING_VERIFIED && FEEDER == Feeder.INTAKE
         && finitePositive(SHOOT_RPM_1) && SHOOT_RPM_1 <= 6000
         && finitePositive(SHOOT_RPM_2) && SHOOT_RPM_2 <= 6000
         && finitePositive(FEED_PULSE_SECONDS) && FEED_PULSE_SECONDS <= 0.5
