@@ -86,6 +86,25 @@ public final class SingleShooterSubsystemTest {
     assertTrue(shooter.isReversed());
   }
 
+  @Test
+  public void targetRpmIsAdjustableClampedAndAppliedWhileRunning() {
+    FakeMotor motor = new FakeMotor();
+    SingleShooterSubsystem shooter = new SingleShooterSubsystem(motor.device);
+    shooter.setTargetRpm(5000);
+    assertEquals(5000, shooter.getTargetRpm(), EPSILON);
+    assertEquals(0, motor.commandedVelocity, EPSILON);
+    shooter.setActive(true);
+    assertEquals(30000, motor.commandedVelocity, EPSILON);
+    shooter.setTargetRpm(4900);
+    assertEquals(29400, motor.commandedVelocity, EPSILON);
+    shooter.setTargetRpm(9000);
+    assertEquals(6000, shooter.getTargetRpm(), EPSILON);
+    shooter.setTargetRpm(-100);
+    assertEquals(0, shooter.getTargetRpm(), EPSILON);
+    shooter.setTargetRpm(Double.NaN);
+    assertEquals(0, shooter.getTargetRpm(), EPSILON);
+  }
+
   /** Fails on unexpected hardware calls; no real Hub or second motor is needed. */
   private static final class FakeMotor {
     DcMotor.RunMode mode;
