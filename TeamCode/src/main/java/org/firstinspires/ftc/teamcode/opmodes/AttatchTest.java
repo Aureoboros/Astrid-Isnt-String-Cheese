@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
  *   <li>Y: intake ON/OFF</li>
  *   <li>B: intake FORWARD/REVERSE</li>
  *   <li>X: launch motor ON/OFF</li>
+ *   <li>A: launch motor FORWARD/REVERSE</li>
  *   <li>D-pad up/down: launch motor target RPM up/down</li>
  *   <li>D-pad left/right (hold): move the servo</li>
  * </ul>
@@ -28,6 +29,7 @@ public final class AttatchTest extends LinearOpMode {
   private static final double SERVO_SPEED_PER_SECOND = 0.2;
 
   private boolean previousX;
+  private boolean previousA;
   private boolean previousY;
   private boolean previousB;
   private boolean previousUp;
@@ -42,7 +44,7 @@ public final class AttatchTest extends LinearOpMode {
 
     try {
       telemetry.addLine("Y: intake on/off | B: intake reverse");
-      telemetry.addLine("X: launcher on/off | D-pad up/down: launcher RPM");
+      telemetry.addLine("X: launcher on/off | A: launcher reverse | D-pad up/down: launcher RPM");
       telemetry.addLine("D-pad left/right (hold): move servo");
       telemetry.addLine("The servo stays still until the first d-pad left/right press.");
       telemetry.addData("Launcher target", "%.0f RPM", launcher.getTargetRpm());
@@ -57,6 +59,7 @@ public final class AttatchTest extends LinearOpMode {
         loopTimer.reset();
 
         boolean x = gamepad1.x || gamepad2.x;
+        boolean a = gamepad1.a || gamepad2.a;
         boolean y = gamepad1.y || gamepad2.y;
         boolean b = gamepad1.b || gamepad2.b;
         boolean up = gamepad1.dpad_up || gamepad2.dpad_up;
@@ -76,6 +79,10 @@ public final class AttatchTest extends LinearOpMode {
         if (x && !previousX) {
           launcher.setActive(!launcher.isActive());
         }
+        if (a && !previousA) {
+          // Flips direction; if running, the motor switches straight to the reversed speed.
+          launcher.setState(launcher.isActive(), !launcher.isReversed());
+        }
         if (up && !previousUp) {
           launcher.setTargetRpm(launcher.getTargetRpm() + RobotConfig.Diagnostics.SHOOTER_RPM_STEP);
         }
@@ -93,6 +100,7 @@ public final class AttatchTest extends LinearOpMode {
         }
 
         previousX = x;
+        previousA = a;
         previousY = y;
         previousB = b;
         previousUp = up;
@@ -102,7 +110,8 @@ public final class AttatchTest extends LinearOpMode {
         double actualRpm = launcher.getActualRpm();
         telemetry.addData("Intake", "%s / %s",
             intake.isEnabled() ? "ON" : "OFF", intake.getDirection());
-        telemetry.addData("Launcher", launcher.isActive() ? "ON" : "OFF");
+        telemetry.addData("Launcher", "%s / %s", launcher.isActive() ? "ON" : "OFF",
+            launcher.isReversed() ? "REVERSE" : "FORWARD");
         telemetry.addData("Launcher target", "%.0f RPM", launcher.getTargetRpm());
         telemetry.addData("Launcher RPM", "commanded %.0f, actual %.0f", commandedRpm, actualRpm);
         telemetry.addData("Launcher error", "%.0f RPM", commandedRpm - actualRpm);
