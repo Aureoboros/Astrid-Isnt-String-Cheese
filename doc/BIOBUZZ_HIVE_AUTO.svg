@@ -42,7 +42,7 @@
     <text x="475" y="237" font-size="12" fill="#15803d">Flower 1</text>
     <text x="372" y="516" font-size="12" fill="#15803d">Flower 2</text>
     <text x="507" y="149" font-size="12" fill="#15803d">Garden 3</text>
-    <text x="100" y="560" font-size="12">(0,0)</text>
+    <text x="100" y="560" font-size="12">(-72,-72)</text>
     <text x="270" y="572" font-size="14">AUDIENCE / +X →</text>
     <text x="39" y="120" font-size="12">+Y ↑</text>
     <text x="36" y="610" font-size="13">Batch 1 → flower 1 → batch 2 / tip → flower 2 → batch 3 → garden → batch 4 / tip → park.</text>
