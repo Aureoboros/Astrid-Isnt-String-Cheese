@@ -3,6 +3,8 @@
 The robot code is organized by responsibility so OpModes stay small and hardware or control logic
 can be reused between TeleOp and Autonomous.
 
+For file locations and settings to edit, see the [quick-change reference](../doc/QUICK_CHANGES.md).
+
 ## How the code fits together
 
 | Package | Responsibility |
