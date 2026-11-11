@@ -12,6 +12,7 @@ public final class SingleShooterSubsystem {
   private final DcMotorEx motor;
   private boolean active;
   private boolean reversed;
+  private double targetRpm = RobotConfig.Mechanisms.SHOOTER_TARGET_RPM;
 
   public SingleShooterSubsystem(HardwareMap hardwareMap) {
     this(hardwareMap.get(DcMotorEx.class, RobotConfig.Hardware.SHOOTER_1));
@@ -49,7 +50,16 @@ public final class SingleShooterSubsystem {
   }
 
   public double getTargetRpm() {
-    return RobotConfig.Mechanisms.SHOOTER_TARGET_RPM;
+    return targetRpm;
+  }
+
+  /** Sets the ON speed magnitude, clamped to 0..SHOOTER_TARGET_RPM, and applies it immediately. */
+  public void setTargetRpm(double rpm) {
+    if (!Double.isFinite(rpm)) {
+      return;
+    }
+    targetRpm = Math.max(0, Math.min(RobotConfig.Mechanisms.SHOOTER_TARGET_RPM, rpm));
+    setState(active, reversed);
   }
 
   public double getActualRpm() {
