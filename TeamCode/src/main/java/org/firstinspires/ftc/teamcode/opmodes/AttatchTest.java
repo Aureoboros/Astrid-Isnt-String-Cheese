@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
  * <ul>
  *   <li>Y: intake ON/OFF</li>
  *   <li>B: intake FORWARD/REVERSE</li>
- *   <li>X: launch motor ON/OFF</li>
+ *   <li>X: launch motor ON/OFF (always runs REVERSE)</li>
  *   <li>D-pad up/down: launch motor target RPM up/down</li>
  *   <li>D-pad left/right: small servo position step (one per press)</li>
  *   <li>A: center the servo</li>
@@ -37,6 +37,8 @@ public final class AttatchTest extends LinearOpMode {
   public void runOpMode() {
     IntakeSubsystem intake = new IntakeSubsystem(hardwareMap);
     SingleShooterSubsystem launcher = new SingleShooterSubsystem(hardwareMap);
+    // No reverse button in this test, so the launcher is set to REVERSE from the start (still OFF).
+    launcher.setState(false, true);
     ServoMotorSubsystem servo = new ServoMotorSubsystem(hardwareMap);
 
     try {
@@ -47,7 +49,7 @@ public final class AttatchTest extends LinearOpMode {
       telemetry.addData("Servo min / center / max", "%.3f / %.3f / %.3f",
           CameraPanConfig.MIN_POSITION, CameraPanConfig.CENTER_POSITION,
           CameraPanConfig.MAX_POSITION);
-      telemetry.addData("Launcher target", "%.0f RPM", launcher.getTargetRpm());
+      telemetry.addData("Launcher target", "%.0f RPM, REVERSE", launcher.getTargetRpm());
       telemetry.addData("Servo travel verified", CameraPanConfig.travelReady());
       OdometryTelemetry.add(telemetry);
       telemetry.update();
@@ -110,7 +112,8 @@ public final class AttatchTest extends LinearOpMode {
         double actualRpm = launcher.getActualRpm();
         telemetry.addData("Intake", "%s / %s",
             intake.isEnabled() ? "ON" : "OFF", intake.getDirection());
-        telemetry.addData("Launcher", launcher.isActive() ? "ON" : "OFF");
+        telemetry.addData("Launcher", "%s / %s", launcher.isActive() ? "ON" : "OFF",
+            launcher.isReversed() ? "REVERSE" : "FORWARD");
         telemetry.addData("Launcher target", "%.0f RPM", launcher.getTargetRpm());
         telemetry.addData("Launcher RPM", "commanded %.0f, actual %.0f", commandedRpm, actualRpm);
         telemetry.addData("Launcher error", "%.0f RPM", commandedRpm - actualRpm);
