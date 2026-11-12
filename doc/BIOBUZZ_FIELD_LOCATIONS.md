@@ -89,7 +89,29 @@ Pinpoint field pose is anchored to that start without recalibrating the gyro.
 `POSE_ONLY` is the default and commands no movement. `LEAVE_WALL_12_INCHES` is an opt-in
 demonstration: it resolves `<START_NAME>_CLEAR_WALL` and drives 12 estimated inches inward,
 preserving the starting heading. Verify clearance before enabling it. B during movement aborts;
-Driver Station Stop ends the OpMode. No Limelight or mechanisms are initialized.
+Driver Station Stop ends the OpMode. No mechanisms are initialized; the Limelight is started if it
+is configured (it is optional, and only `HIVE_CHECK_AND_PARK` uses it).
+
+`HIVE_CHECK_AND_PARK` works from **any of the four starts** of the selected alliance:
+
+| Step | Red location (X, Y, heading) | Blue |
+| --- | --- | --- |
+| 1. Leave the wall 12 in | `<START>_CLEAR_WALL` | same |
+| 2. Outside corridor | `RED_HIVE_APPROACH` (−44, −40, 90) | `BLUE_HIVE_APPROACH` (44, 40, 270) |
+| 3. In front of own raised cell | `RED_HIVE_CHECK` (−12.75, −40, 90) | `BLUE_HIVE_CHECK` (12.75, 40, 270) |
+| 4. Limelight position fix, then re-drive onto the check pose | — | — |
+| 5. Back to the corridor | `RED_HIVE_APPROACH` | `BLUE_HIVE_APPROACH` |
+| 6. Up/down the corridor | `RED_PARK_CORRIDOR` (−44, 36, 180) | `BLUE_PARK_CORRIDOR` (44, −36, 0) |
+| 7. Park, partly in own loading zone | `RED_PARK` (−60, 36, 180) | `BLUE_PARK` (60, −36, 0) |
+
+The check pose is the same as the hive auto's first shooting pose, and the fix is the same one:
+several fresh frames of the hive tags listed in `HiveAutoConfig.RED_HIVE_TAGS` / `BLUE_HIVE_TAGS`
+are averaged and, if they agree, replace the X/Y (heading stays on the IMU). If the Limelight is
+missing, the tag positions are not measured yet, or the frames disagree, it says why in the
+`Limelight Position Fix` telemetry line and parks on odometry. See
+[BIOBUZZ_HIVE_AUTO.md](BIOBUZZ_HIVE_AUTO.md) for measuring the tag positions. Tests sample every leg
+from all eight starts for field bounds, own-half footprint and the nominal hive frame; they are
+not a substitute for walking the route on the real field (flowers, loading tape, teammate).
 
 The movement plan uses Pedro with Pinpoint as the only pose source, 25% power, a 15-second
 per-leg timeout, a 28-second software AUTO budget, and 1.5-in / 5° settling for 0.1 seconds.
@@ -125,7 +147,7 @@ Examples are coordinate-programming demonstrations, not tested scoring strategie
 
 Other existing diagnostics and TeleOps retain their local-origin behavior. In particular,
 `TeleTourney` still resets to `(0,0,0)`; this change does not silently transfer absolute field pose
-between OpModes or use Limelight to correct it. Pinpoint accuracy still depends on measured pod
+between OpModes. Only the `HIVE_CHECK_AND_PARK` plan uses the Limelight to correct position. Pinpoint accuracy still depends on measured pod
 resolution, offsets, directions, and initial physical alignment.
 
 Tests: `BiobuzzFieldMapTest`, `BiobuzzAutoRoutesTest`, and `AutonomousStartControlsTest` cover the

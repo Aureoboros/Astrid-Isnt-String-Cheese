@@ -90,6 +90,20 @@ public final class BiobuzzFieldMap {
           pose.getX() + WALL_EXIT_INCHES * Math.cos(heading),
           pose.getY() + WALL_EXIT_INCHES * Math.sin(heading), pose.getHeadingDegrees()));
     }
+    // Hive check-and-park points (red values; blue is the 180-degree rotation). The outside
+    // corridor X = -44 keeps an 18-inch robot clear of the hive frame from every red start.
+    // HIVE_CHECK is the same pose as the hive auto's first shooting pose, facing the raised cell.
+    registerMirrored("HIVE_APPROACH", -44, -40, 90);
+    registerMirrored("HIVE_CHECK", -12.75, -40, 90);
+    registerMirrored("PARK_CORRIDOR", -44, 36, 180);
+    registerMirrored("PARK", -60, 36, 180);
+  }
+
+  /** Registers RED_<suffix> at (x, y, h) and BLUE_<suffix> at its 180-degree field rotation. */
+  private void registerMirrored(String suffix, double x, double y, double headingDegrees) {
+    registerLocation(Alliance.RED.name() + "_" + suffix, new Waypoint(x, y, headingDegrees));
+    registerLocation(Alliance.BLUE.name() + "_" + suffix,
+        new Waypoint(-x, -y, (headingDegrees + 180) % 360));
   }
 
   public Waypoint startPose(StartLocation start) {
