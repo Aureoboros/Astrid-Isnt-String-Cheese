@@ -16,14 +16,21 @@ public final class ServoMotorSubsystem {
 
   public ServoMotorSubsystem(HardwareMap hardwareMap) {
     this(hardwareMap.get(Servo.class, RobotConfig.Hardware.SERVO_MOTOR), CameraPanConfig.travelReady(),
-        CameraPanConfig.MIN_POSITION, CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION);
+        CameraPanConfig.MIN_POSITION, CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION,
+        CameraPanConfig.START_POSITION);
   }
 
   ServoMotorSubsystem(Servo servo, boolean verified, double min, double center, double max) {
+    this(servo, verified, min, center, max, center);
+  }
+
+  ServoMotorSubsystem(Servo servo, boolean verified, double min, double center, double max,
+      double start) {
     this.servo = servo;
-    minPosition = min; centerPosition = center; maxPosition = max; position = center;
+    minPosition = min; centerPosition = center; maxPosition = max; position = start;
     travelReady = verified && Double.isFinite(min) && Double.isFinite(center)
-        && Double.isFinite(max) && 0 <= min && min < center && center < max && max <= 1;
+        && Double.isFinite(max) && 0 <= min && min < center && center < max && max <= 1
+        && Double.isFinite(start) && start >= min && start <= max;
     // No initialization movement until the operator verifies safe travel and enables control.
   }
 

@@ -5,7 +5,8 @@ left/right about a vertical pivot; upward pitch is fixed. It is not a pollen fee
 Pinpoint remains the robot-position source; camera pan never changes Pedro's pose.
 
 Automatic movement is **disabled by default** in `config/CameraPanConfig.java`.
-Manual testing is enabled with MIN **0.4**, CENTER **0.5**, and MAX **0.6**
+Manual testing is enabled with MIN **0.05**, CENTER **0.2**, and MAX **0.35**,
+with **START_POSITION = 0.2**
 (`TRAVEL_VERIFIED = true`), as specified by the operator. Unknown yaw/sign values
 still prevent automatic tracking; `ENABLED` and `GEOMETRY_VERIFIED` remain false.
 Do not just turn all flags on to bypass these checks.
@@ -16,10 +17,11 @@ Do not just turn all flags on to bypass these checks.
    checking servo specifications, linkage, hard stops, and cable strain. Disconnect
    the linkage for initial servo setup if necessary. Enter these positions and set
    `TRAVEL_VERIFIED = true` only after verifying them; leave `ENABLED = false`.
-2. Run **Test: Servo Motor**. B enables manual positioning at the configured center;
+2. Run **Test: Servo Motor**. The first B press enables manual positioning at **0.2**;
    press Play first; there is no movement during INIT. D-pad left/right decreases/
-   increases position by **0.005** per fresh press, clamped to **0.4–0.6**. A
-   requests center, and B again disables further movement while holding position.
+   increases position by **0.005** per fresh press, clamped to **0.05–0.35**. A
+   requests center (**0.2**), and B again disables further movement while holding position.
+   Re-enabling holds the last position; it does not reset to 0.2 each time.
    These are increasing/decreasing servo positions, not guaranteed physical left/right.
    The test initializes no drivetrain or Limelight. Do not trust robot-space tag
    poses during this isolated manual test: it does not update camera extrinsics.
@@ -45,7 +47,7 @@ Do not just turn all flags on to bypass these checks.
    test tag produced a computed 36.2-inch height: that discrepancy is not resolved
    by pan code. Verify physical pitch and tag size before trusting distance/height.
 8. Set a settling time sufficient for the worst allowed move, including initial
-   centering from either limit. Check distances and height against measured tag
+   startup positioning and centering from either limit. Check distances and height against measured tag
    locations at center and both sides. Set `GEOMETRY_VERIFIED = true` only after
    verification, then enable automatic pan with `ENABLED = true` and redeploy.
 
@@ -59,8 +61,11 @@ Do not just turn all flags on to bypass these checks.
 | BIOBUZZ: Two Hive Tips + Park | Automatic, no gamepad controls after Play; restricts target to active cell cluster |
 | Test: Servo Motor | Isolated manual position calibration only |
 
-Both gamepads are supported. The automatic controller initializes its center only
-after Play in these integrations. Other AprilTag/navigation tests keep the camera
+Both gamepads are supported. The automatic controller commands `START_POSITION`
+(**0.2**) only after Play in these integrations; explicit center requests use **0.2**.
+Automatic pan remains disabled until yaw/geometry calibration is completed for the new limits.
+**Test: Attachments** also enables its manual servo at 0.2 after Play.
+Other AprilTag/navigation tests keep the camera
 stationary; do not move it externally while relying on their robot-relative poses.
 Existing dual-shooter requirements and autonomous commissioning gates are unchanged.
 Live hive AUTO now requires the intake feeder; `SERVO` cannot command the camera.

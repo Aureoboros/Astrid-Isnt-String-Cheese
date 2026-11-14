@@ -15,7 +15,8 @@ public final class ServoMotorTestTeleOp extends LinearOpMode {
     ServoMotorSubsystem servoMotor = new ServoMotorSubsystem(hardwareMap);
 
     telemetry.addLine("B: enable/hold | D-pad left/right: small position step | A: center");
-    telemetry.addLine("Press Play, then B to enable at center. No automatic sweep.");
+    telemetry.addLine("Press Play, then B to enable at start. A moves to center. No automatic sweep.");
+    telemetry.addData("Servo start", "%.3f", CameraPanConfig.START_POSITION);
     telemetry.addData("Servo min / center / max", "%.3f / %.3f / %.3f",
         CameraPanConfig.MIN_POSITION, CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION);
     telemetry.addData("Safe travel verified", CameraPanConfig.travelReady());
@@ -40,6 +41,7 @@ public final class ServoMotorTestTeleOp extends LinearOpMode {
 
         telemetry.addData("Camera servo", servoMotor.isEnabled() ? "MANUAL ENABLED" : "HOLD / BLOCKED");
         telemetry.addData("Commanded position", "%.3f", servoMotor.getPosition());
+        telemetry.addData("Servo start", "%.3f", CameraPanConfig.START_POSITION);
         telemetry.addData("Servo min / center / max", "%.3f / %.3f / %.3f",
             CameraPanConfig.MIN_POSITION, CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION);
         telemetry.addData("Safe travel verified", CameraPanConfig.travelReady());

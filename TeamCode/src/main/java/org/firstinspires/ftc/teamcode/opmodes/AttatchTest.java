@@ -46,7 +46,8 @@ public final class AttatchTest extends LinearOpMode {
       telemetry.addLine("Y: intake on/off | B: intake reverse");
       telemetry.addLine("X: launcher on/off | D-pad up/down: launcher RPM");
       telemetry.addLine("D-pad left/right: small servo step | A: center servo");
-      telemetry.addLine("The servo is enabled at center when Play is pressed.");
+      telemetry.addLine("The servo is enabled at its start position when Play is pressed.");
+      telemetry.addData("Servo start", "%.3f", CameraPanConfig.START_POSITION);
       telemetry.addData("Servo min / center / max", "%.3f / %.3f / %.3f",
           CameraPanConfig.MIN_POSITION, CameraPanConfig.CENTER_POSITION,
           CameraPanConfig.MAX_POSITION);

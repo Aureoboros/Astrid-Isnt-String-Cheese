@@ -23,7 +23,7 @@ public final class LimelightPanController implements AutoCloseable {
   private ExecutorService worker;
   private Future<?> pending;
   private boolean started, tracking = true, waitingForFrame, fault, centerRequested;
-  private double position = CameraPanConfig.CENTER_POSITION;
+  private double position = CameraPanConfig.START_POSITION;
   private double lastMove = Double.NEGATIVE_INFINITY;
   private double lastAimTimestamp = Double.NaN;
   private String status;
@@ -50,7 +50,7 @@ public final class LimelightPanController implements AutoCloseable {
       }
       servo = hardwareMap.get(Servo.class, RobotConfig.Hardware.SERVO_MOTOR);
       tags.attachPanGate(gate);
-      status = "READY: center command begins after Play";
+      status = "READY: start-position command begins after Play";
     } catch (IllegalArgumentException invalid) {
       servo = null;
       status = "BLOCKED: " + invalid.getMessage();
@@ -65,7 +65,7 @@ public final class LimelightPanController implements AutoCloseable {
       thread.setDaemon(true);
       return thread;
     });
-    move(CameraPanConfig.CENTER_POSITION);
+    move(CameraPanConfig.START_POSITION);
   }
 
   public void toggleTracking() { tracking = !tracking; }
