@@ -53,7 +53,7 @@ Do not just turn all flags on to bypass these checks.
 
 | OpMode | Camera controls |
 | --- | --- |
-| TeleTourney | X toggles tracking; Y requests center; A/B keep odometry-validation controls |
+| TeleTourney | No manual camera buttons; automatic tracking only if calibrated/enabled. X/Y control Shoot1/intake; A/B keep odometry-validation controls |
 | Test: Limelight | X toggles tracking; Y requests center; A freezes display only |
 | Limelight TeleOp (legacy) | B toggles tracking request; movement/mechanism workers remain separate |
 | BIOBUZZ: Two Hive Tips + Park | Automatic, no gamepad controls after Play; restricts target to active cell cluster |

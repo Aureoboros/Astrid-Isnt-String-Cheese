@@ -148,7 +148,19 @@ and telemetry. Stopping the OpMode—or an exception in either worker—signals 
 and stops controlled motors. The positional camera servo holds its last angle.
 
 The mechanism buttons above apply to `Limelight TeleOp` on either gamepad. In `TeleTourney`, A
-re-anchors the Pedro/Limelight consistency check and B clears it; no mechanisms operate there. The
+re-anchors the Pedro/Limelight consistency check and B clears it. Its separate mechanism map is
+**Y cycles intake FORWARD → STOP → REVERSE → STOP → FORWARD**, **X Shoot1 ON/OFF**,
+and **D-pad up/down ±100 RPM** per fresh press on either gamepad, bounded to 0–6000 RPM.
+Both motors start OFF; the first Y press starts intake FORWARD. Intake always has a
+separate STOP press between directions (allow it to coast down before the next press).
+Shoot1 runs FORWARD when enabled. Both stop on OpMode exit. Selected shooter speed starts at `RobotConfig.Mechanisms.SHOOTER_TARGET_RPM`
+(6000), can be changed while OFF or ON, and persists across toggles until the OpMode restarts.
+Holding a button does not repeat; overlapping controller presses count once until both release.
+Simultaneous fresh up/down presses cancel. `TeleTourneyMechanismControls` owns this map.
+TeleTourney initializes only `intake` (Expansion motor 0) and `Shoot1` (Expansion motor 2),
+not Shoot2. Telemetry shows motor ON/OFF, selected speed, commanded/actual RPM and error.
+X/Y no longer control the camera; automatic pan still requires its calibrated configuration.
+Mechanism updates add no waits or sleeps to the drive loop. The
 `Test: Odo vs AprilTag` diagnostic does not operate the mechanisms; in that OpMode, A captures a
 baseline and B clears it. Pedro Pathing's generated `Tuning` OpMode retains its own controls and
 does not use this shared mapping.

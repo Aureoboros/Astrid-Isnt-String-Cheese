@@ -18,6 +18,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.PedroAprilTagValidation;
 import org.firstinspires.ftc.teamcode.telemetry.PedroValidationTelemetry;
 import org.firstinspires.ftc.teamcode.telemetry.CameraPanTelemetry;
 import org.firstinspires.ftc.teamcode.control.LimelightPanController;
+import org.firstinspires.ftc.teamcode.control.TeleTourneyMechanismControls;
+import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.SingleShooterSubsystem;
 
 /** Competition drive TeleOp with live two-wheel odometry and Limelight AprilTag telemetry. */
 @TeleOp(name = "TeleTourney", group = "Competition")
@@ -32,17 +35,25 @@ public final class TeleTourney extends LinearOpMode {
         RobotConfig.Localization.VALIDATION_POSITION_TOLERANCE_INCHES,
         RobotConfig.Localization.VALIDATION_HEIGHT_TOLERANCE_INCHES, true);
 
-    telemetry.setMsTransmissionInterval(50);
-    telemetry.addData("Status", "Drive, odometry, and Limelight initialized");
-    telemetry.addLine("Left stick: drive/strafe | Triggers: rotate");
-    telemetry.addLine("First visible tag anchors the check. A: re-anchor | B: clear");
-    telemetry.addLine("Camera pan: X tracking toggle | Y center (requires calibrated config)");
-    CameraPanTelemetry.add(telemetry, pan, aprilTags);
-    OdometryTelemetry.add(telemetry);
-    telemetry.update();
-    waitForStart();
-
+    SingleShooterSubsystem shooter = null;
+    IntakeSubsystem intake = null;
+    TeleTourneyMechanismControls mechanisms = new TeleTourneyMechanismControls();
     try {
+      shooter = new SingleShooterSubsystem(hardwareMap);
+      intake = new IntakeSubsystem(hardwareMap);
+      telemetry.setMsTransmissionInterval(50);
+      telemetry.addData("Status", "Drive, intake, Shoot1, odometry, and Limelight initialized");
+      telemetry.addLine("Left stick: drive/strafe | Triggers: rotate");
+      telemetry.addLine("Y: intake FORWARD -> STOP -> REVERSE -> STOP (per press)");
+      telemetry.addLine("X: Shoot1 ON/OFF | D-pad up/down: +/-100 RPM");
+      telemetry.addLine("First visible tag anchors the check. A: re-anchor | B: clear");
+      telemetry.addLine("Camera pan: automatic only if calibrated and enabled in config");
+      telemetry.addData("Intake / Shoot1", "OFF / OFF");
+      telemetry.addData("Shoot1 Selected RPM", "%.0f", mechanisms.getShooterRpm());
+      CameraPanTelemetry.add(telemetry, pan, aprilTags);
+      OdometryTelemetry.add(telemetry);
+      telemetry.update();
+      waitForStart();
       if (isStopRequested()) {
         return;
       }
@@ -51,7 +62,6 @@ public final class TeleTourney extends LinearOpMode {
       follower.startTeleopDrive(true);
       aprilTags.start();
       pan.start();
-      boolean previousX = false, previousY = false;
       while (opModeIsActive()) {
         DriveCommand command = DualGamepadDriveControls.read(gamepad1, gamepad2);
         // Pedro uses positive left strafe and counterclockwise turn; the mapper uses right/CW.
@@ -59,10 +69,10 @@ public final class TeleTourney extends LinearOpMode {
 
         follower.update();
         aprilTags.update();
-        boolean x = gamepad1.x || gamepad2.x, y = gamepad1.y || gamepad2.y;
-        if (x && !previousX) { pan.toggleTracking(); }
-        if (y && !previousY) { pan.requestCenter(); }
-        previousX = x; previousY = y;
+        mechanisms.update(gamepad1, gamepad2);
+        intake.setState(mechanisms.isIntakeEnabled(), mechanisms.isIntakeReversed()
+            ? IntakeSubsystem.Direction.REVERSE : IntakeSubsystem.Direction.FORWARD);
+        shooter.setState(mechanisms.isShooterEnabled(), false, mechanisms.getShooterRpm());
         pan.update();
         Pose pose = follower.getPose();
         List<AprilTagObservation> visibleTags = aprilTags.getObservations();
@@ -71,6 +81,13 @@ public final class TeleTourney extends LinearOpMode {
             gamepad1.a || gamepad2.a, gamepad1.b || gamepad2.b);
 
         telemetry.addData("Active Driver", "Gamepad %d", command.getGamepadNumber());
+        telemetry.addData("Intake", intake.isEnabled() ? "ON / " + intake.getDirection() : "OFF");
+        telemetry.addData("Shoot1", shooter.isActive() ? "ON / FORWARD" : "OFF");
+        telemetry.addData("Shoot1 Selected RPM", "%.0f", shooter.getTargetRpm());
+        double actualRpm = shooter.getActualRpm();
+        telemetry.addData("Shoot1 RPM", "target %.0f, actual %.0f",
+            shooter.getCommandedRpm(), actualRpm);
+        telemetry.addData("Shoot1 Error", "%.0f RPM", shooter.getCommandedRpm() - actualRpm);
         telemetry.addData(
             "Drive / Strafe / Rotate",
             "%.2f / %.2f / %.2f",
@@ -108,9 +125,19 @@ public final class TeleTourney extends LinearOpMode {
         idle();
       }
     } finally {
-      follower.breakFollowing();
-      pan.close();
-      aprilTags.stop();
+      try {
+        if (shooter != null) { shooter.stop(); }
+      } finally {
+        try {
+          if (intake != null) { intake.stop(); }
+        } finally {
+          try {
+            follower.breakFollowing();
+          } finally {
+            try { pan.close(); } finally { aprilTags.stop(); }
+          }
+        }
+      }
     }
   }
 }

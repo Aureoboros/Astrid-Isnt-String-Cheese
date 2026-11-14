@@ -22,7 +22,11 @@ public final class IntakeSubsystem {
   private volatile boolean enabled;
 
   public IntakeSubsystem(HardwareMap hardwareMap) {
-    motor = hardwareMap.get(DcMotor.class, RobotConfig.Hardware.INTAKE);
+    this(hardwareMap.get(DcMotor.class, RobotConfig.Hardware.INTAKE));
+  }
+
+  IntakeSubsystem(DcMotor motor) {
+    this.motor = motor;
     stop();
   }
 
@@ -32,7 +36,18 @@ public final class IntakeSubsystem {
   }
 
   public void toggleEnabled() {
-    enabled = !enabled;
+    setEnabled(!enabled);
+  }
+
+  public void setEnabled(boolean enabled) {
+    setState(enabled, direction);
+  }
+
+  /** Applies enable and direction together, without an intermediate running command. */
+  public void setState(boolean enabled, Direction direction) {
+    if (direction == null) { throw new IllegalArgumentException("Intake direction is required"); }
+    this.enabled = enabled;
+    this.direction = direction;
     applyPower();
   }
 
