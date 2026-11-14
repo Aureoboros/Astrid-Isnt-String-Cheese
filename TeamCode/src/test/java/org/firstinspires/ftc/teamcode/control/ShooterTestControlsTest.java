@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.control;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 public final class ShooterTestControlsTest {
@@ -71,5 +72,59 @@ public final class ShooterTestControlsTest {
 
   private static void release(ShooterTestControls controls) {
     controls.updateButtons(false, false, false, false);
+  }
+
+  @Test public void rpmChangesOncePerPressWhileStopped() {
+    ShooterTestControls c = new ShooterTestControls();
+    assertEquals(6000, c.getTargetRpm(), 0);
+    c.updateButtons(false, false, false, false, false, true, false, false);
+    assertEquals(5900, c.getTargetRpm(), 0);
+    c.updateButtons(false, false, false, false, false, true, false, false);
+    assertEquals(5900, c.getTargetRpm(), 0);
+    release(c);
+    c.updateButtons(false, false, false, false, true, false, false, false);
+    assertEquals(6000, c.getTargetRpm(), 0);
+    assertFalse(c.isActive());
+  }
+
+  @Test public void gamepad2RpmAndOverlappingPressesAreCombined() {
+    ShooterTestControls c = new ShooterTestControls();
+    c.updateButtons(false, false, false, false, false, false, false, true);
+    assertEquals(5900, c.getTargetRpm(), 0);
+    c.updateButtons(false, false, false, false, false, true, false, true);
+    c.updateButtons(false, false, false, false, false, true, false, false);
+    assertEquals(5900, c.getTargetRpm(), 0);
+    release(c);
+    c.updateButtons(false, false, false, false, false, false, true, false);
+    assertEquals(6000, c.getTargetRpm(), 0);
+  }
+
+  @Test public void rpmClampsAtBothLimitsAndOpposingFreshPressesCancel() {
+    ShooterTestControls c = new ShooterTestControls();
+    c.updateButtons(false, false, false, false, true, false, false, false);
+    assertEquals(6000, c.getTargetRpm(), 0);
+    release(c);
+    c.updateButtons(false, false, false, false, true, true, false, false);
+    assertEquals(6000, c.getTargetRpm(), 0);
+    for (int i = 0; i < 65; i++) {
+      release(c);
+      c.updateButtons(false, false, false, false, false, true, false, false);
+    }
+    assertEquals(0, c.getTargetRpm(), 0);
+    release(c);
+    c.updateButtons(false, false, false, false, false, false, true, true);
+    assertEquals(0, c.getTargetRpm(), 0);
+  }
+
+  @Test public void rpmAdjustmentDoesNotInterfereWithOnOffOrReverse() {
+    ShooterTestControls c = new ShooterTestControls();
+    c.updateButtons(true, true, false, false, false, true, false, false);
+    assertTrue(c.isActive());
+    assertTrue(c.isReversed());
+    assertEquals(5900, c.getTargetRpm(), 0);
+    release(c);
+    c.updateButtons(true, false, false, false, false, false, false, false);
+    assertFalse(c.isActive());
+    assertEquals(5900, c.getTargetRpm(), 0);
   }
 }

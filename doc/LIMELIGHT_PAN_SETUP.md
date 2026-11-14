@@ -5,7 +5,7 @@ left/right about a vertical pivot; upward pitch is fixed. It is not a pollen fee
 Pinpoint remains the robot-position source; camera pan never changes Pedro's pose.
 
 Automatic movement is **disabled by default** in `config/CameraPanConfig.java`.
-Manual testing is enabled with MIN **0.0**, CENTER **0.2**, and MAX **0.4**
+Manual testing is enabled with MIN **0.4**, CENTER **0.5**, and MAX **0.6**
 (`TRAVEL_VERIFIED = true`), as specified by the operator. Unknown yaw/sign values
 still prevent automatic tracking; `ENABLED` and `GEOMETRY_VERIFIED` remain false.
 Do not just turn all flags on to bypass these checks.
@@ -18,7 +18,7 @@ Do not just turn all flags on to bypass these checks.
    `TRAVEL_VERIFIED = true` only after verifying them; leave `ENABLED = false`.
 2. Run **Test: Servo Motor**. B enables manual positioning at the configured center;
    press Play first; there is no movement during INIT. D-pad left/right decreases/
-   increases position by **0.005** per fresh press, clamped to **0.0–0.4**. A
+   increases position by **0.005** per fresh press, clamped to **0.4–0.6**. A
    requests center, and B again disables further movement while holding position.
    These are increasing/decreasing servo positions, not guaranteed physical left/right.
    The test initializes no drivetrain or Limelight. Do not trust robot-space tag

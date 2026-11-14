@@ -12,6 +12,7 @@ public final class SingleShooterSubsystem {
   private final DcMotorEx motor;
   private boolean active;
   private boolean reversed;
+  private double targetRpm = Math.max(0, Math.min(6000, RobotConfig.Mechanisms.SHOOTER_TARGET_RPM));
 
   public SingleShooterSubsystem(HardwareMap hardwareMap) {
     this(hardwareMap.get(DcMotorEx.class, RobotConfig.Hardware.SHOOTER_1));
@@ -29,6 +30,15 @@ public final class SingleShooterSubsystem {
 
   /** Applies on/off and direction together so simultaneous toggles issue one velocity command. */
   public void setState(boolean active, boolean reversed) {
+    setState(active, reversed, targetRpm);
+  }
+
+  /** Applies RPM magnitude, direction and enable state together; motor rating is 6000 RPM. */
+  public void setState(boolean active, boolean reversed, double requestedRpm) {
+    if (!Double.isFinite(requestedRpm)) {
+      throw new IllegalArgumentException("Shooter RPM must be finite");
+    }
+    targetRpm = Math.max(0, Math.min(6000, requestedRpm));
     this.active = active;
     this.reversed = reversed;
     motor.setVelocity(getCommandedRpm() * DEGREES_PER_SECOND_PER_RPM,
@@ -49,7 +59,7 @@ public final class SingleShooterSubsystem {
   }
 
   public double getTargetRpm() {
-    return RobotConfig.Mechanisms.SHOOTER_TARGET_RPM;
+    return targetRpm;
   }
 
   public double getActualRpm() {

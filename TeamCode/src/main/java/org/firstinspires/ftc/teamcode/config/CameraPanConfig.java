@@ -9,9 +9,9 @@ public final class CameraPanConfig {
   public static final boolean TRAVEL_VERIFIED = true;
   public static final boolean GEOMETRY_VERIFIED = false;
   // Operator-specified travel limits for the isolated manual servo test.
-  public static final double MIN_POSITION = 0.0;
-  public static final double CENTER_POSITION = 0.2;
-  public static final double MAX_POSITION = 0.4;
+  public static final double MIN_POSITION = 0.4;
+  public static final double CENTER_POSITION = 0.5;
+  public static final double MAX_POSITION = 0.6;
   // Enter yaw values measured/calibrated in the Limelight UI at these three positions.
   public static final double YAW_AT_MIN_DEGREES = Double.NaN;
   public static final double YAW_AT_CENTER_DEGREES = 0;

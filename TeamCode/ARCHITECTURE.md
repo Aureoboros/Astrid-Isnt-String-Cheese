@@ -228,7 +228,7 @@ only the listed hardware so another unconfigured mechanism does not prevent it f
 | `Test: IMU` | Hub IMU | Rotate the robot by hand; A resets yaw |
 | `Test: Limelight` | Limelight; camera servo only if pan is enabled and calibrated | A freezes display; X toggles tracking; Y centers |
 | `Test: Intake` | Intake motor only | A toggles power; Y reverses direction |
-| `Test: Shooter` | `Shoot1` only, Expansion Hub motor port 2 | X toggles ON/OFF; Y toggles FORWARD/REVERSE; 6000 RPM magnitude; signed target/actual/error and direction telemetry |
+| `Test: Shooter` | `Shoot1` only, Expansion Hub motor port 2 | X toggles ON/OFF; Y toggles FORWARD/REVERSE; D-pad up/down adjusts by 100 RPM (0–6000); selected RPM, signed target/actual/error and direction telemetry |
 | `Test: Dual Shooter RPM` | `Shoot1` and `Shoot2` only | X/A raise/lower Shoot1; Y/B raise/lower Shoot2 by 100 RPM |
 | `Test: Servo Motor` | Positional camera servo only | B enables manual positioning/holds; D-pad left/right steps; A centers; verified safe limits required |
 | `Test: Odo vs AprilTag` | Pedro drive, Pinpoint, Limelight | A captures a reference; B clears it |
@@ -242,8 +242,13 @@ servo holds its last position rather than receiving a blind endpoint command.
 running until the next press. Y changes direction without changing the ON/OFF state,
 so direction can be selected while stopped. Each toggle requires a fresh press;
 holding a button does not repeat, and overlapping presses on both controllers count
-as one combined press until both release that button. Forward commands +6000 RPM,
-reverse commands -6000 RPM, and OFF commands zero. Y applies the new direction
+as one combined press until both release that button. Selected speed starts at
+`RobotConfig.Mechanisms.SHOOTER_TARGET_RPM` (6000 RPM). D-pad up/down adjusts the
+magnitude by 100 RPM per fresh press, bounded to 0–6000; simultaneous fresh up/down
+presses cancel. Adjustments work while stopped or running on either controller.
+Forward commands the positive selected RPM, reverse the negative, and OFF commands
+zero without losing the selected speed. Telemetry shows selected speed even when OFF.
+Y applies the new direction
 immediately if running: stop with X and allow the mechanism to coast down before
 reversing a fast-spinning shooter. These controls affect only this single-shooter test,
 not the separate dual-shooter diagnostics or competition OpModes.

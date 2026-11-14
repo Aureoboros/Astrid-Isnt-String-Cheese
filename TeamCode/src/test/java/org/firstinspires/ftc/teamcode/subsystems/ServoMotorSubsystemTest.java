@@ -26,15 +26,15 @@ public final class ServoMotorSubsystemTest {
           return null;
         });
     assertTrue(CameraPanConfig.travelReady());
-    assertEquals(0.0, CameraPanConfig.MIN_POSITION, 0.0);
-    assertEquals(0.2, CameraPanConfig.CENTER_POSITION, 0.0);
-    assertEquals(0.4, CameraPanConfig.MAX_POSITION, 0.0);
+    assertEquals(0.4, CameraPanConfig.MIN_POSITION, 0.0);
+    assertEquals(0.5, CameraPanConfig.CENTER_POSITION, 0.0);
+    assertEquals(0.6, CameraPanConfig.MAX_POSITION, 0.0);
     ServoMotorSubsystem servo = new ServoMotorSubsystem(device, CameraPanConfig.travelReady(),
         CameraPanConfig.MIN_POSITION, CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION);
     assertTrue(commands.isEmpty());
     servo.toggleEnabled();
     servo.nudge(10); servo.nudge(-10); servo.center(); servo.stop(); servo.nudge(10);
-    assertEquals(java.util.Arrays.asList(0.2, 0.4, 0.0, 0.2), commands);
+    assertEquals(java.util.Arrays.asList(0.5, 0.6, 0.4, 0.5), commands);
     assertFalse(servo.isEnabled());
   }
 }
