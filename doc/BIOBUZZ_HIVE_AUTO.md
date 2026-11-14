@@ -8,7 +8,7 @@ still prevents movement and shooting.
 
 The expanded sequence uses **four separate four-pollen shooting batches**:
 
-**Shoot 4 preloads → flower 1: collect 4 → shoot 4 / confirm first tip → flower 2: collect 4 →
+**Drive to the raised cell → Limelight position fix → shoot 4 preloads → flower 1: collect 4 → shoot 4 / confirm first tip → flower 2: collect 4 →
 opposite cell: shoot 4 → own garden: collect 4 → shoot 4 / confirm second tip → park.**
 
 Eight pollen per tip is the team's requested tuning assumption, not a guaranteed manual threshold.
@@ -20,28 +20,29 @@ Only your alliance's two flowers and garden are visited; no opponent-side pickup
 ## Route and start
 
 The coordinate frame is the existing [BIOBUZZ field map](BIOBUZZ_FIELD_LOCATIONS.md):
-robot center in inches; origin audience-left; +X right, +Y away from audience.
+robot center in inches; origin (0, 0) at the field CENTER, X and Y from −72 to +72;
++X right (blue side), +Y away from audience. Blue poses are red poses rotated 180°: (x, y) → (−x, −y).
 The nominal hive frame footprint is about 49.46 x 38.95 inches centered on the field.
 Shooting poses are team-chosen estimates, NOT FIRST-prescribed positions or verified trajectories.
 
 | Stage | Red pose (X, Y, heading degrees) | Blue pose |
 | --- | --- | --- |
-| Required wall-contact start | (36, half robot length, 90) | (108, 144 − half robot length, 270) |
-| Clear wall | (36, 21, 90) | (108, 123, 270) |
-| First approach | (36, 32, 90) | (108, 112, 270) |
-| Shooting batches 1 and 2: initially raised cell | (59.25, 32, 90) | (84.75, 112, 270) |
-| Flower 1 intake approach → pickup | (23, 48, 180) → (15, 48, 180) | (121, 96, 0) → (129, 96, 0) |
-| Flower 2 intake approach → pickup | (48, 121, 90) → (48, 129, 90) | (96, 23, 270) → (96, 15, 270) |
-| Shooting batches 3 and 4: opposite cell | (59.25, 112, 270) | (84.75, 32, 90) |
-| Own garden intake approach → pickup | (12, 20, 270) → (12, 12, 270) | (132, 124, 90) → (132, 132, 90) |
-| Outside transit corridor | X = 28 | X = 116 |
-| Nominal loading-zone park | (12, 108, 180) | (132, 36, 0) |
+| Required wall-contact start | (−36, −72 + half robot length, 90) | (36, 72 − half robot length, 270) |
+| Clear wall | (−36, −51, 90) | (36, 51, 270) |
+| First approach | (−36, −40, 90) | (36, 40, 270) |
+| Shooting batches 1 and 2: initially raised cell (Limelight fix here) | (−12.75, −40, 90) | (12.75, 40, 270) |
+| Flower 1 intake approach → pickup | (−49, −24, 180) → (−57, −24, 180) | (49, 24, 0) → (57, 24, 0) |
+| Flower 2 intake approach → pickup | (−24, 49, 90) → (−24, 57, 90) | (24, −49, 270) → (24, −57, 270) |
+| Shooting batches 3 and 4: opposite cell | (−12.75, 40, 270) | (12.75, −40, 90) |
+| Own garden intake approach → pickup | (−60, −52, 270) → (−60, −60, 270) | (60, 52, 90) → (60, 60, 90) |
+| Outside transit corridor | X = −44 | X = 44 |
+| Nominal loading-zone park | (−60, 36, 180) | (60, −36, 0) |
 
 `HiveAutoRoute.approach(Stage)` contains every intermediate transit waypoint. Each pickup's
 last eight inches runs at reduced drive power with the intake on, followed by a bounded dwell.
 The route backs away from wall pickups before rotating, and retreats to the outside corridor
-before changing hive sides. Flower centers are nominally (0,48)/(48,144) for red and
-(144,96)/(96,0) for blue; pickup poses above refer to the robot center, not the flower itself.
+before changing hive sides. Flower centers are nominally (−72,−24)/(−24,72) for red and
+(72,24)/(24,−72) for blue; pickup poses above refer to the robot center, not the flower itself.
 The garden approach assumes a sufficiently wide, floor-level intake can collect its four staged pollen.
 Intake reach, lower-opening access, contact clearance and garden sweep require physical verification.
 
@@ -51,6 +52,48 @@ an 18-inch footprint. Measure the taped boundaries and actual footprint before e
 Only these two starts are currently supported; INIT d-pad left/right selects red/blue and a fresh
 A confirms the corresponding physical placement. After Play, no gamepad commands are read;
 use Driver Station STOP to abort and enable its 30-second AUTO timer (G401).
+
+## Limelight position fix in front of the raised cell
+
+Placement at the wall is never perfect, so the start pose is only an assumption. After the first
+approach the robot stops at the batch 1/2 shooting pose (where it THINKS it is), then:
+
+1. Holds that pose and reads `RELOCALIZE_FRAMES` (default 5) distinct, fresh Limelight frames
+   within `RELOCALIZE_TIMEOUT_SECONDS` (default 1 s).
+2. For every visible tag whose field position is listed in `RED_HIVE_TAGS` / `BLUE_HIVE_TAGS`,
+   computes where the robot center must be from the tag's measured forward/left offset and the
+   Pinpoint heading. Several tags in one frame are averaged.
+3. Averages "vision minus odometry" over the frames. If the frames agree within
+   `RELOCALIZE_MAX_SPREAD_INCHES` (2 in) and the correction is at most
+   `RELOCALIZE_MAX_CORRECTION_INCHES` (8 in), Pedro/Pinpoint X/Y is overwritten. Heading is kept:
+   the Pinpoint IMU heading is more reliable than a single-tag angle.
+4. Re-drives to the shooting pose, now using the corrected position. Every later leg (pickups,
+   opposite cell, park) runs from the corrected values.
+
+If no tag positions are measured, the Limelight is missing, too few frames arrive, the frames
+disagree, or the correction is implausibly large, odometry is left **unchanged** and the route
+continues on it. Telemetry line `Limelight Position Fix` always says which happened, with dX/dY.
+The Limelight is read (not the shooter) in `DRY_RUN` too, so the fix can be commissioned first.
+
+### Measuring the hive tag positions (required once)
+
+The fix is only as good as the tag map. The defaults are `NaN` (not measured), which skips it.
+Measure with the hive in its **starting/staged position**: the tags move when it tips, and the fix
+runs before the first shot.
+
+1. Configure the Limelight robot-space camera transform (position and pitch) first.
+2. Place the robot EXACTLY at the red batch 1/2 pose (−12.75, −40), facing +Y (away from the
+   audience), using a tape measure from the walls (the wall is at −72).
+3. Run `Test: Limelight` and read each visible tag's **forward** and **left**.
+4. Facing +Y the math is simple: **tag X = −12.75 − left**, **tag Y = −40 + forward**.
+   Enter `{id, X, Y}` rows in `HiveAutoConfig.RED_HIVE_TAGS`.
+5. Repeat for blue at (12.75, 40) facing −Y: **tag X = 12.75 + left**, **tag Y = 40 − forward**,
+   into `BLUE_HIVE_TAGS`.
+6. Check: run the auto in `DRY_RUN` from a deliberately misplaced start (e.g. 2 in off along the
+   wall). `Limelight Position Fix` should report APPLIED with about that dX/dY.
+
+During the auto, each visible tag also shows "field XY" computed from the current pose, which
+should match the configured table once the fix has been applied.
 
 ## Shooting and confirmation
 
@@ -78,7 +121,7 @@ section 10.5.1 requires the hive's opposite damper to contact the frame.
 
 Drive/heading hold, Limelight polling and shooting are updated in one nonblocking loop. There are
 no `sleep()` calls, so waiting for flywheel speed or a hive transition does not pause movement updates.
-Limelight never changes the Pinpoint position. There is no automatic ballistic solver or vision steering;
+Apart from the one position fix above, Limelight never changes the Pinpoint position. There is no automatic ballistic solver or vision steering;
 the shooting pose, heading, flywheel direction/RPM and feeder must be physically calibrated.
 
 ## Commissioning gates — do not skip
@@ -138,6 +181,7 @@ Endpoint bounds checks are not obstacle avoidance; there is no dynamic collision
 - `opmodes/BiobuzzHiveAuto.java`: hardware orchestration, INIT selection, motion and parking.
 - `navigation/HiveAutoRoute.java`: nominal mirrored red/blue waypoints and tag clusters.
 - `localization/HiveTipDetector.java`: fresh-frame same-tag transition evidence.
+- `localization/HiveTagRelocalizer.java`: averaged X/Y fix from measured hive tag positions.
 - `control/HiveShotController.java`: bounded nonblocking flywheel/feed/wait states.
 - `control/PollenBatchInventory.java`: expected four-element inventory and interruption handling.
 - `config/HiveAutoConfig.java`: explicit commissioning gates and provisional tunables.

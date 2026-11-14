@@ -7,13 +7,25 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * BIOBUZZ TU06 nominal tile map (sections 9.2/9.4, G304). Origin is the audience-left
- * inside-wall corner: +X goes toward column F, +Y goes away from the audience toward row 6.
- * Heading 0 faces +X, 90 faces +Y. Positions refer to the robot center, not a bumper or pod.
+ * BIOBUZZ TU06 nominal tile map (sections 9.2/9.4, G304). Origin (0, 0) is the CENTER of the
+ * field; X and Y each run from -72 to +72 inches. +X goes toward column F (blue side), +Y goes
+ * away from the audience toward row 6. Heading 0 faces +X, 90 faces +Y. Positions refer to the
+ * robot center, not a bumper or pod.
+ *
+ * <pre>
+ *                 far wall (row 6)        +Y
+ *        Q2 (-X, +Y)    |    Q1 (+X, +Y)    ^
+ *   red  ---------------+---------------    |  blue
+ *        Q3 (-X, -Y)    |    Q4 (+X, -Y)    +----> +X
+ *                 audience (row 1)
+ * </pre>
+ *
  * This is a location map, NOT a collision map or a certification of legal physical placement.
  */
 public final class BiobuzzFieldMap {
   public static final double FIELD_SIZE_INCHES = 144.0;
+  /** Distance from the field center to each inside wall; the field spans -72..+72 on both axes. */
+  public static final double HALF_FIELD_INCHES = FIELD_SIZE_INCHES / 2.0;
   public static final double TILE_SIZE_INCHES = 24.0;
   public static final double WALL_EXIT_INCHES = 12.0;
   public static final String MANUAL_REFERENCE = "BIOBUZZ TU06: 9.2, 9.4, G304, Figure 11-1";
@@ -22,16 +34,20 @@ public final class BiobuzzFieldMap {
 
   private enum Wall { WEST, EAST, SOUTH, NORTH }
 
-  /** Team-chosen rectangular-robot presets in legal starting regions, not official fixed slots. */
+  /**
+   * Team-chosen rectangular-robot presets in legal starting regions, not official fixed slots.
+   * The number is the robot center's position ALONG the wall (Y for west/east walls, X for the
+   * audience/far walls), measured from the field center.
+   */
   public enum StartLocation {
-    RED_A3_WEST(Alliance.RED, Wall.WEST, 64),
-    RED_A6_WEST(Alliance.RED, Wall.WEST, 132),
-    RED_B1_AUDIENCE(Alliance.RED, Wall.SOUTH, 36),
-    RED_B6_FAR(Alliance.RED, Wall.NORTH, 32),
-    BLUE_F4_EAST(Alliance.BLUE, Wall.EAST, 80),
-    BLUE_F1_EAST(Alliance.BLUE, Wall.EAST, 12),
-    BLUE_E6_FAR(Alliance.BLUE, Wall.NORTH, 108),
-    BLUE_E1_AUDIENCE(Alliance.BLUE, Wall.SOUTH, 112);
+    RED_A3_WEST(Alliance.RED, Wall.WEST, -8),
+    RED_A6_WEST(Alliance.RED, Wall.WEST, 60),
+    RED_B1_AUDIENCE(Alliance.RED, Wall.SOUTH, -36),
+    RED_B6_FAR(Alliance.RED, Wall.NORTH, -40),
+    BLUE_F4_EAST(Alliance.BLUE, Wall.EAST, 8),
+    BLUE_F1_EAST(Alliance.BLUE, Wall.EAST, -60),
+    BLUE_E6_FAR(Alliance.BLUE, Wall.NORTH, 36),
+    BLUE_E1_AUDIENCE(Alliance.BLUE, Wall.SOUTH, 40);
 
     private final Alliance alliance;
     private final Wall wall;
@@ -79,10 +95,10 @@ public final class BiobuzzFieldMap {
   public Waypoint startPose(StartLocation start) {
     double halfLength = robotLengthInches / 2.0;
     switch (start.wall) {
-      case WEST: return new Waypoint(halfLength, start.alongWallInches, 0);
-      case EAST: return new Waypoint(FIELD_SIZE_INCHES - halfLength, start.alongWallInches, 180);
-      case SOUTH: return new Waypoint(start.alongWallInches, halfLength, 90);
-      case NORTH: return new Waypoint(start.alongWallInches, FIELD_SIZE_INCHES - halfLength, 270);
+      case WEST: return new Waypoint(-HALF_FIELD_INCHES + halfLength, start.alongWallInches, 0);
+      case EAST: return new Waypoint(HALF_FIELD_INCHES - halfLength, start.alongWallInches, 180);
+      case SOUTH: return new Waypoint(start.alongWallInches, -HALF_FIELD_INCHES + halfLength, 90);
+      case NORTH: return new Waypoint(start.alongWallInches, HALF_FIELD_INCHES - halfLength, 270);
       default: throw new IllegalStateException("Unknown wall");
     }
   }
@@ -131,9 +147,10 @@ public final class BiobuzzFieldMap {
         + Math.abs(Math.cos(angle)) * robotWidthInches) / 2;
     double epsilon = 1e-6;
     return insideField(pose.getX(), pose.getY())
-        && pose.getX() - halfX >= -epsilon && pose.getY() - halfY >= -epsilon
-        && pose.getX() + halfX <= FIELD_SIZE_INCHES + epsilon
-        && pose.getY() + halfY <= FIELD_SIZE_INCHES + epsilon;
+        && pose.getX() - halfX >= -HALF_FIELD_INCHES - epsilon
+        && pose.getY() - halfY >= -HALF_FIELD_INCHES - epsilon
+        && pose.getX() + halfX <= HALF_FIELD_INCHES + epsilon
+        && pose.getY() + halfY <= HALF_FIELD_INCHES + epsilon;
   }
 
   public static List<StartLocation> startsFor(Alliance alliance) {
@@ -150,8 +167,8 @@ public final class BiobuzzFieldMap {
     if (column < 'A' || column > 'F' || row < 1 || row > 6 || !Double.isFinite(headingDegrees)) {
       throw new IllegalArgumentException("Tile must be A1 through F6 with finite heading");
     }
-    return new Waypoint((column - 'A' + 0.5) * TILE_SIZE_INCHES,
-        (row - 0.5) * TILE_SIZE_INCHES, headingDegrees);
+    return new Waypoint((column - 'A' + 0.5) * TILE_SIZE_INCHES - HALF_FIELD_INCHES,
+        (row - 0.5) * TILE_SIZE_INCHES - HALF_FIELD_INCHES, headingDegrees);
   }
 
   /** Pose outside the nominal field is never clamped into a valid tile. */
@@ -159,13 +176,30 @@ public final class BiobuzzFieldMap {
     if (!insideField(x, y)) {
       return "OUTSIDE FIELD / INVALID POSE";
     }
-    int column = Math.min(5, (int) (x / TILE_SIZE_INCHES));
-    int row = Math.min(5, (int) (y / TILE_SIZE_INCHES));
+    int column = Math.min(5, (int) ((x + HALF_FIELD_INCHES) / TILE_SIZE_INCHES));
+    int row = Math.min(5, (int) ((y + HALF_FIELD_INCHES) / TILE_SIZE_INCHES));
     return "" + (char) ('A' + column) + (row + 1);
   }
 
+  /**
+   * Quadrant of a field-center pose: Q1 (+X,+Y) blue far, Q2 (-X,+Y) red far,
+   * Q3 (-X,-Y) red audience, Q4 (+X,-Y) blue audience. A pose exactly on an axis reports it.
+   */
+  public static String quadrantAt(double x, double y) {
+    if (!insideField(x, y)) {
+      return "OUTSIDE FIELD / INVALID POSE";
+    }
+    if (x == 0 || y == 0) {
+      return x == 0 && y == 0 ? "CENTER" : (x == 0 ? "ON Y AXIS" : "ON X AXIS");
+    }
+    if (x > 0) {
+      return y > 0 ? "Q1 (+X, +Y) blue far" : "Q4 (+X, -Y) blue audience";
+    }
+    return y > 0 ? "Q2 (-X, +Y) red far" : "Q3 (-X, -Y) red audience";
+  }
+
   private static boolean insideField(double x, double y) {
-    return Double.isFinite(x) && Double.isFinite(y) && x >= 0 && y >= 0
-        && x <= FIELD_SIZE_INCHES && y <= FIELD_SIZE_INCHES;
+    return Double.isFinite(x) && Double.isFinite(y)
+        && Math.abs(x) <= HALF_FIELD_INCHES && Math.abs(y) <= HALF_FIELD_INCHES;
   }
 }

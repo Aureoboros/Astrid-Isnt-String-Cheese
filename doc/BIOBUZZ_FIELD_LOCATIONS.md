@@ -12,28 +12,32 @@ areas are for drive teams, not robot starting positions.
 
 ## Coordinate frame and location matrix
 
-`BiobuzzFieldMap` uses the nominal 144-by-144-inch field and 24-inch tiles. Looking into the field
-from the audience, `(0, 0)` is the audience-left inside-wall corner. X increases rightward from
-column A to F; Y increases away from the audience from row 1 to 6. Heading 0° faces right / +X,
+`BiobuzzFieldMap` uses the nominal 144-by-144-inch field and 24-inch tiles. `(0, 0)` is the
+**center of the field**, and X and Y each run from −72 to +72 inches, so the field splits into four
+quadrants. Looking into the field from the audience, X increases rightward from column A to F; Y
+increases away from the audience from row 1 to 6. The red half is −X, the blue half is +X, and the
+audience side is −Y. Heading 0° faces right / +X,
 90° faces away / +Y, 180° faces left, and 270° faces the audience. All poses describe the **robot
 center**. Pedro accepts these field poses in inches with headings converted to radians.
 
 ```text
-Far wall / away from audience (+Y)
+Far wall / away from audience (+Y = +72)
  A6 B6 C6 | D6 E6 F6
- A5 B5 C5 | D5 E5 F5
- A4 B4 C4 | D4 E4 F4
- A3 B3 C3 | D3 E3 F3
+ A5 B5 C5 | D5 E5 F5     Q2 (-X,+Y) | Q1 (+X,+Y)
+ A4 B4 C4 | D4 E4 F4     -----------+-----------
+ ---------+--------- <- (0,0) is the center
+ A3 B3 C3 | D3 E3 F3     Q3 (-X,-Y) | Q4 (+X,-Y)
  A2 B2 C2 | D2 E2 F2
  A1 B1 C1 | D1 E1 F1
    RED   |   BLUE
-Audience: origin at lower left, +X toward the right
+Audience (-Y = -72); X runs -72 (red wall) to +72 (blue wall)
 ```
 
-`getLocationMatrix()` returns `[row - 1][column - 'A']` tile-center waypoints. A1 is `(12,12)`,
-F6 is `(132,132)`. `getLocation("B2")` resolves the nominal tile center `(36,36,0°)`;
+`getLocationMatrix()` returns `[row - 1][column - 'A']` tile-center waypoints. A1 is `(-60,-60)`,
+F6 is `(60,60)`. `getLocation("B2")` resolves the nominal tile center `(-36,-36,0°)`;
 `tileCenter('B', 2, 90)` creates the same position facing 90°. `tileAt(x,y)` identifies the
 robot-center tile and reports OUTSIDE FIELD / INVALID POSE for invalid coordinates.
+`quadrantAt(x,y)` reports Q1–Q4 (or CENTER / ON X AXIS / ON Y AXIS), and telemetry shows it.
 
 This is **not a free-space, collision, or scoring map**. For example, the central C3/D3/C4/D4
 tiles contain the hive structure. Loading zones, flowers, game pieces, other robots, and robot
@@ -50,16 +54,16 @@ front-to-back; width is side-to-side. Wall-normal center offsets are half the co
 
 | Preset | Center X / Y (in), with 18-in length | Heading | Contact wall |
 | --- | --- | --- | --- |
-| `RED_A3_WEST` | 9 / 64 | 0° | Red/left wall |
-| `RED_A6_WEST` | 9 / 132 | 0° | Red/left wall |
-| `RED_B1_AUDIENCE` | 36 / 9 | 90° | Audience wall |
-| `RED_B6_FAR` | 32 / 135 | 270° | Far wall |
-| `BLUE_F4_EAST` | 135 / 80 | 180° | Blue/right wall |
-| `BLUE_F1_EAST` | 135 / 12 | 180° | Blue/right wall |
-| `BLUE_E6_FAR` | 108 / 135 | 270° | Far wall |
-| `BLUE_E1_AUDIENCE` | 112 / 9 | 90° | Audience wall |
+| `RED_A3_WEST` | −63 / −8 | 0° | Red/left wall |
+| `RED_A6_WEST` | −63 / 60 | 0° | Red/left wall |
+| `RED_B1_AUDIENCE` | −36 / −63 | 90° | Audience wall |
+| `RED_B6_FAR` | −40 / 63 | 270° | Far wall |
+| `BLUE_F4_EAST` | 63 / 8 | 180° | Blue/right wall |
+| `BLUE_F1_EAST` | 63 / −60 | 180° | Blue/right wall |
+| `BLUE_E6_FAR` | 36 / 63 | 270° | Far wall |
+| `BLUE_E1_AUDIENCE` | 40 / −63 | 90° | Audience wall |
 
-Each blue preset is the 180° field rotation of the corresponding red preset. The deliberate
+Each blue preset is the 180° field rotation of the corresponding red preset: (x, y) → (−x, −y). The deliberate
 along-wall offsets provide separation from nearby flowers; verify actual structures, tape,
 preloads, and bumper placement on the real field. Software cannot certify physical legality or
 discover the robot's start automatically. Use an alignment jig if needed. Measured pod offsets
@@ -102,8 +106,8 @@ display include the 6×6 matrix with `*` marking the robot-center tile.
 Register team locations in `BiobuzzFieldAuto` immediately after constructing `field`, for example:
 
 ```java
-field.registerLocation("RED_APPROACH", new Waypoint(36, 36, 90));
-field.registerLocation("BLUE_APPROACH", new Waypoint(108, 108, 270));
+field.registerLocation("RED_APPROACH", new Waypoint(-36, -36, 90));
+field.registerLocation("BLUE_APPROACH", new Waypoint(36, 36, 270));
 ```
 
 Then add a `Plan` entry in `BiobuzzAutoRoutes` and return an ordered list of names from

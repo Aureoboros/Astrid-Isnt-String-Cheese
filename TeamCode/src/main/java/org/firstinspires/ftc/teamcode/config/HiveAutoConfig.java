@@ -31,6 +31,38 @@ public final class HiveAutoConfig {
   public static final double AUTO_BUDGET_SECONDS = 28;
   public static final double PARK_RESERVE_SECONDS = 7;
 
+  // ---- Limelight position fix in front of own (initially raised) hive cell ----
+  // After the first approach the robot stops at the first shooting pose, reads the hive tags,
+  // corrects its X/Y, then re-drives to the exact shooting pose. Heading stays on the Pinpoint IMU.
+  public static final boolean RELOCALIZE_AT_HIVE = true;
+  /** Distinct Limelight frames averaged before the correction is accepted. */
+  public static final int RELOCALIZE_FRAMES = 5;
+  /** Give up and continue on odometry if enough frames are not seen in this time. */
+  public static final double RELOCALIZE_TIMEOUT_SECONDS = 1.0;
+  /** Reject the fix if individual frames disagree by more than this. */
+  public static final double RELOCALIZE_MAX_SPREAD_INCHES = 2.0;
+  /** A bigger "correction" means a wrong tag map / camera transform, not placement error. */
+  public static final double RELOCALIZE_MAX_CORRECTION_INCHES = 8.0;
+
+  /**
+   * MEASURED field positions of hive tag CENTERS in field-center inches: {id, X, Y}.
+   * Measure with the hive in its STARTING (staged) position, because tags move when it tips.
+   * NaN = not measured; unmeasured tags are ignored. If none are measured, the fix is skipped
+   * and the route continues on odometry. See doc/BIOBUZZ_HIVE_AUTO.md for the measuring steps.
+   */
+  public static final double[][] RED_HIVE_TAGS = {
+      {34, Double.NaN, Double.NaN},
+      {35, Double.NaN, Double.NaN},
+      {36, Double.NaN, Double.NaN},
+      {37, Double.NaN, Double.NaN},
+  };
+  public static final double[][] BLUE_HIVE_TAGS = {
+      {42, Double.NaN, Double.NaN},
+      {43, Double.NaN, Double.NaN},
+      {44, Double.NaN, Double.NaN},
+      {45, Double.NaN, Double.NaN},
+  };
+
   public static boolean canRun() {
     return ROUTE_VERIFIED && (DRY_RUN || (SHOOTING_AND_CAMERA_VERIFIED && PICKUPS_VERIFIED
         && TIMED_POLLEN_COUNTING_VERIFIED && FEEDER == Feeder.INTAKE

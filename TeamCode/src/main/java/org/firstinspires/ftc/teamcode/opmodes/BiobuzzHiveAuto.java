@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.control.PollenBatchInventory;
 import org.firstinspires.ftc.teamcode.control.LimelightPanController;
 import org.firstinspires.ftc.teamcode.telemetry.CameraPanTelemetry;
 import org.firstinspires.ftc.teamcode.localization.AprilTagTracker;
+import org.firstinspires.ftc.teamcode.localization.HiveTagRelocalizer;
 import org.firstinspires.ftc.teamcode.localization.HiveTipDetector;
 import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap;
 import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap.Alliance;
@@ -29,7 +30,11 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.telemetry.FieldLocationTelemetry;
 import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 
-/** Commissioning draft: attempt two tips on OWN hive, then partially enter own loading zone. */
+/**
+ * Commissioning draft: attempt two tips on OWN hive, then partially enter own loading zone.
+ * After the first approach it stops in front of its own initially raised hive cell, fixes its
+ * X/Y from the hive AprilTags (Limelight), then runs the rest of the route from that fix.
+ */
 // Listed on the Driver Station; HiveAutoConfig commissioning gates still prevent unverified operation.
 @Autonomous(name = "BIOBUZZ: Two Hive Tips + Park", group = "Competition")
 public final class BiobuzzHiveAuto extends LinearOpMode {
@@ -47,6 +52,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
   private boolean movementFault;
   private final PollenBatchInventory inventory = new PollenBatchInventory();
   private Stage currentStage;
+  private String fixStatus = HiveAutoConfig.RELOCALIZE_AT_HIVE ? "pending" : "disabled in HiveAutoConfig";
 
   @Override public void runOpMode() {
     telemetry.setMsTransmissionInterval(50);
@@ -74,6 +80,11 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
         setFeed(false);
         tags = new AprilTagTracker(hardwareMap);
         pan = new LimelightPanController(hardwareMap, tags);
+        tags.start();
+      }
+      if (tags == null && HiveAutoConfig.RELOCALIZE_AT_HIVE && HiveAutoConfig.canRun()) {
+        // Read-only camera use; allowed in DRY_RUN so the position fix can be commissioned first.
+        tags = new AprilTagTracker(hardwareMap);
         tags.start();
       }
       while (opModeInInit()) {
@@ -112,7 +123,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
       }
       follower.setPose(pose(field.startPose(route.start())));
       follower.updatePose();
-      if (tags != null && !tags.isConnected()) {
+      if (!HiveAutoConfig.DRY_RUN && tags != null && !tags.isConnected()) {
         status = "NO MOVEMENT: Limelight is disconnected"; show(); return;
       }
       if (pan != null) { pan.start(); }
@@ -135,6 +146,13 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
           status = "Pickup blocked: expected inventory not empty (G407)"; break;
         }
         if (!moveAll(route.approach(stage), false)) { break; }
+        if (stage == Stage.PRELOAD_SHOT && HiveAutoConfig.RELOCALIZE_AT_HIVE) {
+          // Stopped at the ASSUMED pose in front of the raised cell: fix X/Y from its tags, then
+          // drive the (usually small) remaining error out so shooting starts from the true pose.
+          relocalizeAtHive(alliance);
+          List<Waypoint> approach = route.approach(stage);
+          if (!move(approach.get(approach.size() - 1), false)) { break; }
+        }
         if (stage.isPickup()) {
           if (!pickup(route.pickupTarget(stage))) { break; }
         } else {
@@ -205,6 +223,52 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
       }
       return false;
     } finally { follower.breakFollowing(); }
+  }
+
+  /**
+   * Holds position, averages several fresh Limelight frames of the measured hive tags, and if
+   * they agree, overwrites Pedro/Pinpoint X/Y. Heading is kept. Any failure leaves odometry
+   * unchanged and the route continues on it; the reason is shown in telemetry.
+   */
+  private void relocalizeAtHive(Alliance alliance) {
+    HiveTagRelocalizer fix = new HiveTagRelocalizer(
+        alliance == Alliance.RED ? HiveAutoConfig.RED_HIVE_TAGS : HiveAutoConfig.BLUE_HIVE_TAGS,
+        HiveAutoConfig.RELOCALIZE_FRAMES, HiveAutoConfig.RELOCALIZE_MAX_SPREAD_INCHES,
+        HiveAutoConfig.RELOCALIZE_MAX_CORRECTION_INCHES);
+    if (tags == null) { fixStatus = "SKIPPED: Limelight not initialized"; return; }
+    if (!fix.hasTagPositions()) {
+      fixStatus = "SKIPPED: hive tag positions not measured (HiveAutoConfig)"; return;
+    }
+    follower.holdPoint(pose(target), false);
+    double started = clock.seconds();
+    try {
+      while (opModeIsActive() && fix.getFrameCount() < HiveAutoConfig.RELOCALIZE_FRAMES
+          && clock.seconds() - started < HiveAutoConfig.RELOCALIZE_TIMEOUT_SECONDS) {
+        follower.update();
+        updateTags();
+        if (!healthy()) { fixStatus = "SKIPPED: STOP/Pinpoint fault"; return; }
+        Pose p = follower.getPose();
+        fix.addFrame(tags.getResultTimestamp(), p.getX(), p.getY(), p.getHeading(),
+            tags.getObservations());
+        fixStatus = "reading hive tags: " + fix.getFrameCount() + " / " + HiveAutoConfig.RELOCALIZE_FRAMES;
+        status = "Limelight position check in front of hive";
+        show(); idle();
+      }
+    } finally { follower.breakFollowing(); }
+    HiveTagRelocalizer.Status result = fix.getStatus();
+    double[] offset = fix.getOffset();
+    if (result != HiveTagRelocalizer.Status.OK) {
+      fixStatus = String.format(java.util.Locale.US,
+          "NOT APPLIED (%s, %d frames, spread %.1f in, offset %.1f in): using odometry",
+          result, fix.getFrameCount(), fix.getSpreadInches(), fix.getCorrectionInches());
+      return;
+    }
+    Pose p = follower.getPose();
+    double[] corrected = fix.corrected(p.getX(), p.getY());
+    follower.setPose(new Pose(corrected[0], corrected[1], p.getHeading()));
+    fixStatus = String.format(java.util.Locale.US,
+        "APPLIED: dX %+.1f, dY %+.1f in (tags %s, %d frames, spread %.1f in)",
+        offset[0], offset[1], fix.getUsedTagIds(), fix.getFrameCount(), fix.getSpreadInches());
   }
 
   private boolean shootBatch(int minTag, boolean requireTip, HiveTipDetector detector) {
@@ -355,12 +419,19 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
     telemetry.addData("Completed Batch Feed Estimate", inventory.getTotalFed());
     telemetry.addData("AUTO Time / Budget", "%.1f / %.0f s", clock.seconds(), HiveAutoConfig.AUTO_BUDGET_SECONDS);
     telemetry.addData("Vision-confirmed transitions (not official score)", confirmedTips);
+    telemetry.addData("Limelight Position Fix", fixStatus);
     if (tags != null) {
       if (pan != null) { CameraPanTelemetry.add(telemetry, pan, tags); }
       telemetry.addData("Limelight Connected / Visible Tags", "%s / %d", tags.isConnected(), tags.getObservations().size());
+      Pose robot = follower.getPose();
       for (org.firstinspires.ftc.teamcode.localization.AprilTagObservation tag : tags.getObservations()) {
-        telemetry.addData("Tag " + tag.getId(), "distance %.1f in; estimated field height %.1f in",
-            tag.getHorizontalDistanceInches(), tag.getHeightInches() + HiveAutoConfig.ROBOT_ORIGIN_HEIGHT_INCHES);
+        // "field XY" assumes the current odometry pose is right: use it when measuring the tag map.
+        double[] tagXY = HiveTagRelocalizer.tagFromRobot(robot.getX(), robot.getY(),
+            tag.getForwardInches(), tag.getLeftInches(), robot.getHeading());
+        telemetry.addData("Tag " + tag.getId(),
+            "fwd %.1f, left %.1f, height %.1f in; field XY (%.1f, %.1f)",
+            tag.getForwardInches(), tag.getLeftInches(),
+            tag.getHeightInches() + HiveAutoConfig.ROBOT_ORIGIN_HEIGHT_INCHES, tagXY[0], tagXY[1]);
       }
     }
     FieldLocationTelemetry.add(telemetry, follower.getPose(), pinpoint, "Hive route", target, false);

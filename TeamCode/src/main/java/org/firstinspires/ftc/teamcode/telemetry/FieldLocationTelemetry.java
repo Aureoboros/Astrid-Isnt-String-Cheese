@@ -13,11 +13,12 @@ public final class FieldLocationTelemetry {
   public static void add(Telemetry telemetry, Pose pose, GoBildaPinpointDriver pinpoint,
       String targetName, Waypoint target, boolean showMatrix) {
     String currentTile = BiobuzzFieldMap.tileAt(pose.getX(), pose.getY());
-    telemetry.addData("Field Frame", "Audience-left origin; +X to F, +Y to row 6; inches");
+    telemetry.addData("Field Frame", "Center origin (0,0); X,Y -72..+72; +X to F, +Y to row 6; in");
     telemetry.addData("Pose Source", "Pinpoint: selected start + 2 pods + onboard IMU");
     telemetry.addData("Field Pose", "X %.2f, Y %.2f in; heading %.1f deg",
         pose.getX(), pose.getY(), Math.toDegrees(pose.getHeading()));
     telemetry.addData("Current Tile", currentTile);
+    telemetry.addData("Quadrant", BiobuzzFieldMap.quadrantAt(pose.getX(), pose.getY()));
     telemetry.addData("Pinpoint Status", pinpoint.getDeviceStatus());
     telemetry.addData("Forward / Strafe Raw Ticks", "%d / %d",
         pinpoint.getEncoderX(), pinpoint.getEncoderY());

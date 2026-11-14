@@ -15,8 +15,8 @@ public final class HiveAutoRouteTest {
   }
   private void compare(List<Waypoint> red, List<Waypoint> blue) {
     for (int i = 0; i < red.size(); i++) {
-      assertEquals(144 - red.get(i).getX(), blue.get(i).getX(), 1e-6);
-      assertEquals(144 - red.get(i).getY(), blue.get(i).getY(), 1e-6);
+      assertEquals(-red.get(i).getX(), blue.get(i).getX(), 1e-6);
+      assertEquals(-red.get(i).getY(), blue.get(i).getY(), 1e-6);
       assertEquals((red.get(i).getHeadingDegrees() + 180) % 360, blue.get(i).getHeadingDegrees(), 1e-6);
     }
   }
@@ -29,22 +29,22 @@ public final class HiveAutoRouteTest {
           r.parkFrom(r.oppositeApproach().get(2)))) {
         for (Waypoint p : leg) {
           assertTrue(field.footprintInsideField(p));
-          assertTrue(a == Alliance.RED ? p.getX() + 9 < 72 : p.getX() - 9 > 72);
+          assertTrue(a == Alliance.RED ? p.getX() + 9 < 0 : p.getX() - 9 > 0);
         }
       }
     }
   }
   @Test public void crossingAndRecoveryStayOnOuterCorridor() {
     HiveAutoRoute r = new HiveAutoRoute(Alliance.RED);
-    assertEquals(28, r.oppositeApproach().get(0).getX(), 0);
-    assertEquals(28, r.oppositeApproach().get(1).getX(), 0);
-    List<Waypoint> park = r.parkFrom(new Waypoint(59.25, 32, 90));
-    assertEquals(28, park.get(0).getX(), 0);
-    assertEquals(32, park.get(0).getY(), 0);
-    assertEquals(12, park.get(2).getX(), 0);
-    assertEquals(108, park.get(2).getY(), 0);
-    // 18-inch robot partially overlaps nominal red loading zone x=0..11.
-    assertTrue(park.get(2).getX() - 9 < 11);
+    assertEquals(-44, r.oppositeApproach().get(0).getX(), 0);
+    assertEquals(-44, r.oppositeApproach().get(1).getX(), 0);
+    List<Waypoint> park = r.parkFrom(new Waypoint(-12.75, -40, 90));
+    assertEquals(-44, park.get(0).getX(), 0);
+    assertEquals(-40, park.get(0).getY(), 0);
+    assertEquals(-60, park.get(2).getX(), 0);
+    assertEquals(36, park.get(2).getY(), 0);
+    // 18-inch robot partially overlaps nominal red loading zone x=-72..-61.
+    assertTrue(park.get(2).getX() - 9 < -61);
   }
 
   @Test public void nominalSegmentsAvoidFrameWithConservativeEighteenInchFootprint() {
@@ -60,9 +60,9 @@ public final class HiveAutoRouteTest {
           double t = sample / 100.0;
           double x = previous.getX() + t * (next.getX() - previous.getX());
           double y = previous.getY() + t * (next.getY() - previous.getY());
-          assertFalse("Nominal frame intersection", x > 72 - 49.46 / 2 - radius
-              && x < 72 + 49.46 / 2 + radius && y > 72 - 38.95 / 2 - radius
-              && y < 72 + 38.95 / 2 + radius);
+          assertFalse("Nominal frame intersection", x > -49.46 / 2 - radius
+              && x < 49.46 / 2 + radius && y > -38.95 / 2 - radius
+              && y < 38.95 / 2 + radius);
         }
         previous = next;
       }
@@ -89,7 +89,7 @@ public final class HiveAutoRouteTest {
       compare(red.approach(stage), blue.approach(stage));
       if (!stage.isPickup()) { continue; }
       Waypoint p = red.pickupTarget(stage), b = blue.pickupTarget(stage);
-      assertEquals(144 - p.getX(), b.getX(), 1e-6); assertEquals(144 - p.getY(), b.getY(), 1e-6);
+      assertEquals(-p.getX(), b.getX(), 1e-6); assertEquals(-p.getY(), b.getY(), 1e-6);
       List<Waypoint> approach = red.approach(stage); Waypoint from = approach.get(approach.size() - 1);
       double h = Math.toRadians(p.getHeadingDegrees());
       assertEquals(8, (p.getX() - from.getX()) * Math.cos(h) + (p.getY() - from.getY()) * Math.sin(h), 1e-6);
@@ -117,9 +117,9 @@ public final class HiveAutoRouteTest {
           double h = previous.getHeadingDegrees() + t * (next.getHeadingDegrees() - previous.getHeadingDegrees());
           assertTrue(field.footprintInsideField(new Waypoint(x, y, h)));
           double extentX = 9 * (Math.abs(Math.cos(Math.toRadians(h))) + Math.abs(Math.sin(Math.toRadians(h))));
-          assertTrue(a == Alliance.RED ? x + extentX <= 72 : x - extentX >= 72);
-          assertFalse(x > 72 - 49.46 / 2 - radius && x < 72 + 49.46 / 2 + radius
-              && y > 72 - 38.95 / 2 - radius && y < 72 + 38.95 / 2 + radius);
+          assertTrue(a == Alliance.RED ? x + extentX <= 0 : x - extentX >= 0);
+          assertFalse(x > -49.46 / 2 - radius && x < 49.46 / 2 + radius
+              && y > -38.95 / 2 - radius && y < 38.95 / 2 + radius);
         }
         previous = next;
       }
