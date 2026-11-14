@@ -69,6 +69,12 @@ odometry/servo entries and is not a fully reconciled current robot configuration
 Configure and activate the confirmed names/ports on the actual Robot Controller;
 editing the repository XML does not deploy hardware configuration to the hub.
 
+Shoot1 uses the confirmed **6000-RPM, 1:1, 28-tick/revolution** goBILDA motor profile.
+`GoBilda6000RpmMotor` registers a dedicated configuration entry and corrects only
+Shoot1's SDK metadata at runtime (including when the generic series remains selected).
+This fixes RPM conversion without changing drive/intake profiles or Shoot2.
+See [Shooter setup](../doc/SHOOTER_SETUP.md) for configuration and telemetry checks.
+
 Confirmed servo wiring: **Control Hub servo port 0 = `servoMotor`**, configured as
 a **Full Range Servo** (`ServoFullRange` in XML). Servo port 0 is separate from
 Control Hub motor port 0. Camera control now uses `Servo` positions, not `CRServo`
@@ -153,8 +159,11 @@ re-anchors the Pedro/Limelight consistency check and B clears it. Its separate m
 and **D-pad up/down ±100 RPM** per fresh press on either gamepad, bounded to 0–6000 RPM.
 Both motors start OFF; the first Y press starts intake FORWARD. Intake always has a
 separate STOP press between directions (allow it to coast down before the next press).
-Shoot1 runs FORWARD when enabled. Both stop on OpMode exit. Selected shooter speed starts at `RobotConfig.Mechanisms.SHOOTER_TARGET_RPM`
-(6000), can be changed while OFF or ON, and persists across toggles until the OpMode restarts.
+Shoot1 runs REVERSE when enabled (`RobotConfig.TeleTourney.SHOOTER_REVERSED = true`).
+Both stop on OpMode exit. Selected shooter speed starts at
+`RobotConfig.TeleTourney.SHOOTER_INITIAL_RPM` (4800), can be changed while OFF or ON,
+and persists across toggles until the OpMode restarts. The signed running target is
+−4800 RPM initially. Separate Shooter Test defaults are unchanged.
 Holding a button does not repeat; overlapping controller presses count once until both release.
 Simultaneous fresh up/down presses cancel. `TeleTourneyMechanismControls` owns this map.
 TeleTourney initializes only `intake` (Expansion motor 0) and `Shoot1` (Expansion motor 2),

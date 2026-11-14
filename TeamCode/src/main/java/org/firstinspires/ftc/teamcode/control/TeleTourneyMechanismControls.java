@@ -9,7 +9,7 @@ public final class TeleTourneyMechanismControls {
   private IntakeState intakeState = IntakeState.STOP_BEFORE_FORWARD;
   private boolean shooterEnabled;
   private boolean previousX, previousY, previousUp, previousDown;
-  private double shooterRpm = Math.max(0, Math.min(6000, RobotConfig.Mechanisms.SHOOTER_TARGET_RPM));
+  private double shooterRpm = Math.max(0, Math.min(6000, RobotConfig.TeleTourney.SHOOTER_INITIAL_RPM));
 
   public void update(Gamepad gamepad1, Gamepad gamepad2) {
     updateButtons(gamepad1.x, gamepad1.y, gamepad1.dpad_up, gamepad1.dpad_down,
@@ -37,5 +37,6 @@ public final class TeleTourneyMechanismControls {
     return intakeState == IntakeState.REVERSE || intakeState == IntakeState.STOP_BEFORE_REVERSE;
   }
   public boolean isShooterEnabled() { return shooterEnabled; }
+  public boolean isShooterReversed() { return RobotConfig.TeleTourney.SHOOTER_REVERSED; }
   public double getShooterRpm() { return shooterRpm; }
 }

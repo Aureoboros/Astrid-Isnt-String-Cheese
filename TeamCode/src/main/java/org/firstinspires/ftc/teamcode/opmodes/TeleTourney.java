@@ -40,6 +40,7 @@ public final class TeleTourney extends LinearOpMode {
     TeleTourneyMechanismControls mechanisms = new TeleTourneyMechanismControls();
     try {
       shooter = new SingleShooterSubsystem(hardwareMap);
+      shooter.setState(false, mechanisms.isShooterReversed(), mechanisms.getShooterRpm());
       intake = new IntakeSubsystem(hardwareMap);
       telemetry.setMsTransmissionInterval(50);
       telemetry.addData("Status", "Drive, intake, Shoot1, odometry, and Limelight initialized");
@@ -49,7 +50,9 @@ public final class TeleTourney extends LinearOpMode {
       telemetry.addLine("First visible tag anchors the check. A: re-anchor | B: clear");
       telemetry.addLine("Camera pan: automatic only if calibrated and enabled in config");
       telemetry.addData("Intake / Shoot1", "OFF / OFF");
+      telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");
       telemetry.addData("Shoot1 Selected RPM", "%.0f", mechanisms.getShooterRpm());
+      telemetry.addData("Shoot1 Encoder ticks/rev", "%.0f", shooter.getEncoderTicksPerRevolution());
       CameraPanTelemetry.add(telemetry, pan, aprilTags);
       OdometryTelemetry.add(telemetry);
       telemetry.update();
@@ -72,7 +75,7 @@ public final class TeleTourney extends LinearOpMode {
         mechanisms.update(gamepad1, gamepad2);
         intake.setState(mechanisms.isIntakeEnabled(), mechanisms.isIntakeReversed()
             ? IntakeSubsystem.Direction.REVERSE : IntakeSubsystem.Direction.FORWARD);
-        shooter.setState(mechanisms.isShooterEnabled(), false, mechanisms.getShooterRpm());
+        shooter.setState(mechanisms.isShooterEnabled(), mechanisms.isShooterReversed(), mechanisms.getShooterRpm());
         pan.update();
         Pose pose = follower.getPose();
         List<AprilTagObservation> visibleTags = aprilTags.getObservations();
@@ -82,11 +85,15 @@ public final class TeleTourney extends LinearOpMode {
 
         telemetry.addData("Active Driver", "Gamepad %d", command.getGamepadNumber());
         telemetry.addData("Intake", intake.isEnabled() ? "ON / " + intake.getDirection() : "OFF");
-        telemetry.addData("Shoot1", shooter.isActive() ? "ON / FORWARD" : "OFF");
+        telemetry.addData("Shoot1", shooter.isActive() ? "ON" : "OFF");
+        telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");
         telemetry.addData("Shoot1 Selected RPM", "%.0f", shooter.getTargetRpm());
         double actualRpm = shooter.getActualRpm();
-        telemetry.addData("Shoot1 RPM", "target %.0f, actual %.0f",
-            shooter.getCommandedRpm(), actualRpm);
+        telemetry.addData("Shoot1 Signed target RPM", "%.0f", shooter.getCommandedRpm());
+        telemetry.addData("Shoot1 Actual speed RPM", "%.0f", Math.abs(actualRpm));
+        telemetry.addData("Shoot1 Signed actual RPM", "%.0f", actualRpm);
+        telemetry.addData("Shoot1 Encoder ticks/rev", "%.0f", shooter.getEncoderTicksPerRevolution());
+        telemetry.addData("Shoot1 Encoder ticks/s", "%.1f", shooter.getRawEncoderTicksPerSecond());
         telemetry.addData("Shoot1 Error", "%.0f RPM", shooter.getCommandedRpm() - actualRpm);
         telemetry.addData(
             "Drive / Strafe / Rotate",

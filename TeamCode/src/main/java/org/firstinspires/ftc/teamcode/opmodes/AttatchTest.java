@@ -54,6 +54,9 @@ public final class AttatchTest extends LinearOpMode {
       OdometryTelemetry.add(telemetry);
       telemetry.update();
       waitForStart();
+      if (isStopRequested()) {
+        return;
+      }
       // Same as pressing B in ServoMotorTestTeleOp: enable and hold at the commanded position.
       if (!servo.isEnabled()) {
         servo.toggleEnabled();

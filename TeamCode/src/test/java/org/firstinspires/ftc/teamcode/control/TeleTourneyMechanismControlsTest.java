@@ -9,12 +9,13 @@ public final class TeleTourneyMechanismControlsTest {
     controls.updateButtons(false, false, false, false, false, false, false, false);
   }
 
-  @Test public void startsStoppedWithSixThousandRpmSelected() {
+  @Test public void startsStoppedWith4800RpmAndReverseSelected() {
     TeleTourneyMechanismControls controls = new TeleTourneyMechanismControls();
     assertFalse(controls.isIntakeEnabled());
     assertFalse(controls.isIntakeReversed());
     assertFalse(controls.isShooterEnabled());
-    assertEquals(6000, controls.getShooterRpm(), 0);
+    assertEquals(4800, controls.getShooterRpm(), 0);
+    assertTrue(controls.isShooterReversed());
   }
 
   @Test public void intakeCyclesForwardStopReverseStopAndRepeatsWithoutHoldRepeats() {
@@ -29,7 +30,7 @@ public final class TeleTourneyMechanismControlsTest {
         assertEquals(enabled[i], c.isIntakeEnabled());
         assertEquals(reversed[i], c.isIntakeReversed());
         assertFalse(c.isShooterEnabled());
-        assertEquals(6000, c.getShooterRpm(), 0);
+        assertEquals(4800, c.getShooterRpm(), 0);
       }
       release(c);
       assertEquals(enabled[i], c.isIntakeEnabled());
@@ -75,37 +76,41 @@ public final class TeleTourneyMechanismControlsTest {
     c.updateButtons(false, false, false, false, true, true, false, true);
     assertTrue(c.isShooterEnabled());
     assertTrue(c.isIntakeEnabled());
-    assertEquals(5900, c.getShooterRpm(), 0);
+    assertEquals(4700, c.getShooterRpm(), 0);
     c.updateButtons(true, true, false, true, true, true, false, true);
     c.updateButtons(true, true, false, true, false, false, false, false);
     assertTrue(c.isShooterEnabled());
     assertTrue(c.isIntakeEnabled());
-    assertEquals(5900, c.getShooterRpm(), 0);
+    assertEquals(4700, c.getShooterRpm(), 0);
     release(c);
     c.updateButtons(false, false, false, false, true, true, true, false);
     assertFalse(c.isShooterEnabled());
     assertFalse(c.isIntakeEnabled());
-    assertEquals(6000, c.getShooterRpm(), 0);
+    assertEquals(4800, c.getShooterRpm(), 0);
   }
 
   @Test public void rpmChangesWhileOffAndOnAndSurvivesStopToggle() {
     TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
     c.updateButtons(false, false, false, true, false, false, false, false);
-    assertEquals(5900, c.getShooterRpm(), 0);
+    assertEquals(4700, c.getShooterRpm(), 0);
     assertFalse(c.isShooterEnabled());
     release(c);
     c.updateButtons(true, false, false, true, false, false, false, false);
     assertTrue(c.isShooterEnabled());
-    assertEquals(5800, c.getShooterRpm(), 0);
+    assertEquals(4600, c.getShooterRpm(), 0);
     release(c);
     c.updateButtons(true, false, false, false, false, false, false, false);
     assertFalse(c.isShooterEnabled());
-    assertEquals(5800, c.getShooterRpm(), 0);
+    assertEquals(4600, c.getShooterRpm(), 0);
+    assertTrue(c.isShooterReversed());
   }
 
   @Test public void limitsAreEnforcedAndOpposingFreshPressesCancel() {
     TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
-    c.updateButtons(false, false, true, false, false, false, false, false);
+    for (int i = 0; i < 15; i++) {
+      release(c);
+      c.updateButtons(false, false, true, false, false, false, false, false);
+    }
     assertEquals(6000, c.getShooterRpm(), 0);
     release(c);
     c.updateButtons(false, false, true, false, false, false, false, true);
@@ -131,6 +136,6 @@ public final class TeleTourneyMechanismControlsTest {
     c.update(first, second);
     assertTrue(c.isIntakeEnabled());
     assertTrue(c.isShooterEnabled());
-    assertEquals(5900, c.getShooterRpm(), 0);
+    assertEquals(4700, c.getShooterRpm(), 0);
   }
 }

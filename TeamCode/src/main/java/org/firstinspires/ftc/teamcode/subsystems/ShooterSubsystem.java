@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.config.RobotConfig;
+import org.firstinspires.ftc.teamcode.config.GoBilda6000RpmMotor;
 
 /** Controls the two shooter motors using closed-loop RPM targets. */
 public final class ShooterSubsystem {
@@ -19,6 +20,8 @@ public final class ShooterSubsystem {
   public ShooterSubsystem(HardwareMap hardwareMap) {
     motor1 = hardwareMap.get(DcMotorEx.class, RobotConfig.Hardware.SHOOTER_1);
     motor2 = hardwareMap.get(DcMotorEx.class, RobotConfig.Hardware.SHOOTER_2);
+    // Only Shoot1's installed motor/gear ratio is confirmed; do not change Shoot2's profile.
+    GoBilda6000RpmMotor.configure(motor1);
     motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     motor2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     stop();

@@ -83,6 +83,22 @@ public final class RobotConfig {
     private Mechanisms() {}
   }
 
+  /** Confirmed Shoot1: goBILDA 5202/3/4, 1:1, 6000 RPM. Not drive/intake motor metadata. */
+  public static final class ShooterMotor {
+    public static final double TICKS_PER_REVOLUTION = 28.0;
+    public static final double GEAR_RATIO = 1.0;
+    public static final double MAX_RPM = 6000.0;
+
+    private ShooterMotor() {}
+  }
+
+  public static final class TeleTourney {
+    public static final double SHOOTER_INITIAL_RPM = 4800.0;
+    public static final boolean SHOOTER_REVERSED = true;
+
+    private TeleTourney() {}
+  }
+
   public static final class Diagnostics {
     public static final double DRIVE_MOTOR_TEST_MAX_POWER = 0.35;
     public static final double SHOOTER_INITIAL_RPM = 6000.0;

@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.config.RobotConfig;
+import org.firstinspires.ftc.teamcode.config.GoBilda6000RpmMotor;
 
 /** Isolated Shoot1 control: never looks up or commands Shoot2. */
 public final class SingleShooterSubsystem {
@@ -20,12 +21,18 @@ public final class SingleShooterSubsystem {
 
   SingleShooterSubsystem(DcMotorEx motor) {
     this.motor = motor;
+    GoBilda6000RpmMotor.configure(motor);
     motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     stop();
   }
 
   public void setActive(boolean active) {
     setState(active, reversed);
+  }
+
+  /** Changes speed while retaining the current enable and direction state. */
+  public void setTargetRpm(double requestedRpm) {
+    setState(active, reversed, requestedRpm);
   }
 
   /** Applies on/off and direction together so simultaneous toggles issue one velocity command. */
@@ -65,6 +72,10 @@ public final class SingleShooterSubsystem {
   public double getActualRpm() {
     return motor.getVelocity(AngleUnit.DEGREES) / DEGREES_PER_SECOND_PER_RPM;
   }
+
+  public double getEncoderTicksPerRevolution() { return motor.getMotorType().getTicksPerRev(); }
+
+  public double getRawEncoderTicksPerSecond() { return motor.getVelocity(); }
 
   public void stop() {
     setActive(false);
