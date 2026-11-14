@@ -1,3 +1,4 @@
+/**
 package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -21,7 +22,7 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
  *   <li>D-pad left/right: small servo position step (one per press)</li>
  *   <li>A: center the servo</li>
  * </ul>
- */
+  
 @TeleOp(name = "Test: Attachments", group = "Diagnostics")
 public final class AttatchTest extends LinearOpMode {
   private boolean previousX;
@@ -134,3 +135,4 @@ public final class AttatchTest extends LinearOpMode {
     }
   }
 }
+ */
