@@ -107,7 +107,8 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
         telemetry.addData("Alliance / Required Start", "%s / %s", alliance, route.start());
         telemetry.addData("Placement Confirmed", confirmed);
         telemetry.addData("Calibration Allows Run", HiveAutoConfig.canRun());
-        telemetry.addData("Mode", HiveAutoConfig.DRY_RUN ? "DRY RUN: no shooting, no tip claims" : "LIVE");
+        telemetry.addData("Mode", HiveAutoConfig.DRY_RUN
+            ? "DRIVING ONLY: real movement, shooting/intake disabled" : "LIVE");
         telemetry.addLine("4 preloads -> flower 1 -> first tip -> flower 2 -> garden -> second tip -> park");
         telemetry.addLine("Live pickups/counting require separate commissioning; counts are timed estimates.");
         telemetry.addLine("D-pad Left/Right: alliance | A: confirm placement | DS STOP: abort");
@@ -165,7 +166,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
       if (!movementFault && healthy()) {
         List<Waypoint> parking = route.parkFrom(waypoint(follower.getPose()));
         if (validate(field, parking) && moveAll(parking, true)) {
-          status = HiveAutoConfig.DRY_RUN ? "DRY RUN route finished; parked, no tips claimed"
+          status = HiveAutoConfig.DRY_RUN ? "Driving-only route finished; parked, no tips claimed"
               : "At nominal loading-zone park pose; vision-confirmed transitions: " + confirmedTips;
         }
       }

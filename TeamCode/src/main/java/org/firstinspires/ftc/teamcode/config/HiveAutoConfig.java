@@ -5,11 +5,13 @@ public final class HiveAutoConfig {
   public enum Feeder { NONE, INTAKE, SERVO }
   private HiveAutoConfig() {}
 
-  public static final boolean ROUTE_VERIFIED = false;
+  // Operator confirmed the route for autonomous driving-only testing.
+  public static final boolean ROUTE_VERIFIED = true;
   public static final boolean SHOOTING_AND_CAMERA_VERIFIED = false;
   public static final boolean PICKUPS_VERIFIED = false;
   // No counting sensor is configured. Only enable after verifying ONE pollen per pulse and FOUR per pickup.
   public static final boolean TIMED_POLLEN_COUNTING_VERIFIED = false;
+  // Real drivetrain movement; only shooting/pickups are simulated. Keep true for driving only.
   public static final boolean DRY_RUN = true;
   public static final Feeder FEEDER = Feeder.NONE;
   public static final double FEED_POWER = 0.5;

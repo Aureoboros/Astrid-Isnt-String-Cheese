@@ -21,6 +21,13 @@ pollen, does. Only your alliance's two flowers are visited; no opponent-side pic
 
 ## Route and start
 
+`FortyEight.java` is a separate OpMode listed as **8**. Its repaired implementation
+retains the five-stage, two-flower sequence described above (no garden), RED/BLUE
+selection and A placement confirmation. It is included in Gradle again and shares
+`HiveAutoConfig`: current mode is real driving with simulated shots/pickups, not
+live shooting. The public class is `FortyEight`, matching its filename.
+`BiobuzzHiveAuto` remains a separate routine with its existing seven-stage route.
+
 The coordinate frame is the existing [BIOBUZZ field map](BIOBUZZ_FIELD_LOCATIONS.md):
 robot center in inches; origin (0, 0) at the field CENTER, X and Y from −72 to +72;
 +X right (blue side), +Y away from audience. Blue poses are red poses rotated 180°: (x, y) → (−x, −y).
@@ -128,9 +135,16 @@ the shooting pose, heading, flywheel direction/RPM and feeder must be physically
 
 In `config/HiveAutoConfig.java`:
 
-- Keep `DRY_RUN = true` initially. No shooter, feeder, intake or Limelight is initialized in dry-run mode;
-  pickups/shots are simulated in the inventory model and no tip successes are claimed. The route
-  still drives to pickup poses, so physical route/clearance verification remains mandatory.
+- **Current mode: autonomous driving only**, with the route marked verified at the operator's
+  request (`ROUTE_VERIFIED = true`, `DRY_RUN = true`). `DRY_RUN` applies to mechanisms,
+  not the drivetrain: the robot really follows the route and parks; shots/pickups are simulated,
+  with no tip claims. No shooter, feeder, intake or camera-pan servo is initialized in this mode.
+  Limelight may still be read for the existing optional hive-position fix.
+  Select **BIOBUZZ: Two Hive Tips + Park**, choose RED/BLUE with D-pad left/right in INIT,
+  confirm physical start placement with A, then press Play. Keep the route clear and use the
+  Driver Station 30-second AUTO timer; STOP aborts. Maximum drive power remains 0.35, with
+  5-second leg timeouts and a 7-second parking reserve within the 28-second software budget.
+  `FEEDER = NONE` and all live shooting/pickup/counting verification flags remain unchanged.
 - Check all paths, actual robot dimensions, extended mechanisms, teammate clearance, frame/CELL sweep,
   flowers, wall departure and parking. Set `ROUTE_VERIFIED = true` only after verification.
 - Build and deploy to the Robot Controller to see `BIOBUZZ: Two Hive Tips + Park` in the AUTO list.
