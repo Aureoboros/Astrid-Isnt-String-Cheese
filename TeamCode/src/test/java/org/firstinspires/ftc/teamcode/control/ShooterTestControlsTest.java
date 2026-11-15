@@ -78,9 +78,9 @@ public final class ShooterTestControlsTest {
     ShooterTestControls c = new ShooterTestControls();
     assertEquals(6000, c.getTargetRpm(), 0);
     c.updateButtons(false, false, false, false, false, true, false, false);
-    assertEquals(5900, c.getTargetRpm(), 0);
+    assertEquals(5950, c.getTargetRpm(), 0);
     c.updateButtons(false, false, false, false, false, true, false, false);
-    assertEquals(5900, c.getTargetRpm(), 0);
+    assertEquals(5950, c.getTargetRpm(), 0);
     release(c);
     c.updateButtons(false, false, false, false, true, false, false, false);
     assertEquals(6000, c.getTargetRpm(), 0);
@@ -90,10 +90,10 @@ public final class ShooterTestControlsTest {
   @Test public void gamepad2RpmAndOverlappingPressesAreCombined() {
     ShooterTestControls c = new ShooterTestControls();
     c.updateButtons(false, false, false, false, false, false, false, true);
-    assertEquals(5900, c.getTargetRpm(), 0);
+    assertEquals(5950, c.getTargetRpm(), 0);
     c.updateButtons(false, false, false, false, false, true, false, true);
     c.updateButtons(false, false, false, false, false, true, false, false);
-    assertEquals(5900, c.getTargetRpm(), 0);
+    assertEquals(5950, c.getTargetRpm(), 0);
     release(c);
     c.updateButtons(false, false, false, false, false, false, true, false);
     assertEquals(6000, c.getTargetRpm(), 0);
@@ -106,7 +106,7 @@ public final class ShooterTestControlsTest {
     release(c);
     c.updateButtons(false, false, false, false, true, true, false, false);
     assertEquals(6000, c.getTargetRpm(), 0);
-    for (int i = 0; i < 65; i++) {
+    for (int i = 0; i < 125; i++) {
       release(c);
       c.updateButtons(false, false, false, false, false, true, false, false);
     }
@@ -121,10 +121,10 @@ public final class ShooterTestControlsTest {
     c.updateButtons(true, true, false, false, false, true, false, false);
     assertTrue(c.isActive());
     assertTrue(c.isReversed());
-    assertEquals(5900, c.getTargetRpm(), 0);
+    assertEquals(5950, c.getTargetRpm(), 0);
     release(c);
     c.updateButtons(true, false, false, false, false, false, false, false);
     assertFalse(c.isActive());
-    assertEquals(5900, c.getTargetRpm(), 0);
+    assertEquals(5950, c.getTargetRpm(), 0);
   }
 }

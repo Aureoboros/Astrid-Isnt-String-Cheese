@@ -21,12 +21,26 @@ flags on to bypass calibration.
 ## Quick tracking test
 
 Run **Test: Tag Servo Tracking** to test only the Limelight and camera servo.
-After Play, the servo starts at **0.2**, with tracking OFF. **X** toggles tracking;
-**Y** centers and disables tracking. Either gamepad works. With tracking OFF,
-**A/B** nudge position by **+/-0.005**. D-pad left/right selects the observed
-direction for increasing position (left is already confirmed); changing it disarms
-tracking until X is pressed again. Tag ID, image tx, servo position, and status
-appear in telemetry. No drive or shooter motors are initialized.
+After Play, the servo starts at **0.2**, with tracking **ON**. Hold **D-pad left/right**
+(or **A/B**) on either gamepad to pan the camera physically left/right. Manual
+input overrides tracking, stepping **0.005** at most every **0.1 seconds**. Release
+the buttons and the test automatically resumes aligning the visible tag after
+settling and fresh-frame checks. Increasing servo position pans left, as verified;
+D-pad no longer changes the feedback calibration.
+
+**X** pauses/resumes automatic tracking; **Y** centers and pauses. Manual movement
+while paused does not re-enable tracking on release: press X to resume. Opposing
+manual directions hold position without automatic corrections. Tag ID, image tx,
+servo position, manual/auto/paused mode, and status appear in telemetry. No drive
+or shooter motors are initialized.
+
+To test: place a tag in view, press Play, hold a manual pan button briefly to move
+it away from image center, then release and watch tx approach zero. You can also
+move the tag or turn the robot; the camera follows the changing tag bearing. Do
+**not** force the powered servo shaft/mount by hand. The positional servo has no
+angle feedback and may resist or be damaged. Keep the tag within view: if lost,
+the test holds its last position, then reacquires a visible tag; it does not scan
+for an off-screen tag.
 
 The servo centers the tag horizontally within a **2-degree deadband**, not
 vertically: pitch is fixed. Corrections are limited to **0.01** per step, at least
@@ -82,7 +96,7 @@ there is no blind sweep. A tag beyond the safe travel limits cannot be centered.
 | Limelight TeleOp (legacy) | B toggles tracking request; movement/mechanism workers remain separate |
 | BIOBUZZ: Two Hive Tips + Park | Automatic, no gamepad controls after Play; restricts target to active cell cluster |
 | Test: Servo Motor | Isolated manual position calibration only |
-| Test: Tag Servo Tracking | Isolated image-only test; X toggles tracking; Y centers and disables tracking; A/B manual +/- steps while OFF |
+| Test: Tag Servo Tracking | Auto alignment starts ON; hold D-pad left/right or A/B for manual pan, release to resume; X pause/resume; Y center/pause |
 
 Both gamepads are supported. The automatic controller commands `START_POSITION`
 (**0.2**) only after Play in these integrations; explicit center requests use **0.2**.
@@ -139,6 +153,9 @@ signs, pose settling/freshness gates, and refusal to move an uncalibrated servo.
 Image-only tests additionally cover verified left-turning feedback, deadband,
 travel limits, fresh-frame barriers, target loss/reacquisition and ID restrictions,
 manual/automatic control exclusion, and direction-change disarming.
+The tracker-test controls have separate tests for manual override/repeat timing,
+automatic alignment after release, changing tag bearing, pause/center priority,
+opposing manual buttons, limits, and holding when no tag is visible.
 The actual servo, HTTP endpoint behavior, camera geometry, and motion during
 driving still require the commissioning checks above; passing unit tests is not
 physical calibration or deployment.

@@ -46,7 +46,7 @@ public final class TeleTourney extends LinearOpMode {
       telemetry.addData("Status", "Drive, intake, Shoot1, odometry, and Limelight initialized");
       telemetry.addLine("Left stick: drive/strafe | Triggers: rotate");
       telemetry.addLine("Y: intake FORWARD -> STOP -> REVERSE -> STOP (per press)");
-      telemetry.addLine("X: Shoot1 ON/OFF | D-pad up/down: +/-100 RPM");
+      telemetry.addLine("X: Shoot1 ON/OFF | D-pad up/down: +/-50 RPM");
       telemetry.addLine("First visible tag anchors the check. A: re-anchor | B: clear");
       telemetry.addLine("Camera pan: horizontal image tracking; robot-space poses need calibration");
       telemetry.addData("Intake / Shoot1", "OFF / OFF");

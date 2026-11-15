@@ -102,7 +102,7 @@ public final class RobotConfig {
   public static final class Diagnostics {
     public static final double DRIVE_MOTOR_TEST_MAX_POWER = 0.35;
     public static final double SHOOTER_INITIAL_RPM = 6000.0;
-    public static final double SHOOTER_RPM_STEP = 100.0;
+    public static final double SHOOTER_RPM_STEP = 50.0;
 
     private Diagnostics() {}
   }

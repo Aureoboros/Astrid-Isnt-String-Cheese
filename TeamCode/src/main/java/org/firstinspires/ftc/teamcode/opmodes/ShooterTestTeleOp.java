@@ -17,7 +17,7 @@ public final class ShooterTestTeleOp extends LinearOpMode {
     try {
       telemetry.addLine("Shoot1: Expansion Hub motor port 2; encoder required.");
       telemetry.addLine("X toggles Shoot1 ON/OFF; Y toggles FORWARD/REVERSE (either gamepad).");
-      telemetry.addLine("D-pad up/down: +/-100 RPM per press, 0-6000 RPM (either gamepad).");
+      telemetry.addLine("D-pad up/down: +/-50 RPM per press, 0-6000 RPM (either gamepad).");
       telemetry.addLine("Stop the shooter before reversing a fast-spinning mechanism.");
       telemetry.addLine("Shoot2 is not initialized by this test.");
       telemetry.addData("Shoot1 target", "%.0f RPM magnitude when ON", shooter.getTargetRpm());

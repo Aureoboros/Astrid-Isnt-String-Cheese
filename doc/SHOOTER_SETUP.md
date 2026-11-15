@@ -31,7 +31,7 @@ save and activate the configuration. XML edits alone do not update the hub.
 ## Check on the robot
 
 TeleTourney starts with Shoot1 **OFF**, **4800 RPM selected**, **REVERSE**.
-X toggles ON/OFF; D-pad up/down changes speed by 100 RPM per fresh press on either
+X toggles ON/OFF; D-pad up/down changes speed by 50 RPM per fresh press on either
 controller, bounded to 0–6000. Holding a button does not repeatedly adjust speed.
 
 Telemetry shows selected magnitude, signed target, actual magnitude, signed actual,
@@ -48,5 +48,5 @@ RPM varies significantly from target, check battery voltage, load and velocity
 PIDF tuning; the profile correction does not guarantee physical speed accuracy.
 
 Desktop tests verify profile isolation, registration annotations, reverse RPM
-conversion, distinct 100-RPM commands and bounds. Physical feedback and custom
+conversion, distinct 50-RPM commands and bounds. Physical feedback and custom
 profile availability in the Driver Station still require on-robot verification.

@@ -75,8 +75,15 @@ public final class ImagePanTracker {
   /** Small manual direction-check steps are allowed only with tracking OFF. */
   public void nudge(double step, double now, double timestamp) {
     if (!started || tracking || !Double.isFinite(step)) { return; }
+    manualOverride(step, now, timestamp);
+  }
+
+  /** Explicit manual override; caller must suspend update() until manual input is released. */
+  public void manualOverride(double step, double now, double timestamp) {
+    if (!started || !Double.isFinite(step)) { return; }
     move(position + step, now, timestamp);
-    status = "HOLD: manual direction check";
+    targetTx = Double.NaN;
+    status = "MANUAL: automatic corrections suspended until release";
   }
 
   public void update(List<AprilTagAim> tags, double timestamp, double now) {

@@ -16,8 +16,8 @@ public final class DualShooterRpmTestTeleOp extends LinearOpMode {
     DualShooterRpmControls controls = new DualShooterRpmControls();
 
     telemetry.addLine("Both shooter targets start at 6000 RPM after Play.");
-    telemetry.addLine("Shoot1: X +100 RPM, A -100 RPM");
-    telemetry.addLine("Shoot2: Y +100 RPM, B -100 RPM");
+    telemetry.addLine("Shoot1: X +50 RPM, A -50 RPM");
+    telemetry.addLine("Shoot2: Y +50 RPM, B -50 RPM");
     OdometryTelemetry.add(telemetry);
     telemetry.update();
     waitForStart();

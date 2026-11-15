@@ -16,19 +16,27 @@ public final class DualShooterRpmControlsTest {
   }
 
   @Test
-  public void adjustsEachMotorByOneHundredRpmOnButtonEdges() {
+  public void adjustsEachMotorByFiftyRpmOnButtonEdges() {
     DualShooterRpmControls controls = new DualShooterRpmControls();
 
-    controls.updateButtons(false, false, true, true);
-    assertEquals(6100.0, controls.getMotor1Rpm(), EPSILON);
-    assertEquals(6100.0, controls.getMotor2Rpm(), EPSILON);
+    controls.updateButtons(true, true, false, false);
+    assertEquals(5950.0, controls.getMotor1Rpm(), EPSILON);
+    assertEquals(5950.0, controls.getMotor2Rpm(), EPSILON);
 
-    controls.updateButtons(false, false, true, true);
-    assertEquals(6100.0, controls.getMotor1Rpm(), EPSILON);
-    assertEquals(6100.0, controls.getMotor2Rpm(), EPSILON);
+    controls.updateButtons(true, true, false, false);
+    assertEquals(5950.0, controls.getMotor1Rpm(), EPSILON);
+    assertEquals(5950.0, controls.getMotor2Rpm(), EPSILON);
 
     controls.updateButtons(false, false, false, false);
-    controls.updateButtons(true, true, false, false);
+    controls.updateButtons(false, false, true, true);
+    assertEquals(6000.0, controls.getMotor1Rpm(), EPSILON);
+    assertEquals(6000.0, controls.getMotor2Rpm(), EPSILON);
+  }
+
+  @Test
+  public void increaseAtMaximumDoesNotExceedMotorRating() {
+    DualShooterRpmControls controls = new DualShooterRpmControls();
+    controls.updateButtons(false, false, true, true);
     assertEquals(6000.0, controls.getMotor1Rpm(), EPSILON);
     assertEquals(6000.0, controls.getMotor2Rpm(), EPSILON);
   }

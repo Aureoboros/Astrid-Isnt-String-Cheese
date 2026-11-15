@@ -159,7 +159,7 @@ and stops controlled motors. The positional camera servo holds its last angle.
 The mechanism buttons above apply to `Limelight TeleOp` on either gamepad. In `TeleTourney`, A
 re-anchors the Pedro/Limelight consistency check and B clears it. Its separate mechanism map is
 **Y cycles intake FORWARD → STOP → REVERSE → STOP → FORWARD**, **X Shoot1 ON/OFF**,
-and **D-pad up/down ±100 RPM** per fresh press on either gamepad, bounded to 0–6000 RPM.
+and **D-pad up/down ±50 RPM** per fresh press on either gamepad, bounded to 0–6000 RPM.
 Both motors start OFF; the first Y press starts intake FORWARD. Intake always has a
 separate STOP press between directions (allow it to coast down before the next press).
 Shoot1 runs REVERSE when enabled (`RobotConfig.TeleTourney.SHOOTER_REVERSED = true`).
@@ -252,10 +252,10 @@ only the listed hardware so another unconfigured mechanism does not prevent it f
 | `Test: Odo 12-inch Movement` | Four drive motors and Pinpoint | Each fresh Y press: forward, left, backward, right 12 in; B aborts |
 | `Test: IMU` | Hub IMU | Rotate the robot by hand; A resets yaw |
 | `Test: Limelight` | Limelight and camera servo for image-only pan; robot poses withheld until calibration | A freezes display; X toggles tracking; Y centers |
-| `Test: Tag Servo Tracking` | Limelight and camera servo only (`LimelightServoTrackingTeleOp.java`) | X toggles tracking (initially OFF); Y centers/disarms; A/B nudge +/- while OFF; D-pad left/right selects increasing-position physical direction |
+| `Test: Tag Servo Tracking` | Limelight and camera servo only (`LimelightServoTrackingTeleOp.java`, `ServoTrackingTestControls.java`) | Auto alignment starts ON; hold D-pad left/right or A/B to pan manually, release to resume; X pause/resume; Y center/pause |
 | `Test: Intake` | Intake motor only | A toggles power; Y reverses direction |
-| `Test: Shooter` | `Shoot1` only, Expansion Hub motor port 2 | X toggles ON/OFF; Y toggles FORWARD/REVERSE; D-pad up/down adjusts by 100 RPM (0–6000); selected RPM, signed target/actual/error and direction telemetry |
-| `Test: Dual Shooter RPM` | `Shoot1` and `Shoot2` only | X/A raise/lower Shoot1; Y/B raise/lower Shoot2 by 100 RPM |
+| `Test: Shooter` | `Shoot1` only, Expansion Hub motor port 2 | X toggles ON/OFF; Y toggles FORWARD/REVERSE; D-pad up/down adjusts by 50 RPM (0–6000); selected RPM, signed target/actual/error and direction telemetry |
+| `Test: Dual Shooter RPM` | `Shoot1` and `Shoot2` only | X/A raise/lower Shoot1; Y/B raise/lower Shoot2 by 50 RPM |
 | `Test: Servo Motor` | Positional camera servo only | B enables manual positioning/holds; D-pad left/right steps; A centers; verified safe limits required |
 | `Test: Odo vs AprilTag` | Pedro drive, Pinpoint, Limelight | A captures a reference; B clears it |
 
@@ -270,7 +270,7 @@ so direction can be selected while stopped. Each toggle requires a fresh press;
 holding a button does not repeat, and overlapping presses on both controllers count
 as one combined press until both release that button. Selected speed starts at
 `RobotConfig.Mechanisms.SHOOTER_TARGET_RPM` (6000 RPM). D-pad up/down adjusts the
-magnitude by 100 RPM per fresh press, bounded to 0–6000; simultaneous fresh up/down
+magnitude by 50 RPM per fresh press, bounded to 0–6000; simultaneous fresh up/down
 presses cancel. Adjustments work while stopped or running on either controller.
 Forward commands the positive selected RPM, reverse the negative, and OFF commands
 zero without losing the selected speed. Telemetry shows selected speed even when OFF.
@@ -281,7 +281,7 @@ not the separate dual-shooter diagnostics or competition OpModes.
 
 The dual-shooter RPM test begins at a 6000 RPM target for each motor after Play and shows both target
 and encoder-measured RPM. Button changes are edge-triggered, so holding a button changes its target
-only once; release and press again for another 100 RPM step. Targets cannot be reduced below zero.
+only once; release and press again for another 50 RPM step. Targets cannot be reduced below zero.
 The motor controller must have the correct encoder-equipped motor type selected in the Robot
 Controller configuration for velocity measurements and control to be accurate.
 
