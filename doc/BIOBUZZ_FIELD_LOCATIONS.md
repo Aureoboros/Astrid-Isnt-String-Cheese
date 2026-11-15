@@ -103,12 +103,11 @@ display include the 6×6 matrix with `*` marking the robot-center tile.
 
 ## Program other named destinations
 
-The repaired `Eight.java`, listed as **8** in Competition, uses these same INIT
-selection controls and the existing `POSE_ONLY` / `LEAVE_WALL_12_INCHES` plans.
-It is not a figure-eight route. It can also display optional Limelight telemetry;
-its retained hive-position-fix helper is not invoked by either current plan.
-The former `HIVE_CHECK_AND_PARK` reference had no route definition, so no hive or
-parking coordinates were invented as part of the build repair.
+`Eight.java`, listed as **8** in Competition, now runs the hive route in
+[BIOBUZZ_HIVE_AUTO.md](BIOBUZZ_HIVE_AUTO.md): Limelight position fix and 4 preloads at hive
+side 1, flower 1, 4 into hive side 2, flower 2, 4 more into hive side 2, then park.
+It uses the hive auto's INIT controls (d-pad left/right alliance, A to confirm) and the
+`HiveAutoConfig` commissioning gates, not the `POSE_ONLY` / `LEAVE_WALL_12_INCHES` plans.
 
 Register team locations in `BiobuzzFieldAuto` immediately after constructing `field`, for example:
 

@@ -1,6 +1,9 @@
 # BIOBUZZ: preloads into one cell, both flowers into the other, then park
 
-`BiobuzzHiveAuto` implements the requested sequence using Pedro + Pinpoint for position and
+`Eight` (listed as **8** on the Driver Station) implements this sequence. The older
+`BiobuzzHiveAuto` (`BIOBUZZ: Two Hive Tips + Park`) still runs the previous four-batch garden route.
+
+The routine uses Pedro + Pinpoint for position and
 Limelight for same-tag high-to-low transition evidence. It targets **your own alliance's hive**,
 not both alliances' hives. It is a **commissioning draft listed on the Driver Station**, not a
 match-ready routine. Listing does not bypass the calibration gates: the default configuration
@@ -177,7 +180,8 @@ Endpoint bounds checks are not obstacle avoidance; there is no dynamic collision
 
 ## Files and tests
 
-- `opmodes/BiobuzzHiveAuto.java`: hardware orchestration, INIT selection, motion and parking.
+- `opmodes/Eight.java`: this route's stages, waypoints, hardware orchestration, INIT selection and parking.
+- `opmodes/BiobuzzHiveAuto.java`: the previous four-batch garden route.
 - `navigation/HiveAutoRoute.java`: nominal mirrored red/blue waypoints and tag clusters.
 - `localization/HiveTipDetector.java`: fresh-frame same-tag transition evidence.
 - `localization/HiveTagRelocalizer.java`: averaged X/Y fix from measured hive tag positions.
