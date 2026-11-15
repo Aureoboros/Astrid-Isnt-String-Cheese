@@ -2,10 +2,11 @@ package org.firstinspires.ftc.teamcode.config;
 
 import org.firstinspires.ftc.teamcode.control.PanCalibration;
 
-/** Commission the mechanical limits and yaw mapping before enabling camera movement. */
+/** Image centering needs verified travel/sign; robot-space poses also need yaw calibration. */
 public final class CameraPanConfig {
   private CameraPanConfig() {}
   public static final boolean ENABLED = false;
+  public static final boolean IMAGE_ONLY_ENABLED = true;
   public static final boolean TRAVEL_VERIFIED = true;
   public static final boolean GEOMETRY_VERIFIED = false;
   // Operator-specified travel limits for the isolated manual servo test.
@@ -18,7 +19,8 @@ public final class CameraPanConfig {
   public static final double YAW_AT_CENTER_DEGREES = 0;
   public static final double YAW_AT_MAX_DEGREES = Double.NaN;
   // +1 or -1: which position direction reduces a positive image tx? Verify physically.
-  public static final int TX_TO_POSITION_SIGN = 0;
+  // Verified: increasing servo position turns camera left; positive image tx needs a decrease.
+  public static final int TX_TO_POSITION_SIGN = -1;
   // +1 if positive UI yaw means physical counterclockwise/left pan, otherwise -1.
   public static final int UI_YAW_TO_CCW_SIGN = 1;
   // Compare /results t6c_rs[5] with UI yaw: +1 for same sign, -1 for opposite sign.

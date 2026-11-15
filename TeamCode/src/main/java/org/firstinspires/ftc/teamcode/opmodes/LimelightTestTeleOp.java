@@ -26,7 +26,7 @@ public final class LimelightTestTeleOp extends LinearOpMode {
     tracker.start();
     try {
       telemetry.addLine("Press A on either gamepad to freeze/unfreeze measurements.");
-      telemetry.addLine("X: pan tracking toggle | Y: center (after calibration)");
+      telemetry.addLine("X: pan tracking toggle | Y: center (X off first to hold center)");
       CameraPanTelemetry.add(telemetry, pan, tracker);
       telemetry.addData("Pipeline switch", tracker.didPipelineSwitchSucceed());
       telemetry.addData("AprilTag pipeline config", tracker.getIdFilterStatus());
@@ -57,7 +57,8 @@ public final class LimelightTestTeleOp extends LinearOpMode {
         telemetry.addData("Pipeline switch", tracker.didPipelineSwitchSucceed());
         telemetry.addData("AprilTag pipeline config", tracker.getIdFilterStatus());
         telemetry.addData("Display", frozen ? "FROZEN" : "LIVE");
-        telemetry.addData("Tags", displayedTags.size());
+        telemetry.addData("Tags detected", tracker.getAimTargets().size());
+        telemetry.addData("Tags with robot pose", displayedTags.size());
         CameraPanTelemetry.add(telemetry, pan, tracker);
         for (AprilTagObservation tag : displayedTags) {
           telemetry.addData(

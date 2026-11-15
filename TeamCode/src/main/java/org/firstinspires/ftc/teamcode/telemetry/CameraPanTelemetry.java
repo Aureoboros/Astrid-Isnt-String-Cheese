@@ -9,8 +9,14 @@ public final class CameraPanTelemetry {
   public static void add(Telemetry telemetry, LimelightPanController pan, AprilTagTracker tags) {
     telemetry.addData("Camera pan", pan.getStatus());
     telemetry.addData("Pan tracking", pan.isTracking());
-    telemetry.addData("Pan servo / yaw", "%.3f / %.1f deg (commanded)",
-        pan.getPosition(), pan.getYawDegrees());
+    if (pan.isImageOnly()) {
+      telemetry.addData("Pan servo", "%.3f (commanded)", pan.getPosition());
+      telemetry.addData("Pan yaw / range / height", "WITHHELD: yaw calibration required");
+      telemetry.addData("Pan target tx", "%.1f deg", pan.getTargetTxDegrees());
+    } else {
+      telemetry.addData("Pan servo / yaw", "%.3f / %.1f deg (commanded)",
+          pan.getPosition(), pan.getYawDegrees());
+    }
     telemetry.addData("Pan target ID", pan.getTargetId());
     telemetry.addData("Raw aiming tags", tags.getAimTargets().size());
     telemetry.addData("Pan pose gate", tags.isRobotPoseReady() ? "OPEN" : "WITHHELD");

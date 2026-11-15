@@ -20,6 +20,7 @@ public final class LimelightPanController implements AutoCloseable {
   private PanCalibration calibration;
   private PanPoseGate gate;
   private PanTargetSelector selector;
+  private ImagePanTracker imageAim;
   private ExecutorService worker;
   private Future<?> pending;
   private boolean started, tracking = true, waitingForFrame, fault, centerRequested;
@@ -31,7 +32,30 @@ public final class LimelightPanController implements AutoCloseable {
   public LimelightPanController(HardwareMap hardwareMap, AprilTagTracker tags) {
     this.tags = tags;
     status = "DISABLED: set CameraPanConfig.ENABLED after calibration";
-    if (!CameraPanConfig.ENABLED) { return; }
+    if (!CameraPanConfig.ENABLED) {
+      if (!CameraPanConfig.IMAGE_ONLY_ENABLED) { return; }
+      try {
+        if (!CameraPanConfig.travelReady()) {
+          throw new IllegalArgumentException("Verify servo travel first");
+        }
+        imageAim = new ImagePanTracker(CameraPanConfig.MIN_POSITION,
+            CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION,
+            CameraPanConfig.START_POSITION, CameraPanConfig.POSITION_GAIN_PER_TX_DEGREE,
+            CameraPanConfig.MAX_POSITION_STEP, CameraPanConfig.TX_DEADBAND_DEGREES,
+            CameraPanConfig.SETTLE_SECONDS, CameraPanConfig.MIN_UPDATE_INTERVAL_SECONDS,
+            CameraPanConfig.LOST_TARGET_HOLD_SECONDS);
+        imageAim.setDirection(CameraPanConfig.TX_TO_POSITION_SIGN);
+        servo = hardwareMap.get(Servo.class, RobotConfig.Hardware.SERVO_MOTOR);
+        // Never acknowledge this gate: unknown yaw must not publish misleading robot poses.
+        tags.attachPanGate(new PanPoseGate(CameraPanConfig.SETTLE_SECONDS));
+        status = "READY: image-only tracking after Play; robot poses WITHHELD";
+      } catch (IllegalArgumentException invalid) {
+        servo = null;
+        imageAim = null;
+        status = "BLOCKED: " + invalid.getMessage();
+      }
+      return;
+    }
     status = "BLOCKED: verify servo travel and pan geometry";
     if (!CameraPanConfig.travelReady() || !CameraPanConfig.GEOMETRY_VERIFIED) { return; }
     try {
@@ -60,6 +84,12 @@ public final class LimelightPanController implements AutoCloseable {
   public void start() {
     if (started || servo == null) { return; }
     started = true;
+    if (imageAim != null) {
+      imageAim.start(now(), tags.getAimFrameTimestamp());
+      if (tracking) { imageAim.toggleTracking(); }
+      servo.setPosition(imageAim.getPosition());
+      return;
+    }
     worker = Executors.newSingleThreadExecutor(task -> {
       Thread thread = new Thread(task, "FTC-Limelight-Pan-Config");
       thread.setDaemon(true);
@@ -68,16 +98,36 @@ public final class LimelightPanController implements AutoCloseable {
     move(CameraPanConfig.START_POSITION);
   }
 
-  public void toggleTracking() { tracking = !tracking; }
-  public void setTrackingEnabled(boolean enabled) { tracking = enabled; }
+  public void toggleTracking() { setTrackingEnabled(!tracking); }
+  public void setTrackingEnabled(boolean enabled) {
+    tracking = enabled;
+    if (started && imageAim != null && imageAim.isTracking() != enabled) {
+      imageAim.toggleTracking();
+    }
+  }
   public void setTargetIdRange(int minId, int maxId) {
     if (selector != null) { selector.setIdRange(minId, maxId); }
+    if (imageAim != null) { imageAim.setTargetIdRange(minId, maxId); }
   }
   public void requestCenter() { if (!fault) { centerRequested = true; } }
 
   /** Nonblocking: hardware commands occur only here/start; network calls occur only on worker. */
   public void update() {
     if (!started || fault) { return; }
+    if (imageAim != null) {
+      double before = imageAim.getPosition();
+      if (centerRequested) {
+        centerRequested = false;
+        imageAim.center(now(), tags.getAimFrameTimestamp());
+        // Preserve existing center semantics: tracking resumes unless explicitly disabled.
+        if (tracking) { imageAim.toggleTracking(); }
+      } else {
+        imageAim.update(tags.getAimTargets(), tags.getAimFrameTimestamp(), now());
+      }
+      position = imageAim.getPosition();
+      if (Math.abs(before - position) > 1e-6) { servo.setPosition(position); }
+      return;
+    }
     if (pending != null) {
       if (!pending.isDone()) { return; }
       try {
@@ -135,14 +185,24 @@ public final class LimelightPanController implements AutoCloseable {
     });
   }
 
-  public String getStatus() { return status; }
+  public String getStatus() {
+    return started && imageAim != null
+        ? "IMAGE ONLY: " + imageAim.getStatus() + "; robot poses WITHHELD" : status;
+  }
+  public boolean isImageOnly() { return imageAim != null; }
+  public double getTargetTxDegrees() {
+    return imageAim == null ? Double.NaN : imageAim.getTargetTx();
+  }
   public boolean isTracking() { return started && tracking && !fault; }
   public double getPosition() { return started ? position : Double.NaN; }
   public double getYawDegrees() { return !started || calibration == null ? Double.NaN : calibration.yawAt(position); }
-  public int getTargetId() { return selector == null ? -1 : selector.getId(); }
+  public int getTargetId() {
+    return imageAim != null ? imageAim.getTargetId() : selector == null ? -1 : selector.getId();
+  }
 
   @Override public void close() {
     started = false;
+    if (imageAim != null) { imageAim.stop(); }
     if (pending != null) { pending.cancel(true); }
     if (worker != null) { worker.shutdownNow(); }
     // A positional servo holds its last angle; do not send a blind return-to-center command.

@@ -48,7 +48,7 @@ public final class TeleTourney extends LinearOpMode {
       telemetry.addLine("Y: intake FORWARD -> STOP -> REVERSE -> STOP (per press)");
       telemetry.addLine("X: Shoot1 ON/OFF | D-pad up/down: +/-100 RPM");
       telemetry.addLine("First visible tag anchors the check. A: re-anchor | B: clear");
-      telemetry.addLine("Camera pan: automatic only if calibrated and enabled in config");
+      telemetry.addLine("Camera pan: horizontal image tracking; robot-space poses need calibration");
       telemetry.addData("Intake / Shoot1", "OFF / OFF");
       telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");
       telemetry.addData("Shoot1 Selected RPM", "%.0f", mechanisms.getShooterRpm());
@@ -108,9 +108,11 @@ public final class TeleTourney extends LinearOpMode {
         telemetry.addData("Pinpoint Status", pinpoint.getDeviceStatus());
         telemetry.addData("Pose Source", "Pedro: Pinpoint (2 pods + onboard IMU)");
         telemetry.addData("Limelight", aprilTags.isConnected() ? "CONNECTED" : "DISCONNECTED");
-        telemetry.addData("AprilTags", visibleTags.size());
+        telemetry.addData("AprilTags detected", aprilTags.getAimTargets().size());
+        telemetry.addData("Tags with robot pose", visibleTags.size());
         if (nearestTag == null) {
-          telemetry.addData("Nearest Tag", "None visible");
+          telemetry.addData("Nearest Tag", aprilTags.getAimTargets().isEmpty()
+              ? "None visible" : "Robot-space measurements withheld");
         } else {
           telemetry.addData("Nearest Tag", "ID %d", nearestTag.getId());
           telemetry.addData(

@@ -78,9 +78,12 @@ See [Shooter setup](../doc/SHOOTER_SETUP.md) for configuration and telemetry che
 Confirmed servo wiring: **Control Hub servo port 0 = `servoMotor`**, configured as
 a **Full Range Servo** (`ServoFullRange` in XML). Servo port 0 is separate from
 Control Hub motor port 0. Camera control now uses `Servo` positions, not `CRServo`
-power. Automatic pan uses AprilTag horizontal image offset and updates mounting yaw
-and off-pivot lens offsets on a background worker. Safe travel and geometry must be
-calibrated in `CameraPanConfig`; movement is disabled by default. The camera servo
+power. Automatic image-only pan uses AprilTag horizontal image offset with verified
+feedback sign -1 (increasing position turns left), within 0.05–0.35, starting at 0.2.
+`ImagePanTracker` handles bounded corrections, settling, target lock and loss.
+Robot-space tag measurements are withheld until yaw/geometry calibration. The
+optional calibrated mode updates mounting yaw and off-pivot lens offsets on a
+background worker; it remains disabled in `CameraPanConfig`. The camera servo
 is no longer available as an autonomous pollen feeder. See
 [Camera pan setup](../doc/LIMELIGHT_PAN_SETUP.md) for commissioning and controls.
 
@@ -168,7 +171,7 @@ Holding a button does not repeat; overlapping controller presses count once unti
 Simultaneous fresh up/down presses cancel. `TeleTourneyMechanismControls` owns this map.
 TeleTourney initializes only `intake` (Expansion motor 0) and `Shoot1` (Expansion motor 2),
 not Shoot2. Telemetry shows motor ON/OFF, selected speed, commanded/actual RPM and error.
-X/Y no longer control the camera; automatic pan still requires its calibrated configuration.
+X/Y no longer control the camera; image-only pan is enabled, with robot-space measurements withheld.
 Mechanism updates add no waits or sleeps to the drive loop. The
 `Test: Odo vs AprilTag` diagnostic does not operate the mechanisms; in that OpMode, A captures a
 baseline and B clears it. Pedro Pathing's generated `Tuning` OpMode retains its own controls and
@@ -196,8 +199,9 @@ translational and heading PID values, which must be tuned before relying on this
 
 Mechanism power values are configured in `RobotConfig.Mechanisms`. Camera-servo
 positions, yaw calibration, travel limits, and proportional pan gain are configured
-in `CameraPanConfig`. `TeleTourney` and `Test: Limelight` use X to toggle camera
-tracking and Y to request center. A/B retain their existing meanings in those modes.
+in `CameraPanConfig`. `Test: Limelight` uses X to toggle camera
+tracking and Y to request center. TeleTourney tracks automatically and reserves
+X/Y for shooter/intake. A/B retain their existing meanings in those modes.
 The BIOBUZZ live hive auto optionally pans within the active cell's tag-ID cluster;
 it holds the mount during pickup and after entering shooter spin-up/feeding states.
 
@@ -247,7 +251,8 @@ only the listed hardware so another unconfigured mechanism does not prevent it f
 | `Test: Odometry Wheels` | Pinpoint on I²C bus 1 and its two pods | Move robot by hand; A zeros displayed pose/counts; telemetry shows status |
 | `Test: Odo 12-inch Movement` | Four drive motors and Pinpoint | Each fresh Y press: forward, left, backward, right 12 in; B aborts |
 | `Test: IMU` | Hub IMU | Rotate the robot by hand; A resets yaw |
-| `Test: Limelight` | Limelight; camera servo only if pan is enabled and calibrated | A freezes display; X toggles tracking; Y centers |
+| `Test: Limelight` | Limelight and camera servo for image-only pan; robot poses withheld until calibration | A freezes display; X toggles tracking; Y centers |
+| `Test: Tag Servo Tracking` | Limelight and camera servo only (`LimelightServoTrackingTeleOp.java`) | X toggles tracking (initially OFF); Y centers/disarms; A/B nudge +/- while OFF; D-pad left/right selects increasing-position physical direction |
 | `Test: Intake` | Intake motor only | A toggles power; Y reverses direction |
 | `Test: Shooter` | `Shoot1` only, Expansion Hub motor port 2 | X toggles ON/OFF; Y toggles FORWARD/REVERSE; D-pad up/down adjusts by 100 RPM (0–6000); selected RPM, signed target/actual/error and direction telemetry |
 | `Test: Dual Shooter RPM` | `Shoot1` and `Shoot2` only | X/A raise/lower Shoot1; Y/B raise/lower Shoot2 by 100 RPM |

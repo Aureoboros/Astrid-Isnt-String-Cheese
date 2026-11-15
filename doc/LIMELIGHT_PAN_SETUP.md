@@ -4,12 +4,34 @@
 left/right about a vertical pivot; upward pitch is fixed. It is not a pollen feeder.
 Pinpoint remains the robot-position source; camera pan never changes Pedro's pose.
 
-Automatic movement is **disabled by default** in `config/CameraPanConfig.java`.
-Manual testing is enabled with MIN **0.05**, CENTER **0.2**, and MAX **0.35**,
-with **START_POSITION = 0.2**
-(`TRAVEL_VERIFIED = true`), as specified by the operator. Unknown yaw/sign values
-still prevent automatic tracking; `ENABLED` and `GEOMETRY_VERIFIED` remain false.
-Do not just turn all flags on to bypass these checks.
+Horizontal image-only tracking is enabled in `config/CameraPanConfig.java` with
+`IMAGE_ONLY_ENABLED = true`. The operator confirmed increasing servo position
+turns the camera **left**, so `TX_TO_POSITION_SIGN = -1`: a tag to the right
+(positive image `tx`) decreases servo position. MIN is **0.05**, CENTER/START
+**0.2**, and MAX **0.35**, with verified travel. Tracking starts after Play in
+TeleTourney and Test: Limelight; drivetrain and mechanism buttons are unchanged.
+
+Yaw/geometry-aware tracking remains disabled (`ENABLED = false`,
+`GEOMETRY_VERIFIED = false`). While image-only tracking is active, robot-relative
+forward/left/range/height and AprilTag-versus-odometry validation are **withheld**
+because the camera yaw is not calibrated. Pinpoint positioning continues normally.
+This mode does not upload guessed camera mounting angles. Do not turn the geometry
+flags on to bypass calibration.
+
+## Quick tracking test
+
+Run **Test: Tag Servo Tracking** to test only the Limelight and camera servo.
+After Play, the servo starts at **0.2**, with tracking OFF. **X** toggles tracking;
+**Y** centers and disables tracking. Either gamepad works. With tracking OFF,
+**A/B** nudge position by **+/-0.005**. D-pad left/right selects the observed
+direction for increasing position (left is already confirmed); changing it disarms
+tracking until X is pressed again. Tag ID, image tx, servo position, and status
+appear in telemetry. No drive or shooter motors are initialized.
+
+The servo centers the tag horizontally within a **2-degree deadband**, not
+vertically: pitch is fixed. Corrections are limited to **0.01** per step, at least
+**0.5 seconds** apart, with settling/fresh-frame checks. Lost targets hold position;
+there is no blind sweep. A tag beyond the safe travel limits cannot be centered.
 
 ## Commissioning
 
@@ -55,23 +77,27 @@ Do not just turn all flags on to bypass these checks.
 
 | OpMode | Camera controls |
 | --- | --- |
-| TeleTourney | No manual camera buttons; automatic tracking only if calibrated/enabled. X/Y control Shoot1/intake; A/B keep odometry-validation controls |
+| TeleTourney | Automatic image-only tracking after Play. X/Y control Shoot1/intake; A/B keep odometry-validation controls (validation withheld until geometry calibration) |
 | Test: Limelight | X toggles tracking; Y requests center; A freezes display only |
 | Limelight TeleOp (legacy) | B toggles tracking request; movement/mechanism workers remain separate |
 | BIOBUZZ: Two Hive Tips + Park | Automatic, no gamepad controls after Play; restricts target to active cell cluster |
 | Test: Servo Motor | Isolated manual position calibration only |
+| Test: Tag Servo Tracking | Isolated image-only test; X toggles tracking; Y centers and disables tracking; A/B manual +/- steps while OFF |
 
 Both gamepads are supported. The automatic controller commands `START_POSITION`
 (**0.2**) only after Play in these integrations; explicit center requests use **0.2**.
-Automatic pan remains disabled until yaw/geometry calibration is completed for the new limits.
+Robot-space measurements remain withheld until yaw/geometry calibration is completed.
 **Test: Attachments** also enables its manual servo at 0.2 after Play.
 Other AprilTag/navigation tests keep the camera
 stationary; do not move it externally while relying on their robot-relative poses.
+After using image-only tracking, re-center the mount and verify the browser's
+stationary-camera extrinsics before using those tests: image-only mode leaves the
+last servo position on STOP and does not update Limelight mounting fields.
 Existing dual-shooter requirements and autonomous commissioning gates are unchanged.
 Live hive AUTO now requires the intake feeder; `SERVO` cannot command the camera.
 Dry-run AUTO initializes no camera servo or Limelight.
 
-A center request does not disable tracking; use X to disable tracking first if
+A center request in Test: Limelight does not disable tracking; use X to disable tracking first if
 the camera should remain centered instead of resuming tag following. Commanded
 position/yaw display NaN until the automatic controller has actually started.
 
@@ -83,7 +109,8 @@ reduces chatter. It keeps the selected ID through short losses, then can choose 
 actually visible tag nearest the image center. Losing all tags holds the last
 position; there is no blind search sweep. Center requests work even without a tag.
 
-Each pan step immediately blocks published robot-space tag measurements. A single
+In image-only mode robot-space measurements stay blocked throughout. In calibrated
+mode (`ENABLED = true`), each pan step immediately blocks them. A single
 background worker reads the current pipeline, changes only the six mounting fields,
 POSTs without `flush=1`, and verifies the response. Drive control never waits for
 these HTTP requests. Afterwards, a settling delay and distinct new frame with
@@ -109,6 +136,9 @@ holding is not guaranteed. An already-sent camera HTTP request cannot be undone 
 Desktop tests cover yaw interpolation, both direction signs, bounded corrections,
 off-pivot translation, target locking/loss, mount-field preservation, result yaw
 signs, pose settling/freshness gates, and refusal to move an uncalibrated servo.
+Image-only tests additionally cover verified left-turning feedback, deadband,
+travel limits, fresh-frame barriers, target loss/reacquisition and ID restrictions,
+manual/automatic control exclusion, and direction-change disarming.
 The actual servo, HTTP endpoint behavior, camera geometry, and motion during
 driving still require the commissioning checks above; passing unit tests is not
 physical calibration or deployment.
