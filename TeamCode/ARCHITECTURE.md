@@ -55,6 +55,7 @@ Controller. Change them in `RobotConfig.Hardware` if the configuration uses diff
 | `limelight` | Limelight 3A | Measures visible AprilTag range and relative height | Not applicable |
 | `imu` | Control/Expansion Hub IMU | Used only by the standalone hub IMU test | Not applicable |
 | `intake` | Motor | Intake mechanism | Controlled by A and Y |
+| `gateMotor` | 1500 RPM motor | Expansion Hub motor port 1; nectar separator upstream of Shoot1 | Test: Gate Motor only; A direction, B start/stop |
 | `Shoot1` | 6000 RPM motor with encoder | First shooter wheel | Controlled by X |
 | `Shoot2` | 6000 RPM motor with encoder | Second shooter wheel | Controlled by X |
 | `servoMotor` | Full-range positional servo | Control Hub servo port 0; Limelight left/right pan mount | Automatic pan or isolated manual position test, after calibration |
@@ -64,10 +65,22 @@ Confirmed mechanism wiring: **Expansion Hub motor port 0 = `intake`**, and
 installed yet. `Test: Shooter` supports this single-motor setup; the dual-shooter
 RPM test and other OpModes using `ShooterSubsystem` still require both shooters.
 The corresponding entries in `.run/RobotConfig.xml` have been corrected, and the
-obsolete `intakeMotor` entry on port 3 removed. That XML still contains older
-odometry/servo entries and is not a fully reconciled current robot configuration.
+obsolete `intakeMotor` entry on port 3 removed. The older
+odometry/servo entries have now also been removed; Pinpoint on Control Hub I²C bus 1
+and the Limelight server address 172.29.2.1 are included.
 Configure and activate the confirmed names/ports on the actual Robot Controller;
 editing the repository XML does not deploy hardware configuration to the hub.
+
+Added **Expansion Hub motor port 1 = `gateMotor`**, rated **1500 RPM**, for separating
+nectar before it enters Shoot1. This replaces the obsolete `yOdo` entry on port 1;
+the odometry pods still connect to Pinpoint, not motor ports. `RobotConfig.GateMotor`
+records the port/rating. The XML uses the unspecified `Motor` profile until the
+exact motor model/gearing/encoder resolution is confirmed; select the matching
+profile in the active RC configuration before using encoder-based speed control.
+`Test: Gate Motor` initializes only the gate: A swaps direction, B toggles start/stop
+on either controller, initially OFF/FORWARD. It uses `GateMotor.TEST_POWER` (20%
+open-loop), not encoder RPM control. No automatic feed timing or integration into
+TeleTourney/autonomous has been added. See [Gate setup](../doc/GATE_MOTOR_SETUP.md).
 
 Shoot1 uses the confirmed **6000-RPM, 1:1, 28-tick/revolution** goBILDA motor profile.
 `GoBilda6000RpmMotor` registers a dedicated configuration entry and corrects only

@@ -20,8 +20,8 @@ and large commands can clip at the hub's 32767 ticks/second limit.
   also corrects Shoot1; Shoot2 remains unchanged because its installed model is unconfirmed.
   The profile is cloned per motor, so drive/intake metadata is not changed.
 - [.run/RobotConfig.xml](../.run/RobotConfig.xml) now assigns the custom profile to
-  Shoot1 on Expansion motor port 2. Other older entries in that reference XML are
-  not reconciled; do not replace the entire active hub configuration blindly.
+  Shoot1 on Expansion motor port 2. It now reflects the latest device assignments;
+  verify actual hub/module identifiers and wiring before importing it.
 
 Deploy the rebuilt Robot Controller app first. The runtime correction works even
 if the active hub configuration still selects the generic series profile. For a

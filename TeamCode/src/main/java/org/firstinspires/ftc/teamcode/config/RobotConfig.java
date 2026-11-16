@@ -18,6 +18,7 @@ public final class RobotConfig {
     public static final String LIMELIGHT = "limelight";
     public static final String IMU = "imu";
     public static final String INTAKE = "intake";
+    public static final String GATE_MOTOR = "gateMotor";
     public static final String SHOOTER_1 = "Shoot1";
     public static final String SHOOTER_2 = "Shoot2";
     public static final String SERVO_MOTOR = "servoMotor";
@@ -90,6 +91,17 @@ public final class RobotConfig {
     public static final double MAX_RPM = 6000.0;
 
     private ShooterMotor() {}
+  }
+
+  /** Nectar separator upstream of Shoot1. Motor/encoder model and feed timing are not calibrated. */
+  public static final class GateMotor {
+    // Port is wiring documentation; the active RC hardware configuration assigns it.
+    public static final int EXPANSION_HUB_PORT = 1;
+    public static final double MAX_RPM = 1500.0;
+    // Open-loop diagnostic power until the motor/encoder profile is confirmed.
+    public static final double TEST_POWER = 0.2;
+
+    private GateMotor() {}
   }
 
   public static final class TeleTourney {
