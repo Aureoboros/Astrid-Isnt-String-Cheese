@@ -20,19 +20,25 @@ calibrated feed speed.
 
 ## Controller test
 
-Run **Test: Gate Motor** under Diagnostics. Only `gateMotor` is initialized;
-it starts **OFF/FORWARD**, with no movement until Play and a B press.
+Run **Test: Gate Motor** under Diagnostics. It initializes `gateMotor`, `intake`
+and `Shoot1`. From Play, the intake runs FORWARD continuously and Shoot1 spins at
+its selected RPM continuously (direction from `RobotConfig.TeleTourney.SHOOTER_REVERSED`).
+The gate starts **OFF/FORWARD** and only moves after a B press.
 
-- **A** swaps FORWARD/REVERSE without changing whether the motor is running.
-- **B** toggles start/stop; releasing it does not stop the motor.
-- Either controller works. Held/overlapping buttons toggle only once until released.
-- Driver Station STOP or exiting the test commands zero power.
+- **A** swaps gate FORWARD/REVERSE without changing whether it is running.
+- **B** toggles gate start/stop; releasing it does not stop the motor.
+- **D-pad up/down** changes Shoot1 RPM by 50 (starts at 4500, range 0-6000).
+- **D-pad left/right** changes gate RPM by 25 (starts at 200, range 0-1500).
+- Either controller works. Held/overlapping buttons act only once until released.
+- Driver Station STOP or exiting the test stops all three motors.
 
-The test uses **20% open-loop power** (`RobotConfig.GateMotor.TEST_POWER = 0.2`)
-with BRAKE at zero power. Telemetry shows ON/OFF, direction, signed commanded
-power, and the 1500-RPM **rating**, not a measured RPM. No encoder profile is
-assumed, so actual speed is not regulated. Stop and allow coast-down before
-reversing; keep hands clear. Check the separator unloaded first.
+Shoot1 uses closed-loop encoder velocity, and telemetry shows target and actual RPM.
+The gate is **open-loop**: power = target RPM / 1500 (200 RPM is about 13% power),
+with BRAKE at zero power. No gate encoder profile is assumed, so its actual speed
+is an estimate that is not regulated or measured. Starting values are
+`RobotConfig.GateMotor.TEST_INITIAL_RPM` and `RobotConfig.Diagnostics.GATE_TEST_SHOOTER_RPM`.
+Stop and allow coast-down before reversing; keep hands clear of the intake,
+separator and shooter wheel.
 
 Autonomous remains driving only, and TeleTourney controls are unchanged. This test
 does not implement automatic nectar separation. Before adding automatic separator

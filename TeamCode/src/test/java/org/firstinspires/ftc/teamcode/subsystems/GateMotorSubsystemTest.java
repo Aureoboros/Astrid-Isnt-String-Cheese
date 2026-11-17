@@ -23,14 +23,14 @@ public final class GateMotorSubsystemTest {
   }
 
   @Test public void initOnlyStopsAndConfiguresOpenLoopWithBrake() {
-    GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 0.2);
+    GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 1500, 300);
     assertEquals(Arrays.asList(0.0), powers);
     assertEquals(Arrays.asList("FORWARD", "RUN_WITHOUT_ENCODER", "BRAKE"), setup);
     assertFalse(gate.isActive()); assertEquals(0, gate.getCommandedPower(), 0);
   }
 
   @Test public void directionWhileOffStaysOffAndStartStopUsesSignedPower() {
-    GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 0.2);
+    GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 1500, 300);
     gate.setState(false, true);
     gate.setState(true, true);
     gate.setState(true, false);
@@ -40,10 +40,25 @@ public final class GateMotorSubsystemTest {
     assertFalse(gate.isActive());
   }
 
-  @Test public void invalidPowerRejectedBeforeTouchingHardware() {
-    for (double power : new double[] {0, -0.2, 1.1, Double.NaN, Double.POSITIVE_INFINITY}) {
-      try { new GateMotorSubsystem(motor(), power); fail("Invalid power accepted"); }
+  @Test public void rpmTargetMapsToOpenLoopPowerAndClampsToRating() {
+    GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 1500, 200);
+    assertEquals(200, gate.getTargetRpm(), 0);
+    gate.setState(true, false);
+    assertEquals(200.0 / 1500, gate.getCommandedPower(), 1e-9);
+    gate.setState(true, true, 750);
+    assertEquals(-0.5, gate.getCommandedPower(), 1e-9);
+    gate.setState(true, false, 5000);
+    assertEquals(1500, gate.getTargetRpm(), 0); assertEquals(1.0, gate.getCommandedPower(), 1e-9);
+    gate.setState(true, false, -50);
+    assertEquals(0, gate.getTargetRpm(), 0); assertEquals(0, gate.getCommandedPower(), 0);
+  }
+
+  @Test public void invalidSettingsRejectedBeforeTouchingHardware() {
+    for (double maxRpm : new double[] {0, -1500, Double.NaN, Double.POSITIVE_INFINITY}) {
+      try { new GateMotorSubsystem(motor(), maxRpm, 200); fail("Invalid rating accepted"); }
       catch (IllegalArgumentException expected) { assertTrue(powers.isEmpty()); assertTrue(setup.isEmpty()); }
     }
+    try { new GateMotorSubsystem(motor(), 1500, Double.NaN); fail("NaN RPM accepted"); }
+    catch (IllegalArgumentException expected) { assertTrue(powers.isEmpty()); assertTrue(setup.isEmpty()); }
   }
 }

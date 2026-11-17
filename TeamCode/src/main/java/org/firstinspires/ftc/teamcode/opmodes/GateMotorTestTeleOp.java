@@ -6,11 +6,12 @@ import org.firstinspires.ftc.teamcode.config.RobotConfig;
 import org.firstinspires.ftc.teamcode.control.GateMotorTestControls;
 import org.firstinspires.ftc.teamcode.subsystems.GateMotorSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.SingleShooterSubsystem;
 import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 
 /**
- * Driver Station diagnostic: initializes gateMotor and the intake. The intake runs forward
- * continuously from Play; the gate motor stays off until B.
+ * Driver Station diagnostic: initializes gateMotor, the intake and Shoot1. From Play the intake
+ * runs forward and Shoot1 spins at its selected RPM continuously; the gate motor stays off until B.
  */
 @TeleOp(name = "Test: Gate Motor", group = "Diagnostics")
 public final class GateMotorTestTeleOp extends LinearOpMode {
@@ -18,28 +19,40 @@ public final class GateMotorTestTeleOp extends LinearOpMode {
     GateMotorSubsystem gate = new GateMotorSubsystem(hardwareMap);
     GateMotorTestControls controls = new GateMotorTestControls();
     IntakeSubsystem intake = null;
+    SingleShooterSubsystem shooter = null;
+    boolean shooterReversed = RobotConfig.TeleTourney.SHOOTER_REVERSED;
     try {
       intake = new IntakeSubsystem(hardwareMap);
+      shooter = new SingleShooterSubsystem(hardwareMap);
+      shooter.setState(false, shooterReversed, controls.getShooterRpm());
+      gate.setState(false, false, controls.getGateRpm());
       telemetry.addLine("gateMotor: Expansion Hub motor port 1 (1500-RPM rating).");
-      telemetry.addLine("A: swap FORWARD/REVERSE | B: start/stop (either controller, fresh presses).");
-      telemetry.addData("Starts OFF / test power", "%.0f%% open-loop; actual RPM not measured",
-          RobotConfig.GateMotor.TEST_POWER * 100);
-      telemetry.addLine("Stop and allow coast-down before reversing. Keep hands clear of the separator.");
+      telemetry.addLine("A: gate FORWARD/REVERSE | B: gate start/stop (either controller).");
+      telemetry.addLine("D-pad left/right: gate RPM | D-pad up/down: shooter RPM.");
+      telemetry.addData("Gate starts OFF at", "%.0f RPM (open-loop estimate, not measured)",
+          controls.getGateRpm());
+      telemetry.addData("Shoot1 starts ON at Play", "%.0f RPM (closed-loop)", controls.getShooterRpm());
       telemetry.addLine("Intake runs FORWARD continuously from Play. Keep hands clear.");
-      telemetry.addLine("No drive, shooter, servo or camera is initialized.");
+      telemetry.addLine("Stop and allow coast-down before reversing the gate.");
+      telemetry.addLine("No drive, servo or camera is initialized.");
       OdometryTelemetry.add(telemetry);
       telemetry.update();
       waitForStart();
       if (opModeIsActive()) { intake.setState(true, IntakeSubsystem.Direction.FORWARD); }
       while (opModeIsActive()) {
         controls.update(gamepad1, gamepad2);
-        gate.setState(controls.isActive(), controls.isReversed());
+        gate.setState(controls.isActive(), controls.isReversed(), controls.getGateRpm());
+        shooter.setState(true, shooterReversed, controls.getShooterRpm());
         telemetry.addData("Intake", intake.isEnabled() ? "ON (always)" : "OFF");
+        telemetry.addData("Shoot1", "%s %s", shooter.isActive() ? "ON" : "OFF",
+            shooter.isReversed() ? "REVERSE" : "FORWARD");
+        telemetry.addData("Shoot1 target / actual", "%.0f / %.0f RPM",
+            shooter.getTargetRpm(), Math.abs(shooter.getActualRpm()));
         telemetry.addData("Gate motor", gate.isActive() ? "ON" : "OFF");
-        telemetry.addData("Direction", gate.isReversed() ? "REVERSE" : "FORWARD");
-        telemetry.addData("Commanded power", "%+.0f%%", gate.getCommandedPower() * 100);
-        telemetry.addData("Rated speed", "%.0f RPM (not actual speed)", RobotConfig.GateMotor.MAX_RPM);
-        telemetry.addLine("A: direction | B: start/stop | DS STOP: abort");
+        telemetry.addData("Gate direction", gate.isReversed() ? "REVERSE" : "FORWARD");
+        telemetry.addData("Gate target", "%.0f RPM (open-loop estimate)", gate.getTargetRpm());
+        telemetry.addData("Gate commanded power", "%+.1f%%", gate.getCommandedPower() * 100);
+        telemetry.addLine("A: gate dir | B: gate on/off | D-pad L/R: gate RPM | U/D: shooter RPM");
         OdometryTelemetry.add(telemetry);
         telemetry.update();
         idle();
@@ -47,6 +60,7 @@ public final class GateMotorTestTeleOp extends LinearOpMode {
     } finally {
       gate.stop();
       if (intake != null) { intake.stop(); }
+      if (shooter != null) { shooter.stop(); }
     }
   }
 }

@@ -98,8 +98,9 @@ public final class RobotConfig {
     // Port is wiring documentation; the active RC hardware configuration assigns it.
     public static final int EXPANSION_HUB_PORT = 1;
     public static final double MAX_RPM = 1500.0;
-    // Open-loop diagnostic power until the motor/encoder profile is confirmed.
-    public static final double TEST_POWER = 0.2;
+    // Open-loop diagnostic speed: power = RPM / MAX_RPM until an encoder profile is confirmed.
+    public static final double TEST_INITIAL_RPM = 200.0;
+    public static final double TEST_RPM_STEP = 25.0;
 
     private GateMotor() {}
   }
@@ -115,6 +116,8 @@ public final class RobotConfig {
     public static final double DRIVE_MOTOR_TEST_MAX_POWER = 0.35;
     public static final double SHOOTER_INITIAL_RPM = 6000.0;
     public static final double SHOOTER_RPM_STEP = 50.0;
+    /** Shoot1 starting target in the gate motor test; D-pad up/down adjusts it. */
+    public static final double GATE_TEST_SHOOTER_RPM = 4500.0;
 
     private Diagnostics() {}
   }

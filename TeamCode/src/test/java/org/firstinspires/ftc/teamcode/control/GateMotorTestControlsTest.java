@@ -51,4 +51,51 @@ public final class GateMotorTestControlsTest {
     second.a = second.b = true; c.update(first, second);
     assertTrue(c.isActive()); assertTrue(c.isReversed());
   }
+
+  @Test public void startsAtConfiguredGateAndShooterRpm() {
+    GateMotorTestControls c = new GateMotorTestControls();
+    assertEquals(200, c.getGateRpm(), 0);
+    assertEquals(4500, c.getShooterRpm(), 0);
+  }
+
+  @Test public void dpadUpDownStepsShooterOnFreshPressesOnly() {
+    GateMotorTestControls c = new GateMotorTestControls();
+    c.updateDpad(true, false, false, false);
+    c.updateDpad(true, false, false, false);
+    assertEquals(4550, c.getShooterRpm(), 0);
+    c.updateDpad(false, false, false, false);
+    c.updateDpad(false, true, false, false);
+    c.updateDpad(false, false, false, false);
+    c.updateDpad(false, true, false, false);
+    assertEquals(4450, c.getShooterRpm(), 0);
+    assertEquals(200, c.getGateRpm(), 0);
+  }
+
+  @Test public void dpadLeftRightStepsGateOnFreshPressesOnly() {
+    GateMotorTestControls c = new GateMotorTestControls();
+    c.updateDpad(false, false, false, true);
+    c.updateDpad(false, false, false, true);
+    assertEquals(225, c.getGateRpm(), 0);
+    c.updateDpad(false, false, true, false);
+    c.updateDpad(false, false, false, false);
+    c.updateDpad(false, false, true, false);
+    assertEquals(175, c.getGateRpm(), 0);
+    assertEquals(4500, c.getShooterRpm(), 0);
+  }
+
+  @Test public void rpmClampsBetweenZeroAndMotorRatings() {
+    GateMotorTestControls c = new GateMotorTestControls();
+    for (int i = 0; i < 100; i++) { c.updateDpad(true, false, false, true); c.updateDpad(false, false, false, false); }
+    assertEquals(6000, c.getShooterRpm(), 0); assertEquals(1500, c.getGateRpm(), 0);
+    for (int i = 0; i < 200; i++) { c.updateDpad(false, true, true, false); c.updateDpad(false, false, false, false); }
+    assertEquals(0, c.getShooterRpm(), 0); assertEquals(0, c.getGateRpm(), 0);
+  }
+
+  @Test public void eitherControllersDpadWorks() {
+    GateMotorTestControls c = new GateMotorTestControls();
+    Gamepad first = new Gamepad(), second = new Gamepad();
+    second.dpad_up = true; first.dpad_right = true;
+    c.update(first, second);
+    assertEquals(4550, c.getShooterRpm(), 0); assertEquals(225, c.getGateRpm(), 0);
+  }
 }
