@@ -5,10 +5,12 @@ import org.firstinspires.ftc.teamcode.config.RobotConfig;
 
 /**
  * Gate diagnostic, shared by both controllers (fresh presses only): A swaps gate direction,
- * B toggles gate start/stop, D-pad left/right steps gate RPM, D-pad up/down steps shooter RPM.
+ * B toggles gate start/stop, X toggles the shooter (starts ON), D-pad left/right steps gate RPM,
+ * D-pad up/down steps shooter RPM.
  */
 public final class GateMotorTestControls {
   private boolean active, reversed, previousA, previousB;
+  private boolean shooterActive = true, previousX;
   private boolean previousUp, previousDown, previousLeft, previousRight;
   private double gateRpm = clamp(RobotConfig.GateMotor.TEST_INITIAL_RPM, RobotConfig.GateMotor.MAX_RPM);
   private double shooterRpm = clamp(RobotConfig.Diagnostics.GATE_TEST_SHOOTER_RPM,
@@ -16,6 +18,7 @@ public final class GateMotorTestControls {
 
   public void update(Gamepad first, Gamepad second) {
     updateButtons(first.a, first.b, second.a, second.b);
+    updateShooterToggle(first.x || second.x);
     updateDpad(first.dpad_up || second.dpad_up, first.dpad_down || second.dpad_down,
         first.dpad_left || second.dpad_left, first.dpad_right || second.dpad_right);
   }
@@ -26,6 +29,11 @@ public final class GateMotorTestControls {
     if (b && !previousB) { active = !active; }
     previousA = a;
     previousB = b;
+  }
+
+  void updateShooterToggle(boolean x) {
+    if (x && !previousX) { shooterActive = !shooterActive; }
+    previousX = x;
   }
 
   void updateDpad(boolean up, boolean down, boolean left, boolean right) {
@@ -40,6 +48,7 @@ public final class GateMotorTestControls {
 
   public boolean isActive() { return active; }
   public boolean isReversed() { return reversed; }
+  public boolean isShooterActive() { return shooterActive; }
   public double getGateRpm() { return gateRpm; }
   public double getShooterRpm() { return shooterRpm; }
 

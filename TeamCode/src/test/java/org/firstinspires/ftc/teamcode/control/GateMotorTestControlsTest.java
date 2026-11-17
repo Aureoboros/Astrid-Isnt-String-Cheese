@@ -42,7 +42,7 @@ public final class GateMotorTestControlsTest {
     assertFalse(c.isActive()); assertFalse(c.isReversed());
   }
 
-  @Test public void gamepadMappingUsesAAndBOnly() {
+  @Test public void gateToggleMappingUsesAAndBOnly() {
     GateMotorTestControls c = new GateMotorTestControls();
     Gamepad first = new Gamepad(), second = new Gamepad();
     first.x = first.y = first.dpad_up = true;
@@ -97,5 +97,22 @@ public final class GateMotorTestControlsTest {
     second.dpad_up = true; first.dpad_right = true;
     c.update(first, second);
     assertEquals(4550, c.getShooterRpm(), 0); assertEquals(225, c.getGateRpm(), 0);
+  }
+
+  @Test public void xTogglesShooterOnFreshPressesStartingOn() {
+    GateMotorTestControls c = new GateMotorTestControls();
+    assertTrue(c.isShooterActive());
+    c.updateShooterToggle(true); c.updateShooterToggle(true);
+    assertFalse(c.isShooterActive());
+    c.updateShooterToggle(false); c.updateShooterToggle(true);
+    assertTrue(c.isShooterActive());
+    assertFalse(c.isActive());
+  }
+
+  @Test public void eitherControllersXTogglesShooter() {
+    GateMotorTestControls c = new GateMotorTestControls();
+    Gamepad first = new Gamepad(), second = new Gamepad();
+    second.x = true; c.update(first, second);
+    assertFalse(c.isShooterActive());
   }
 }

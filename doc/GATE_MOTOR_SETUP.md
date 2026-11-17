@@ -22,11 +22,12 @@ calibrated feed speed.
 
 Run **Test: Gate Motor** under Diagnostics. It initializes `gateMotor`, `intake`
 and `Shoot1`. From Play, the intake runs FORWARD continuously and Shoot1 spins at
-its selected RPM continuously (direction from `RobotConfig.TeleTourney.SHOOTER_REVERSED`).
+its selected RPM until X turns it off (direction from `RobotConfig.TeleTourney.SHOOTER_REVERSED`).
 The gate starts **OFF/FORWARD** and only moves after a B press.
 
 - **A** swaps gate FORWARD/REVERSE without changing whether it is running.
 - **B** toggles gate start/stop; releasing it does not stop the motor.
+- **X** toggles Shoot1 on/off (it starts ON at Play); the selected RPM is kept.
 - **D-pad up/down** changes Shoot1 RPM by 50 (starts at 4500, range 0-6000).
 - **D-pad left/right** changes gate RPM by 25 (starts at 200, range 0-1500).
 - Either controller works. Held/overlapping buttons act only once until released.
