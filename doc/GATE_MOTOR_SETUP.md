@@ -20,19 +20,27 @@ calibrated feed speed.
 
 ## Controller test
 
-Run **Test: Gate Motor** under Diagnostics. Only `gateMotor` is initialized;
-it starts **OFF/FORWARD**, with no movement until Play and a B press.
+Run **Test: Gate Motor** under Diagnostics. It initializes `gateMotor` and `intake`.
+The gate starts **OFF/FORWARD** and waits for Play and a B press. The intake starts
+running **FORWARD continuously at 100% power** on Play (`RobotConfig.Mechanisms.INTAKE_POWER`).
+No drive, shooter, servo or camera is initialized. Keep hands clear before Play.
 
 - **A** swaps FORWARD/REVERSE without changing whether the motor is running.
-- **B** toggles start/stop; releasing it does not stop the motor.
+- **B** toggles gate start/stop; releasing it does not stop the gate or intake.
 - Either controller works. Held/overlapping buttons toggle only once until released.
-- Driver Station STOP or exiting the test commands zero power.
+- Driver Station STOP or exiting the test commands zero power to both motors.
 
 The test uses **20% open-loop power** (`RobotConfig.GateMotor.TEST_POWER = 0.2`)
 with BRAKE at zero power. Telemetry shows ON/OFF, direction, signed commanded
 power, and the 1500-RPM **rating**, not a measured RPM. No encoder profile is
 assumed, so actual speed is not regulated. Stop and allow coast-down before
 reversing; keep hands clear. Check the separator unloaded first.
+Telemetry also shows the continuously running intake and configured odometry
+ticks-to-inches coefficient; this test does not initialize or read Pinpoint.
+
+The indexed separator helper's settings live in `RobotConfig.GateMotor`.
+Automatic feeding remains disabled and uncalibrated (`AUTO_FEED_ENABLED = false`,
+`TICKS_PER_INDEX = 0`); these settings do not change this manual test's A/B controls.
 
 Autonomous remains driving only, and TeleTourney controls are unchanged. This test
 does not implement automatic nectar separation. Before adding automatic separator

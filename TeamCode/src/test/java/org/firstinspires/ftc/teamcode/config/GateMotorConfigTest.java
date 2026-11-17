@@ -9,6 +9,14 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 public final class GateMotorConfigTest {
+  @Test public void automaticFeedRemainsBlockedUntilPhysicalCalibration() {
+    assertFalse(RobotConfig.GateMotor.AUTO_FEED_ENABLED);
+    assertFalse(RobotConfig.GateMotor.ONE_BALL_INDEX_VERIFIED);
+    assertFalse(RobotConfig.GateMotor.START_BLOCK_POSITION_VERIFIED);
+    assertEquals(0, RobotConfig.GateMotor.TICKS_PER_INDEX);
+    assertFalse(RobotConfig.GateMotor.autoFeedReady());
+  }
+
   @Test public void recordsRequestedNamePortAndRatingWithoutChangingShooter() {
     assertEquals("gateMotor", RobotConfig.Hardware.GATE_MOTOR);
     assertEquals(1, RobotConfig.GateMotor.EXPANSION_HUB_PORT);
