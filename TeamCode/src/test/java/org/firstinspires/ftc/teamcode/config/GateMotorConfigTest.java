@@ -12,7 +12,8 @@ public final class GateMotorConfigTest {
   @Test public void recordsRequestedNamePortAndRatingWithoutChangingShooter() {
     assertEquals("gateMotor", RobotConfig.Hardware.GATE_MOTOR);
     assertEquals(1, RobotConfig.GateMotor.EXPANSION_HUB_PORT);
-    assertEquals(1500, RobotConfig.GateMotor.MAX_RPM, 0);
+    assertEquals(435, RobotConfig.GateMotor.MAX_RPM, 0);
+    assertEquals(384.5, RobotConfig.GateMotor.TICKS_PER_REVOLUTION, 0);
     assertEquals(200, RobotConfig.GateMotor.TEST_INITIAL_RPM, 0);
     assertEquals(4500, RobotConfig.Diagnostics.GATE_TEST_SHOOTER_RPM, 0);
     assertEquals("Shoot1", RobotConfig.Hardware.SHOOTER_1);

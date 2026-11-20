@@ -93,12 +93,14 @@ public final class RobotConfig {
     private ShooterMotor() {}
   }
 
-  /** Nectar separator upstream of Shoot1. Motor/encoder model and feed timing are not calibrated. */
+  /** Nectar separator upstream of Shoot1: goBILDA 5203 435 RPM (13.7:1). Feed timing not calibrated. */
   public static final class GateMotor {
     // Port is wiring documentation; the active RC hardware configuration assigns it.
     public static final int EXPANSION_HUB_PORT = 1;
-    public static final double MAX_RPM = 1500.0;
-    // Open-loop diagnostic speed: power = RPM / MAX_RPM until an encoder profile is confirmed.
+    public static final double MAX_RPM = 435.0;
+    /** goBILDA 435 RPM encoder counts per output-shaft revolution (28 x 13.7:1). */
+    public static final double TICKS_PER_REVOLUTION = 384.5;
+    // Closed-loop (encoder) diagnostic speed.
     public static final double TEST_INITIAL_RPM = 200.0;
     public static final double TEST_RPM_STEP = 25.0;
 

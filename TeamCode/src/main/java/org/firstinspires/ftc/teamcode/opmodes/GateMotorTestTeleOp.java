@@ -27,11 +27,10 @@ public final class GateMotorTestTeleOp extends LinearOpMode {
       shooter = new SingleShooterSubsystem(hardwareMap);
       shooter.setState(false, shooterReversed, controls.getShooterRpm());
       gate.setState(false, false, controls.getGateRpm());
-      telemetry.addLine("gateMotor: Expansion Hub motor port 1 (1500-RPM rating).");
+      telemetry.addLine("gateMotor: Expansion Hub motor port 1 (goBILDA 435 RPM, encoder required).");
       telemetry.addLine("A: gate FORWARD/REVERSE | B: gate start/stop (either controller).");
       telemetry.addLine("X: shooter on/off | D-pad left/right: gate RPM | D-pad up/down: shooter RPM.");
-      telemetry.addData("Gate starts OFF at", "%.0f RPM (open-loop estimate, not measured)",
-          controls.getGateRpm());
+      telemetry.addData("Gate starts OFF at", "%.0f RPM (closed-loop)", controls.getGateRpm());
       telemetry.addData("Shoot1 starts ON at Play", "%.0f RPM (closed-loop)", controls.getShooterRpm());
       telemetry.addLine("Intake runs FORWARD continuously from Play. Keep hands clear.");
       telemetry.addLine("Stop and allow coast-down before reversing the gate.");
@@ -51,8 +50,8 @@ public final class GateMotorTestTeleOp extends LinearOpMode {
             shooter.getTargetRpm(), Math.abs(shooter.getActualRpm()));
         telemetry.addData("Gate motor", gate.isActive() ? "ON" : "OFF");
         telemetry.addData("Gate direction", gate.isReversed() ? "REVERSE" : "FORWARD");
-        telemetry.addData("Gate target", "%.0f RPM (open-loop estimate)", gate.getTargetRpm());
-        telemetry.addData("Gate commanded power", "%+.1f%%", gate.getCommandedPower() * 100);
+        telemetry.addData("Gate target / actual", "%.0f / %.0f RPM",
+            gate.getTargetRpm(), Math.abs(gate.getActualRpm()));
         telemetry.addLine("A: gate dir | B: gate on/off | X: shooter on/off");
         telemetry.addLine("D-pad L/R: gate RPM | D-pad U/D: shooter RPM");
         OdometryTelemetry.add(telemetry);

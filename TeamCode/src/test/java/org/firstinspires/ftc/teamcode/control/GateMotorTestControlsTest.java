@@ -86,7 +86,7 @@ public final class GateMotorTestControlsTest {
   @Test public void rpmClampsBetweenZeroAndMotorRatings() {
     GateMotorTestControls c = new GateMotorTestControls();
     for (int i = 0; i < 100; i++) { c.updateDpad(true, false, false, true); c.updateDpad(false, false, false, false); }
-    assertEquals(6000, c.getShooterRpm(), 0); assertEquals(1500, c.getGateRpm(), 0);
+    assertEquals(6000, c.getShooterRpm(), 0); assertEquals(435, c.getGateRpm(), 0);
     for (int i = 0; i < 200; i++) { c.updateDpad(false, true, true, false); c.updateDpad(false, false, false, false); }
     assertEquals(0, c.getShooterRpm(), 0); assertEquals(0, c.getGateRpm(), 0);
   }
