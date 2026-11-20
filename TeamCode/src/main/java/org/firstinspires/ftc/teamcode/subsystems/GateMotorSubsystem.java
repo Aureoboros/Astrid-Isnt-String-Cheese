@@ -44,7 +44,7 @@ public final class GateMotorSubsystem {
     type.setTicksPerRev(ticksPerRevolution);
     type.setMaxRPM(maxRpm);
     motor.setMotorType(type);
-    motor.setDirection(DcMotor.Direction.FORWARD);
+    motor.setDirection(RobotConfig.GateMotor.MOTOR_DIRECTION);
     motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     stop();
