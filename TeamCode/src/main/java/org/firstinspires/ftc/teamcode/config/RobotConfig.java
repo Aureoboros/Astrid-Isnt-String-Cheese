@@ -93,41 +93,16 @@ public final class RobotConfig {
     private ShooterMotor() {}
   }
 
-  /** Nectar separator upstream of Shoot1. Motor/encoder model and feed timing are not calibrated. */
+  /** Nectar separator upstream of Shoot1: goBILDA 5203 435 RPM (13.7:1). Feed timing not calibrated. */
   public static final class GateMotor {
     // Port is wiring documentation; the active RC hardware configuration assigns it.
     public static final int EXPANSION_HUB_PORT = 1;
-    public static final double MAX_RPM = 1500.0;
-    // Open-loop diagnostic power until the motor/encoder profile is confirmed.
-    public static final double TEST_POWER = 0.2;
-
-    // Indexed feeding must remain disabled until the physical gate is calibrated.
-    public static final boolean AUTO_FEED_ENABLED = false;
-    public static final boolean ONE_BALL_INDEX_VERIFIED = false;
-    public static final boolean START_BLOCK_POSITION_VERIFIED = false;
-    // Signed raw encoder counts between blocking positions; zero means uncalibrated.
-    public static final int TICKS_PER_INDEX = 0;
-    public static final double INDEX_POWER = 0.2;
-    public static final int POSITION_TOLERANCE_TICKS = 2;
-    public static final double POSITION_SETTLE_SECONDS = 0.05;
-    public static final double INDEX_TIMEOUT_SECONDS = 1.0;
-    public static final double MIN_BALL_INTERVAL_SECONDS = 0.1;
-    public static final double SHOOTER_RPM_TOLERANCE = 150;
-    public static final double SHOOTER_STABLE_SECONDS = 0.25;
-    public static final double MIN_SHOOTER_RPM = 1000;
-
-    public static boolean autoFeedReady() {
-      return AUTO_FEED_ENABLED && ONE_BALL_INDEX_VERIFIED && START_BLOCK_POSITION_VERIFIED
-          && Math.abs((long) TICKS_PER_INDEX) > POSITION_TOLERANCE_TICKS
-          && POSITION_TOLERANCE_TICKS >= 0
-          && Double.isFinite(INDEX_POWER) && INDEX_POWER > 0 && INDEX_POWER <= 1
-          && Double.isFinite(POSITION_SETTLE_SECONDS) && POSITION_SETTLE_SECONDS >= 0
-          && Double.isFinite(INDEX_TIMEOUT_SECONDS) && INDEX_TIMEOUT_SECONDS > POSITION_SETTLE_SECONDS
-          && Double.isFinite(MIN_BALL_INTERVAL_SECONDS) && MIN_BALL_INTERVAL_SECONDS >= 0.1
-          && Double.isFinite(SHOOTER_RPM_TOLERANCE) && SHOOTER_RPM_TOLERANCE > 0
-          && Double.isFinite(SHOOTER_STABLE_SECONDS) && SHOOTER_STABLE_SECONDS > 0
-          && Double.isFinite(MIN_SHOOTER_RPM) && MIN_SHOOTER_RPM > SHOOTER_RPM_TOLERANCE;
-    }
+    public static final double MAX_RPM = 435.0;
+    /** goBILDA 435 RPM encoder counts per output-shaft revolution (28 x 13.7:1). */
+    public static final double TICKS_PER_REVOLUTION = 384.5;
+    // Closed-loop (encoder) diagnostic speed.
+    public static final double TEST_INITIAL_RPM = 200.0;
+    public static final double TEST_RPM_STEP = 25.0;
 
     private GateMotor() {}
   }
@@ -143,6 +118,8 @@ public final class RobotConfig {
     public static final double DRIVE_MOTOR_TEST_MAX_POWER = 0.35;
     public static final double SHOOTER_INITIAL_RPM = 6000.0;
     public static final double SHOOTER_RPM_STEP = 50.0;
+    /** Shoot1 starting target in the gate motor test; D-pad up/down adjusts it. */
+    public static final double GATE_TEST_SHOOTER_RPM = 4500.0;
 
     private Diagnostics() {}
   }
