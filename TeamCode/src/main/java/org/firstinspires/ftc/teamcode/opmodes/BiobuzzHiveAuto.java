@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.List;
 import org.firstinspires.ftc.teamcode.config.HiveAutoConfig;
 import org.firstinspires.ftc.teamcode.config.RobotConfig;
+import org.firstinspires.ftc.teamcode.config.PreloadedHiveAutoConfig;
 import org.firstinspires.ftc.teamcode.control.HiveShotController;
 import org.firstinspires.ftc.teamcode.control.PollenBatchInventory;
 import org.firstinspires.ftc.teamcode.control.LimelightPanController;
@@ -27,6 +28,7 @@ import org.firstinspires.ftc.teamcode.navigation.HiveAutoRoute.Stage;
 import org.firstinspires.ftc.teamcode.navigation.Waypoint;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.SingleShooterSubsystem;
 import org.firstinspires.ftc.teamcode.telemetry.FieldLocationTelemetry;
 import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 
@@ -37,12 +39,13 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
  */
 // Listed on the Driver Station; HiveAutoConfig commissioning gates still prevent unverified operation.
 @Autonomous(name = "BIOBUZZ: Two Hive Tips + Park", group = "Competition")
-public final class BiobuzzHiveAuto extends LinearOpMode {
+public class BiobuzzHiveAuto extends LinearOpMode {
   private Follower follower;
   private GoBildaPinpointDriver pinpoint;
   private AprilTagTracker tags;
   private LimelightPanController pan;
   private ShooterSubsystem shooter;
+  private SingleShooterSubsystem singleShooter;
   private DcMotor intakeFeeder;
   private DcMotor pickupIntake;
   private final ElapsedTime clock = new ElapsedTime();
@@ -54,6 +57,13 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
   private Stage currentStage;
   private String fixStatus = HiveAutoConfig.RELOCALIZE_AT_HIVE ? "pending" : "disabled in HiveAutoConfig";
 
+  protected Alliance initialAlliance() { return Alliance.RED; }
+  protected boolean allowAllianceSelection() { return true; }
+  protected boolean requiresPlacementConfirmation() { return true; }
+  protected HiveAutoRoute createRoute(Alliance alliance) { return new HiveAutoRoute(alliance); }
+  protected boolean canRunRoute() { return HiveAutoConfig.canRun(); }
+  protected boolean usesSingleShooter() { return false; }
+
   @Override public void runOpMode() {
     telemetry.setMsTransmissionInterval(50);
     telemetry.addLine("Commissioning draft. Keep robot still during Pinpoint calibration.");
@@ -61,17 +71,23 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
     telemetry.update();
     BiobuzzFieldMap field = new BiobuzzFieldMap(
         RobotConfig.Autonomous.START_LENGTH_INCHES, RobotConfig.Autonomous.START_WIDTH_INCHES);
-    Alliance alliance = Alliance.RED;
-    HiveAutoRoute route = new HiveAutoRoute(alliance);
+    Alliance alliance = initialAlliance();
+    HiveAutoRoute route = createRoute(alliance);
     boolean confirmed = false, oldA = false;
     try {
       follower = Constants.createFollower(hardwareMap);
       pinpoint = ((PinpointLocalizer) follower.getPoseTracker().getLocalizer()).getPinpoint();
       follower.setMaxPower(HiveAutoConfig.MAX_DRIVE_POWER);
       follower.setStartingPose(pose(field.startPose(route.start())));
-      if (!HiveAutoConfig.DRY_RUN && HiveAutoConfig.canRun()) {
-        shooter = new ShooterSubsystem(hardwareMap);
-        shooter.setTargetRpms(HiveAutoConfig.SHOOT_RPM_1, HiveAutoConfig.SHOOT_RPM_2);
+      if (!HiveAutoConfig.DRY_RUN && canRunRoute()) {
+        if (usesSingleShooter()) {
+          singleShooter = new SingleShooterSubsystem(hardwareMap);
+          singleShooter.setState(false, PreloadedHiveAutoConfig.SHOOT_REVERSED,
+              PreloadedHiveAutoConfig.SHOOT_RPM);
+        } else {
+          shooter = new ShooterSubsystem(hardwareMap);
+          shooter.setTargetRpms(HiveAutoConfig.SHOOT_RPM_1, HiveAutoConfig.SHOOT_RPM_2);
+        }
         pickupIntake = hardwareMap.get(DcMotor.class, RobotConfig.Hardware.INTAKE);
         pickupIntake.setPower(0);
         if (HiveAutoConfig.FEEDER == HiveAutoConfig.Feeder.INTAKE) {
@@ -82,22 +98,23 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
         pan = new LimelightPanController(hardwareMap, tags);
         tags.start();
       }
-      if (tags == null && HiveAutoConfig.RELOCALIZE_AT_HIVE && HiveAutoConfig.canRun()) {
+      if (tags == null && HiveAutoConfig.RELOCALIZE_AT_HIVE && canRunRoute()) {
         // Read-only camera use; allowed in DRY_RUN so the position fix can be commissioned first.
         tags = new AprilTagTracker(hardwareMap);
         tags.start();
       }
       while (opModeInInit()) {
-        Alliance next = (gamepad1.dpad_right || gamepad2.dpad_right) ? Alliance.BLUE
+        Alliance next = !allowAllianceSelection() ? alliance
+            : (gamepad1.dpad_right || gamepad2.dpad_right) ? Alliance.BLUE
             : (gamepad1.dpad_left || gamepad2.dpad_left) ? Alliance.RED : alliance;
         boolean changed = next != alliance;
         boolean a = gamepad1.a || gamepad2.a;
         if (changed) {
           alliance = next;
-          route = new HiveAutoRoute(alliance);
+          route = createRoute(alliance);
           confirmed = false;
           follower.setPose(pose(field.startPose(route.start())));
-        } else if (a && !oldA) {
+        } else if (requiresPlacementConfirmation() && a && !oldA) {
           confirmed = true;
           follower.setPose(pose(field.startPose(route.start())));
         }
@@ -105,21 +122,32 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
         follower.updatePose();
         if (tags != null) { tags.update(); }
         telemetry.addData("Alliance / Required Start", "%s / %s", alliance, route.start());
-        telemetry.addData("Placement Confirmed", confirmed);
-        telemetry.addData("Calibration Allows Run", HiveAutoConfig.canRun());
+        if (requiresPlacementConfirmation()) {
+          telemetry.addData("Placement Confirmed", confirmed);
+        } else {
+          telemetry.addData("Placement confirmation", "Play confirms the displayed start pose");
+        }
+        telemetry.addData("Calibration Allows Run", canRunRoute());
         telemetry.addData("Mode", HiveAutoConfig.DRY_RUN
             ? "DRIVING ONLY: real movement, shooting/intake disabled" : "LIVE");
-        telemetry.addLine("4 preloads -> flower 1 -> first tip -> flower 2 -> garden -> second tip -> park");
+        telemetry.addLine(route.description());
+        telemetry.addData("Shooter hardware", usesSingleShooter() ? "Shoot1 only" : "Shoot1 + Shoot2");
         telemetry.addLine("Live pickups/counting require separate commissioning; counts are timed estimates.");
-        telemetry.addLine("D-pad Left/Right: alliance | A: confirm placement | DS STOP: abort");
+        telemetry.addLine(allowAllianceSelection()
+            ? "D-pad Left/Right: alliance | A: confirm placement | DS STOP: abort"
+            : requiresPlacementConfirmation()
+                ? "Alliance locked by OpMode | A: confirm placement | DS STOP: abort"
+                : "Alliance locked by OpMode | Play: confirm placement and start | DS STOP: abort");
         telemetry.addLine("Enable DS 30-second AUTO timer. No gamepad interaction after Play (G401).");
         show();
         idle();
       }
       if (isStopRequested()) { return; }
+      // INIT ended because Play was pressed, not STOP. These entries use Play as confirmation.
+      if (!requiresPlacementConfirmation()) { confirmed = true; }
       clock.reset();
-      if (!confirmed || !HiveAutoConfig.canRun()) {
-        status = "NO MOVEMENT: confirm placement and commission HiveAutoConfig first";
+      if (!confirmed || !canRunRoute()) {
+        status = "NO MOVEMENT: confirm placement and verify route/mechanism config first";
         show(); return;
       }
       follower.setPose(pose(field.startPose(route.start())));
@@ -128,7 +156,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
         status = "NO MOVEMENT: Limelight is disconnected"; show(); return;
       }
       if (pan != null) { pan.start(); }
-      for (Stage stage : Stage.values()) {
+      for (Stage stage : route.stages()) {
         if (!validate(field, route.approach(stage))
             || (stage.isPickup() && !field.footprintInsideField(route.pickupTarget(stage)))) {
           status = "NO MOVEMENT: invalid route/pickup footprint"; show(); return;
@@ -136,7 +164,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
       }
       HiveTipDetector firstCell = new HiveTipDetector(route.firstTagMin());
       HiveTipDetector secondCell = new HiveTipDetector(route.secondTagMin());
-      for (Stage stage : Stage.values()) {
+      for (Stage stage : route.stages()) {
         currentStage = stage;
         if (pan != null) {
           pan.setTrackingEnabled(!stage.isPickup());
@@ -157,9 +185,8 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
         if (stage.isPickup()) {
           if (!pickup(route.pickupTarget(stage))) { break; }
         } else {
-          HiveTipDetector detector = stage == Stage.PRELOAD_SHOT || stage == Stage.FIRST_REFILL_SHOT
-              ? firstCell : secondCell;
-          if (!shootBatch(route.tagMin(stage), stage.requiresTip(), detector)) { break; }
+          HiveTipDetector detector = route.tagMin(stage) == route.firstTagMin() ? firstCell : secondCell;
+          if (!shootBatch(route.tagMin(stage), route.requiresTip(stage), detector)) { break; }
         }
       }
       stopMechanisms();
@@ -292,7 +319,11 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
         if (!healthy()) { return false; }
         double now = clock.seconds();
         detector.update(now, tags.getResultTimestamp(), tags.getObservations());
-        boolean rpmReady = Double.isFinite(shooter.getActualRpm1())
+        boolean rpmReady = singleShooter != null
+            ? Double.isFinite(singleShooter.getActualRpm())
+                && Math.abs(singleShooter.getActualRpm() - (singleShooter.isReversed() ? -1 : 1)
+                    * singleShooter.getTargetRpm()) <= 150
+            : Double.isFinite(shooter.getActualRpm1())
             && Double.isFinite(shooter.getActualRpm2())
             && Math.abs(shooter.getActualRpm1() - HiveAutoConfig.SHOOT_RPM_1) <= 150
             && Math.abs(shooter.getActualRpm2() - HiveAutoConfig.SHOOT_RPM_2) <= 150;
@@ -302,13 +333,19 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
             && Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) <= Math.toRadians(5);
         shot.update(now, tags.isConnected(), detector.isHighConfirmed() && detector.isHighVisible(),
             detector.isLowCandidate(), detector.isTipped(), rpmReady, poseReady);
-        shooter.setActive(shot.shooterOn());
+        if (singleShooter != null) { singleShooter.setActive(shot.shooterOn()); }
+        else { shooter.setActive(shot.shooterOn()); }
         setFeed(shot.feederOn());
         telemetry.addData("Cluster / Locked Tag", "%d-%d / %d", minTag, minTag + 3, detector.getLockedId());
         telemetry.addData("Shot State / Commanded Pulses", "%s / %d", shot.getState(), shot.getPulses());
         telemetry.addData("Completed Feed Pulses (estimated pollen)", "%d / 4", shot.getCompletedPulses());
         telemetry.addData("Tip Required After This Batch", requireTip);
-        telemetry.addData("Actual Shooter RPM", "%.0f / %.0f", shooter.getActualRpm1(), shooter.getActualRpm2());
+        if (singleShooter != null) {
+          telemetry.addData("Shoot1 target / actual RPM", "%.0f / %.0f",
+              (singleShooter.isReversed() ? -1 : 1) * singleShooter.getTargetRpm(), singleShooter.getActualRpm());
+        } else {
+          telemetry.addData("Actual Shooter RPM", "%.0f / %.0f", shooter.getActualRpm1(), shooter.getActualRpm2());
+        }
         status = "Attempting hive tip: " + shot.getState();
         show();
         if (shot.isDone()) {
@@ -318,9 +355,9 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
             // Only a fully completed four-pulse batch empties expected inventory.
             inventory.recordFed(4);
             accounted = true;
-            // Unexpected early tipping invalidates the planned two-batch sequence; do not shoot into a low cell.
+            // Early tipping invalidates a planned refill into this cell; do not shoot into a low cell.
             if (!requireTip && shot.isTipConfirmed()) {
-              status = "Unexpected first-batch tip: stop scoring and park"; return false;
+              status = "Unexpected partial-sequence tip: stop scoring and park"; return false;
             }
             return true;
           }
@@ -410,6 +447,7 @@ public final class BiobuzzHiveAuto extends LinearOpMode {
     setFeed(false);
     if (pickupIntake != null) { pickupIntake.setPower(0); }
     if (shooter != null) { shooter.stop(); }
+    if (singleShooter != null) { singleShooter.stop(); }
   }
 
   private void show() {

@@ -1,5 +1,9 @@
 # BIOBUZZ: two hive-tip attempts, then park
 
+For the latest **Blue/Red three-batch plan**, where only the starting hive side
+has three preloaded nectars, see [Preloaded hive autonomous](BIOBUZZ_PRELOADED_HIVE_AUTO.md).
+Those are separate OpModes; the older routines described below remain available.
+
 `BiobuzzHiveAuto` implements the requested sequence using Pedro + Pinpoint for position and
 Limelight for same-tag high-to-low transition evidence. It targets **your own alliance's hive**,
 not both alliances' hives. It is a **commissioning draft listed on the Driver Station**, not a

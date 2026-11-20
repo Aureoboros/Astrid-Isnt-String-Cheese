@@ -10,7 +10,7 @@ import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap.StartLocation;
  * Nominal, team-chosen route; coordinates must be checked against actual field CAD and robot.
  * Field-center coordinates (see BiobuzzFieldMap): red routes live in -X, blue is red rotated 180.
  */
-public final class HiveAutoRoute {
+public class HiveAutoRoute {
   /** Ordered four-pollen batches; two flowers and own garden supply the three refills. */
   public enum Stage {
     PRELOAD_SHOT(false, false), FLOWER_1_PICKUP(true, false), FIRST_REFILL_SHOT(false, true),
@@ -23,6 +23,12 @@ public final class HiveAutoRoute {
   }
   private final Alliance alliance;
   public HiveAutoRoute(Alliance alliance) { this.alliance = alliance; }
+
+  public List<Stage> stages() { return Collections.unmodifiableList(Arrays.asList(Stage.values())); }
+  public boolean requiresTip(Stage stage) { return stage.requiresTip(); }
+  public String description() {
+    return "4 preloads -> flower 1 -> first tip -> flower 2 -> garden -> second tip -> park";
+  }
 
   public StartLocation start() {
     return alliance == Alliance.RED ? StartLocation.RED_B1_AUDIENCE : StartLocation.BLUE_E6_FAR;
@@ -90,7 +96,7 @@ public final class HiveAutoRoute {
     }
   }
 
-  private List<Waypoint> points(Waypoint... red) {
+  protected final List<Waypoint> points(Waypoint... red) {
     if (alliance == Alliance.BLUE) {
       for (int i = 0; i < red.length; i++) {
         Waypoint p = red[i];

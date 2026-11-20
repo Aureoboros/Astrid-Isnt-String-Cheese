@@ -4,6 +4,27 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 public final class HiveShotControllerTest {
+  @Test public void newThreeBatchPlanConfirmsFirstAndThirdTipsButNotMiddleBatch() {
+    boolean[] requireTip = {true, false, true};
+    int totalFed = 0;
+    for (boolean required : requireTip) {
+      HiveShotController c = new HiveShotController(0, 0.15, 4, required);
+      for (int i = 0; i < 500 && !c.isDone(); i++) {
+        c.update(i / 100.0, true, true, false, false, true, true);
+      }
+      assertEquals(4, c.getCompletedPulses());
+      if (required) {
+        assertFalse(c.isDone());
+        c.update(5.1, true, false, true, true, true, true);
+      }
+      assertEquals(HiveShotController.State.COMPLETE, c.getState());
+      assertEquals(required, c.isTipConfirmed());
+      assertFalse(c.feederOn());
+      totalFed += c.getCompletedPulses();
+    }
+    assertEquals(12, totalFed);
+  }
+
   private HiveShotController feeding() {
     HiveShotController c = new HiveShotController(0, 0.15);
     c.update(0, true, true, false, false, false, true);
