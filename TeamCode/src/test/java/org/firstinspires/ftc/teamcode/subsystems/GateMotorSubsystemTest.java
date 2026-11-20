@@ -36,7 +36,7 @@ public final class GateMotorSubsystemTest {
 
   @Test public void initConfiguresEncoderVelocityWithBrakeAndStops() {
     GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 435, TICKS, 200);
-    assertEquals(Arrays.asList("FORWARD", "BRAKE", "RUN_USING_ENCODER"), setup);
+    assertEquals(Arrays.asList("REVERSE", "BRAKE", "RUN_USING_ENCODER"), setup);
     assertEquals(Arrays.asList(0.0), velocities);
     assertFalse(gate.isActive()); assertEquals(0, gate.getCommandedRpm(), 0);
     assertEquals(200, gate.getTargetRpm(), 0);

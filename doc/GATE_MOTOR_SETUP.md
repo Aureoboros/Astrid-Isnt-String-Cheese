@@ -26,11 +26,12 @@ and `Shoot1`. From Play, the intake runs FORWARD continuously and Shoot1 spins a
 its selected RPM until X turns it off (direction from `RobotConfig.TeleTourney.SHOOTER_REVERSED`).
 The gate starts **OFF/FORWARD** and only moves after a B press.
 
+- Gate "FORWARD" is the motor's physical REVERSE (`RobotConfig.GateMotor.MOTOR_DIRECTION`).
 - **A** swaps gate FORWARD/REVERSE without changing whether it is running.
 - **B** toggles gate start/stop; releasing it does not stop the motor.
 - **X** toggles Shoot1 on/off (it starts ON at Play); the selected RPM is kept.
 - **D-pad up/down** changes Shoot1 RPM by 50 (starts at 4500, range 0-6000).
-- **D-pad left/right** changes gate RPM by 25 (starts at 200, range 0-435).
+- **D-pad left/right** changes gate RPM by 25 (starts at 100, range 0-435).
 - Either controller works. Held/overlapping buttons act only once until released.
 - Driver Station STOP or exiting the test stops all three motors.
 

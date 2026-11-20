@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.config;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 /** Central configuration for hardware names and robot-wide tuning values. */
 public final class RobotConfig {
@@ -100,8 +101,10 @@ public final class RobotConfig {
     public static final double MAX_RPM = 435.0;
     /** goBILDA 435 RPM encoder counts per output-shaft revolution (28 x 13.7:1). */
     public static final double TICKS_PER_REVOLUTION = 384.5;
+    /** Motor direction that the code calls FORWARD; REVERSE flips the physical spin. */
+    public static final DcMotorSimple.Direction MOTOR_DIRECTION = DcMotorSimple.Direction.REVERSE;
     // Closed-loop (encoder) diagnostic speed.
-    public static final double TEST_INITIAL_RPM = 200.0;
+    public static final double TEST_INITIAL_RPM = 100.0;
     public static final double TEST_RPM_STEP = 25.0;
 
     private GateMotor() {}
