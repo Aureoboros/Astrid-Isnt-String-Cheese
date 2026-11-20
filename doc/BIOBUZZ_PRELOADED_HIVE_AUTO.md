@@ -76,3 +76,8 @@ The shared 28-second budget reserves seven seconds for parking. If time runs sho
 the executor interrupts scoring and attempts parking; it does not guarantee all
 three batches fit. Measure actual route duration and mechanism timing on the field.
 Build/deploy the app to see these entries; no hub deployment is performed by editing source.
+
+See [Red/Blue offline movement simulation](BIOBUZZ_MOVEMENT_SIMULATION.md) for
+repeatable geometry/timing tests and their limitations. At illustrative nominal
+speed the driving-only route completes; adding shooting/pickup timing reaches
+the scoring cutoff early. A dry-run pass is not proof that live scoring fits.
