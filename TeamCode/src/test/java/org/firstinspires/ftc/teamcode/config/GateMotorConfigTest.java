@@ -14,7 +14,7 @@ public final class GateMotorConfigTest {
     assertEquals(1, RobotConfig.GateMotor.EXPANSION_HUB_PORT);
     assertEquals(435, RobotConfig.GateMotor.MAX_RPM, 0);
     assertEquals(384.5, RobotConfig.GateMotor.TICKS_PER_REVOLUTION, 0);
-    assertEquals(100, RobotConfig.GateMotor.TEST_INITIAL_RPM, 0);
+    assertEquals(60, RobotConfig.GateMotor.TEST_INITIAL_RPM, 0);
     assertEquals(com.qualcomm.robotcore.hardware.DcMotorSimple.Direction.REVERSE,
         RobotConfig.GateMotor.MOTOR_DIRECTION);
     assertEquals(4500, RobotConfig.Diagnostics.GATE_TEST_SHOOTER_RPM, 0);

@@ -54,7 +54,7 @@ public final class GateMotorTestControlsTest {
 
   @Test public void startsAtConfiguredGateAndShooterRpm() {
     GateMotorTestControls c = new GateMotorTestControls();
-    assertEquals(100, c.getGateRpm(), 0);
+    assertEquals(60, c.getGateRpm(), 0);
     assertEquals(4500, c.getShooterRpm(), 0);
   }
 
@@ -68,18 +68,18 @@ public final class GateMotorTestControlsTest {
     c.updateDpad(false, false, false, false);
     c.updateDpad(false, true, false, false);
     assertEquals(4450, c.getShooterRpm(), 0);
-    assertEquals(100, c.getGateRpm(), 0);
+    assertEquals(60, c.getGateRpm(), 0);
   }
 
   @Test public void dpadLeftRightStepsGateOnFreshPressesOnly() {
     GateMotorTestControls c = new GateMotorTestControls();
     c.updateDpad(false, false, false, true);
     c.updateDpad(false, false, false, true);
-    assertEquals(125, c.getGateRpm(), 0);
+    assertEquals(85, c.getGateRpm(), 0);
     c.updateDpad(false, false, true, false);
     c.updateDpad(false, false, false, false);
     c.updateDpad(false, false, true, false);
-    assertEquals(75, c.getGateRpm(), 0);
+    assertEquals(35, c.getGateRpm(), 0);
     assertEquals(4500, c.getShooterRpm(), 0);
   }
 
@@ -96,7 +96,7 @@ public final class GateMotorTestControlsTest {
     Gamepad first = new Gamepad(), second = new Gamepad();
     second.dpad_up = true; first.dpad_right = true;
     c.update(first, second);
-    assertEquals(4550, c.getShooterRpm(), 0); assertEquals(125, c.getGateRpm(), 0);
+    assertEquals(4550, c.getShooterRpm(), 0); assertEquals(85, c.getGateRpm(), 0);
   }
 
   @Test public void xTogglesShooterOnFreshPressesStartingOn() {

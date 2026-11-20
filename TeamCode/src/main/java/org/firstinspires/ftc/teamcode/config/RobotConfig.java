@@ -104,7 +104,7 @@ public final class RobotConfig {
     /** Motor direction that the code calls FORWARD; REVERSE flips the physical spin. */
     public static final DcMotorSimple.Direction MOTOR_DIRECTION = DcMotorSimple.Direction.REVERSE;
     // Closed-loop (encoder) diagnostic speed.
-    public static final double TEST_INITIAL_RPM = 100.0;
+    public static final double TEST_INITIAL_RPM = 60.0;
     public static final double TEST_RPM_STEP = 25.0;
 
     private GateMotor() {}
