@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import org.firstinspires.ftc.teamcode.pedroPathing.PushTunaFinal;
 import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -21,6 +22,7 @@ import org.firstinspires.ftc.teamcode.control.LimelightPanController;
 import org.firstinspires.ftc.teamcode.control.TeleTourneyMechanismControls;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.SingleShooterSubsystem;
+import org.firstinspires.ftc.teamcode.pedroPathing.PushTunaFinal;
 
 /** Competition drive TeleOp with live two-wheel odometry and Limelight AprilTag telemetry. */
 @TeleOp(name = "TeleTourney", group = "Competition")
@@ -28,6 +30,7 @@ public final class TeleTourney extends LinearOpMode {
   @Override
   public void runOpMode() {
     Follower follower = Constants.createFollower(hardwareMap);
+    PushTunaFinal pushTuna = new PushTunaFinal(follower);
     GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, RobotConfig.Hardware.PINPOINT);
     AprilTagTracker aprilTags = new AprilTagTracker(hardwareMap);
     LimelightPanController pan = new LimelightPanController(hardwareMap, aprilTags);
@@ -68,9 +71,8 @@ public final class TeleTourney extends LinearOpMode {
       while (opModeIsActive()) {
         DriveCommand command = DualGamepadDriveControls.read(gamepad1, gamepad2);
         // Pedro uses positive left strafe and counterclockwise turn; the mapper uses right/CW.
-        follower.setTeleOpDrive(command.getDrive(), -command.getStrafe(), -command.getRotate(), true);
+        pushTuna.update(command.getDrive(), -command.getStrafe(), -command.getRotate());
 
-        follower.update();
         aprilTags.update();
         mechanisms.update(gamepad1, gamepad2);
         intake.setState(mechanisms.isIntakeEnabled(), mechanisms.isIntakeReversed()
