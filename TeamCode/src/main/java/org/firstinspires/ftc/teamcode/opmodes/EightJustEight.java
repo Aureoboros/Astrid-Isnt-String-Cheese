@@ -41,11 +41,7 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 public final class EightJustEight extends LinearOpMode {
     /** Ordered stages. Side 1 = initially raised cell; side 2 = opposite cell. */
     enum Stage {
-        SIDE_1_PRELOAD_SHOT(false, false, true),
-        FLOWER_1_PICKUP(true, false, false),
-        SIDE_2_FIRST_SHOT(false, false, false),
-        FLOWER_2_PICKUP(true, false, false),
-        SIDE_2_SECOND_SHOT(false, true, false);
+        SIDE_1_PRELOAD_SHOT(false, false, true);
         final boolean pickup, requireTip, side1;
         Stage(boolean pickup, boolean requireTip, boolean side1) {
             this.pickup = pickup; this.requireTip = requireTip; this.side1 = side1;
@@ -204,19 +200,6 @@ public final class EightJustEight extends LinearOpMode {
     static List<Waypoint> approach(Stage stage, Alliance alliance, HiveAutoRoute route) {
         switch (stage) {
             case SIDE_1_PRELOAD_SHOT: return route.firstApproach();
-            case FLOWER_1_PICKUP:
-                return points(alliance, new Waypoint(-44, -40, 180), new Waypoint(-44, -24, 180),
-                        new Waypoint(-49, -24, 180));
-            case SIDE_2_FIRST_SHOT:
-                // Back off the flower wall first, then up the corridor to hive side 2.
-                return points(alliance, new Waypoint(-44, -24, 180), new Waypoint(-44, 40, 270),
-                        new Waypoint(-12.75, 40, 270));
-            case FLOWER_2_PICKUP:
-                return points(alliance, new Waypoint(-24, 40, 270), new Waypoint(-24, 40, 90),
-                        new Waypoint(-24, 49, 90));
-            case SIDE_2_SECOND_SHOT:
-                return points(alliance, new Waypoint(-24, 49, 90), new Waypoint(-24, 40, 270),
-                        new Waypoint(-12.75, 40, 270));
             default: throw new IllegalArgumentException("Unknown stage");
         }
     }
@@ -224,8 +207,6 @@ public final class EightJustEight extends LinearOpMode {
     /** Last 8-inch intake creep. Confirm actual reach and flower clearance first. */
     static Waypoint pickupTarget(Stage stage, Alliance alliance) {
         switch (stage) {
-            case FLOWER_1_PICKUP: return points(alliance, new Waypoint(-57, -24, 180)).get(0);
-            case FLOWER_2_PICKUP: return points(alliance, new Waypoint(-24, 57, 90)).get(0);
             default: throw new IllegalArgumentException("Not a pickup stage");
         }
     }

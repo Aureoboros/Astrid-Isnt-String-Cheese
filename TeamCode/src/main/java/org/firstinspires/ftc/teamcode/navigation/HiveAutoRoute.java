@@ -10,7 +10,7 @@ import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap.StartLocation;
  * Nominal, team-chosen route; coordinates must be checked against actual field CAD and robot.
  * Field-center coordinates (see BiobuzzFieldMap): red routes live in -X, blue is red rotated 180.
  */
-public final class HiveAutoRoute {
+public class HiveAutoRoute {
   /** Ordered four-pollen batches; two flowers and own garden supply the three refills. */
   public enum Stage {
     PRELOAD_SHOT(false, false), FLOWER_1_PICKUP(true, false), FIRST_REFILL_SHOT(false, true),

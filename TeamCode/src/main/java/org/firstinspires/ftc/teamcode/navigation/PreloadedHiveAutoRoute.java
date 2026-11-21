@@ -1,3 +1,4 @@
+/**
 package org.firstinspires.ftc.teamcode.navigation;
 
 import java.util.Arrays;
@@ -6,6 +7,7 @@ import java.util.List;
 import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap.Alliance;
 
 /** Only side 1 starts with three nectars: four tip it; two four-nectar batches tip side 2. */
+/**
 public final class PreloadedHiveAutoRoute extends HiveAutoRoute {
   private static final List<Stage> STAGES = Collections.unmodifiableList(Arrays.asList(
       Stage.PRELOAD_SHOT, Stage.FLOWER_1_PICKUP, Stage.FIRST_REFILL_SHOT,
@@ -56,3 +58,4 @@ public final class PreloadedHiveAutoRoute extends HiveAutoRoute {
     return super.pickupTarget(stage);
   }
 }
+*/

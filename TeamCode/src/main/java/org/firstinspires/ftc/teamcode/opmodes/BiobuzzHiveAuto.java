@@ -1,3 +1,4 @@
+/**
 package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.pedropathing.follower.Follower;
@@ -38,6 +39,7 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
  * X/Y from the hive AprilTags (Limelight), then runs the rest of the route from that fix.
  */
 // Listed on the Driver Station; HiveAutoConfig commissioning gates still prevent unverified operation.
+/**
 @Autonomous(name = "BIOBUZZ: Two Hive Tips + Park", group = "Competition")
 public class BiobuzzHiveAuto extends LinearOpMode {
   private Follower follower;
@@ -258,6 +260,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
    * they agree, overwrites Pedro/Pinpoint X/Y. Heading is kept. Any failure leaves odometry
    * unchanged and the route continues on it; the reason is shown in telemetry.
    */
+/**
   private void relocalizeAtHive(Alliance alliance) {
     HiveTagRelocalizer fix = new HiveTagRelocalizer(
         alliance == Alliance.RED ? HiveAutoConfig.RED_HIVE_TAGS : HiveAutoConfig.BLUE_HIVE_TAGS,
@@ -373,6 +376,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
   }
 
   /** Intake runs during an 8-inch creep and bounded dwell; updates continue without sleeps. */
+/**
   private boolean pickup(Waypoint destination) {
     if (!inventory.canPickup()) { status = "Pickup blocked by four-element limit"; return false; }
     boolean accounted = false;
@@ -480,3 +484,4 @@ public class BiobuzzHiveAuto extends LinearOpMode {
   private static Pose pose(Waypoint p) { return new Pose(p.getX(), p.getY(), Math.toRadians(p.getHeadingDegrees())); }
   private static Waypoint waypoint(Pose p) { return new Waypoint(p.getX(), p.getY(), Math.toDegrees(p.getHeading())); }
 }
+*/
