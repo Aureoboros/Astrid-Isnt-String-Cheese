@@ -7,16 +7,16 @@ package org.firstinspires.ftc.teamcode.navigation;
  * marks grid point (2, 1). All headings are field-relative radians, counter-clockwise from +X.
  */
 public final class GridField {
-  public static final int MIN = 0;
+  public static final int MIN = -6;
   public static final int MAX = 6;
-  public static final double TILE_INCHES = 24.0;
+  public static final double TILE_INCHES = 12.0;
 
-  public static final int ANCHOR_TAG_ID = 40;
-  public static final int ANCHOR_GRID_X = 2;
-  public static final int ANCHOR_GRID_Y = 1;
+  public static final int ANCHOR_TAG_ID = 36;
+  public static final int ANCHOR_GRID_X = 1;
+  public static final int ANCHOR_GRID_Y = -2;
 
-  public static final double CENTER_GRID_X = 3;
-  public static final double CENTER_GRID_Y = 3;
+  public static final double CENTER_GRID_X = 0;
+  public static final double CENTER_GRID_Y = 0;
 
   private GridField() {}
 
@@ -59,7 +59,7 @@ public final class GridField {
 
   /**
    * Heading that points the robot at the field center (3, 3), or {@code fallback} when the robot is
-   * already on the center and no direction is defined.
+   * already in the center and no direction is defined.
    */
   public static double headingToCenter(double xInches, double yInches, double fallback) {
     double dx = toInches(CENTER_GRID_X) - xInches;
