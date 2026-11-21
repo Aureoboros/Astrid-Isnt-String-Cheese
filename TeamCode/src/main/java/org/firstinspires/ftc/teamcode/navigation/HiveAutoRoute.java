@@ -10,7 +10,7 @@ import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap.StartLocation;
  * Nominal, team-chosen route; coordinates must be checked against actual field CAD and robot.
  * Field-center coordinates (see BiobuzzFieldMap): red routes live in -X, blue is red rotated 180.
  */
-public class HiveAutoRoute {
+public final class HiveAutoRoute {
   /** Ordered four-pollen batches; two flowers and own garden supply the three refills. */
   public enum Stage {
     PRELOAD_SHOT(false, false), FLOWER_1_PICKUP(true, false), FIRST_REFILL_SHOT(false, true),
@@ -24,19 +24,12 @@ public class HiveAutoRoute {
   private final Alliance alliance;
   public HiveAutoRoute(Alliance alliance) { this.alliance = alliance; }
 
-  public List<Stage> stages() { return Collections.unmodifiableList(Arrays.asList(Stage.values())); }
-  public boolean requiresTip(Stage stage) { return stage.requiresTip(); }
-  public String description() {
-    return "4 preloads -> flower 1 -> first tip -> flower 2 -> garden -> second tip -> park";
-  }
-
   public StartLocation start() {
     return alliance == Alliance.RED ? StartLocation.RED_B1_AUDIENCE : StartLocation.BLUE_E6_FAR;
   }
 
   public List<Waypoint> firstApproach() {
-    return points(new Waypoint(-36, -51, 90), new Waypoint(-36, -40, 90),
-        new Waypoint(-12.75, -40, 90));
+    return points(new Waypoint(3, 5, 90), new Waypoint(1, 4.5, 90));
   }
 
   public List<Waypoint> oppositeApproach() {
@@ -68,14 +61,14 @@ public class HiveAutoRoute {
     switch (stage) {
       case PRELOAD_SHOT: return firstApproach();
       case FLOWER_1_PICKUP:
-        return points(new Waypoint(-44, -40, 180), new Waypoint(-44, -24, 180), new Waypoint(-49, -24, 180));
+        return points(new Waypoint(1, 4.5, 90), new Waypoint(2, -5, 0));
       case FIRST_REFILL_SHOT:
-        return points(new Waypoint(-44, -24, 180), new Waypoint(-44, -40, 90), new Waypoint(-12.75, -40, 90));
+        return points(new Waypoint(2, -5, 0), new Waypoint(1, 4.5, 90));
       case FLOWER_2_PICKUP:
-        return points(new Waypoint(-44, -40, 90), new Waypoint(-44, 40, 90),
-            new Waypoint(-24, 40, 90), new Waypoint(-24, 49, 90));
+        return points(new Waypoint(1, 4.5, 90), new Waypoint(4, -4, 90),
+            new Waypoint(5, 2, 0));
       case SECOND_INITIAL_SHOT:
-        return points(new Waypoint(-24, 49, 90), new Waypoint(-24, 40, 270), new Waypoint(-12.75, 40, 270));
+        return points(new Waypoint(5, 2, 0), new Waypoint(4, -4, 90), new Waypoint(1, 4.5, 90));
       case GARDEN_PICKUP:
         return points(new Waypoint(-44, 40, 270), new Waypoint(-44, -52, 270), new Waypoint(-60, -52, 270));
       case SECOND_REFILL_SHOT:
@@ -96,7 +89,7 @@ public class HiveAutoRoute {
     }
   }
 
-  protected final List<Waypoint> points(Waypoint... red) {
+  private List<Waypoint> points(Waypoint... red) {
     if (alliance == Alliance.BLUE) {
       for (int i = 0; i < red.length; i++) {
         Waypoint p = red[i];
