@@ -25,13 +25,21 @@ final class HiveRouteMovementSimulator {
       RobotConfig.Autonomous.START_LENGTH_INCHES, RobotConfig.Autonomous.START_WIDTH_INCHES);
   final double fullPowerInchesPerSecond, fullPowerDegreesPerSecond;
   final boolean dryRun;
+  final double budgetSeconds, legTimeoutSeconds;
   Waypoint current;
   double time, distance;
+  double stopAtSeconds = Double.POSITIVE_INFINITY; // Synthetic DS STOP, not an OpMode timeout.
   int completedStages, confirmedTips;
   boolean parked, movementFault, reserveReached;
   String outcome = "INIT";
 
   HiveRouteMovementSimulator(Alliance alliance, double linearSpeed, double angularSpeed, boolean dryRun) {
+    this(alliance, linearSpeed, angularSpeed, dryRun,
+        HiveAutoConfig.AUTO_BUDGET_SECONDS, HiveAutoConfig.LEG_TIMEOUT_SECONDS);
+  }
+
+  HiveRouteMovementSimulator(Alliance alliance, double linearSpeed, double angularSpeed, boolean dryRun,
+      double budgetSeconds, double legTimeoutSeconds) {
     if (!Double.isFinite(linearSpeed) || linearSpeed < 0
         || !Double.isFinite(angularSpeed) || angularSpeed <= 0) {
       throw new IllegalArgumentException("Finite nonnegative speed and positive turn rate required");
@@ -40,6 +48,8 @@ final class HiveRouteMovementSimulator {
     fullPowerInchesPerSecond = linearSpeed;
     fullPowerDegreesPerSecond = angularSpeed;
     this.dryRun = dryRun;
+    this.budgetSeconds = budgetSeconds;
+    this.legTimeoutSeconds = legTimeoutSeconds;
     current = field.startPose(route.start());
     samples.add(current);
   }
@@ -69,7 +79,7 @@ final class HiveRouteMovementSimulator {
       completedStages++;
       events.add(String.format(java.util.Locale.US, "%.2fs %s", time, stage));
     }
-    if (!movementFault && time < HiveAutoConfig.AUTO_BUDGET_SECONDS) {
+    if (!movementFault && time < budgetSeconds) {
       parked = true;
       for (Waypoint p : route.parkFrom(current)) {
         if (!move(p, HiveAutoConfig.MAX_DRIVE_POWER, true)) { parked = false; break; }
@@ -96,7 +106,10 @@ final class HiveRouteMovementSimulator {
           from.getHeadingDegrees() + progress * angle);
       distance += length * progress - before;
       samples.add(current);
-      if (time >= HiveAutoConfig.AUTO_BUDGET_SECONDS) {
+      if (time >= stopAtSeconds) {
+        movementFault = true; outcome = "DRIVER_STOP_ABORT"; return false;
+      }
+      if (time >= budgetSeconds) {
         movementFault = true; outcome = "AUTO_BUDGET_ABORT"; return false;
       }
       if (!parking && time >= scoringDeadline()) { reserveReached = true; return false; }
@@ -105,7 +118,7 @@ final class HiveRouteMovementSimulator {
         if (atPoseSince < 0) { atPoseSince = time; }
         else if (time - atPoseSince >= 0.1) { return true; }
       }
-      if (time - started >= HiveAutoConfig.LEG_TIMEOUT_SECONDS) {
+      if (time - started >= legTimeoutSeconds) {
         movementFault = true; outcome = "LEG_TIMEOUT_ABORT"; return false;
       }
     }
@@ -149,7 +162,7 @@ final class HiveRouteMovementSimulator {
         completedStages, inventory.getTotalFed(), confirmedTips, current.getX(), current.getY());
   }
 
-  private static double scoringDeadline() {
-    return HiveAutoConfig.AUTO_BUDGET_SECONDS - HiveAutoConfig.PARK_RESERVE_SECONDS;
+  private double scoringDeadline() {
+    return budgetSeconds - HiveAutoConfig.PARK_RESERVE_SECONDS;
   }
 }

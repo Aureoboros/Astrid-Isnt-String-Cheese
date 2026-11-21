@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.firstinspires.ftc.teamcode.config.PreloadedHiveAutoConfig;
 import org.firstinspires.ftc.teamcode.control.PollenBatchInventory;
 import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap.Alliance;
 import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap.StartLocation;
@@ -62,20 +63,54 @@ public final class PreloadedHiveAutoRouteTest {
     for (int i = 0; i < rp.size(); i++) { compare(rp.get(i), bp.get(i)); }
   }
 
-  @Test public void pickupCreepsAreEightInchesForwardAndFlowerOneToSideTwoUsesOuterCorridor() {
+  @Test public void flowerOneHasElevenInchCreepAndFlowerTwoHasFifteenInchCreep() {
     for (Alliance a : Alliance.values()) {
       PreloadedHiveAutoRoute r = new PreloadedHiveAutoRoute(a);
       for (Stage stage : r.stages()) {
         if (!stage.isPickup()) { continue; }
         Waypoint from = last(r.approach(stage)), to = r.pickupTarget(stage);
         double h = Math.toRadians(to.getHeadingDegrees());
-        assertEquals(8, (to.getX() - from.getX()) * Math.cos(h)
+        assertEquals(stage == Stage.FLOWER_2_PICKUP ? 15 : 11,
+            (to.getX() - from.getX()) * Math.cos(h)
             + (to.getY() - from.getY()) * Math.sin(h), 1e-6);
+        Waypoint original = new HiveAutoRoute(a).pickupTarget(stage);
+        assertEquals(stage == Stage.FLOWER_2_PICKUP ? 1 : -3,
+            (to.getX() - original.getX()) * Math.cos(h)
+            + (to.getY() - original.getY()) * Math.sin(h), 1e-6);
         assertEquals(from.getHeadingDegrees(), to.getHeadingDegrees(), 0);
       }
       List<Waypoint> transit = r.approach(Stage.FIRST_REFILL_SHOT);
       assertEquals(a == Alliance.RED ? -44 : 44, transit.get(0).getX(), 0);
       assertEquals(transit.get(0).getX(), transit.get(1).getX(), 0);
+    }
+  }
+
+  @Test public void bothOppositeSideShotsAreSixInchesBackAndParkCenterIsAnInnerCorner() {
+    for (Alliance a : Alliance.values()) {
+      PreloadedHiveAutoRoute r = new PreloadedHiveAutoRoute(a);
+      double sign = a == Alliance.RED ? 1 : -1;
+      assertEquals(-54 * sign, r.pickupTarget(Stage.FLOWER_1_PICKUP).getX(), 1e-6);
+      assertEquals(58 * sign, r.pickupTarget(Stage.FLOWER_2_PICKUP).getY(), 1e-6);
+      for (Stage stage : Arrays.asList(Stage.FIRST_REFILL_SHOT, Stage.SECOND_REFILL_SHOT)) {
+        Waypoint shot = last(r.approach(stage));
+        assertEquals(-12.75 * sign, shot.getX(), 0);
+        assertEquals(46 * sign, shot.getY(), 0);
+        assertEquals(a == Alliance.RED ? 270 : 90, shot.getHeadingDegrees(), 0);
+      }
+      Waypoint park = last(r.parkFrom(last(r.approach(Stage.SECOND_REFILL_SHOT))));
+      assertEquals(PreloadedHiveAutoConfig.RED_PARK_CORNER_X * sign, park.getX(), 0);
+      assertEquals(PreloadedHiveAutoConfig.RED_PARK_CORNER_Y * sign, park.getY(), 0);
+    }
+  }
+
+  @Test public void secondFlowerTurnsDuringLateralApproachBeforeFinalIntakeCreep() {
+    for (Alliance a : Alliance.values()) {
+      PreloadedHiveAutoRoute r = new PreloadedHiveAutoRoute(a);
+      List<Waypoint> approach = r.approach(Stage.FLOWER_2_PICKUP);
+      double heading = a == Alliance.RED ? 90 : 270;
+      assertEquals(heading, approach.get(0).getHeadingDegrees(), 0);
+      assertEquals(heading, last(approach).getHeadingDegrees(), 0);
+      assertEquals(heading, r.pickupTarget(Stage.FLOWER_2_PICKUP).getHeadingDegrees(), 0);
     }
   }
 

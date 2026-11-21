@@ -13,6 +13,7 @@ public final class AutomaticNectarSeparatorTest {
   private int position, target;
   private double power;
   private DcMotor.RunMode mode;
+  private DcMotor.Direction direction;
   private final List<String> commands = new ArrayList<>();
   private DcMotor motor() {
     return (DcMotor) Proxy.newProxyInstance(DcMotor.class.getClassLoader(), new Class<?>[] {DcMotor.class},
@@ -23,7 +24,8 @@ public final class AutomaticNectarSeparatorTest {
             case "getMode": return mode;
             case "getCurrentPosition": return position;
             case "setTargetPosition": target = (int) args[0]; break;
-            case "setDirection": case "setZeroPowerBehavior": break;
+            case "setDirection": direction = (DcMotor.Direction) args[0]; break;
+            case "setZeroPowerBehavior": break;
             default: throw new AssertionError("Unexpected gate access " + method.getName());
           }
           commands.add(method.getName()); return null;
@@ -42,6 +44,7 @@ public final class AutomaticNectarSeparatorTest {
     NectarSeparatorController controller = new NectarSeparatorController(100, 2, 150, 1000, 0.25, 0.1, 0.05, 1);
     AutomaticNectarSeparator gate = new AutomaticNectarSeparator(motor(), controller, 0.2);
     assertEquals(0, power, 0); // INIT never moves.
+    assertEquals(RobotConfig.GateMotor.MOTOR_DIRECTION, direction);
     gate.update(true, -4800, -4800, 0);
     assertEquals(10, target); assertEquals(DcMotor.RunMode.RUN_TO_POSITION, mode);
     gate.update(true, -4800, -4800, 0.3);

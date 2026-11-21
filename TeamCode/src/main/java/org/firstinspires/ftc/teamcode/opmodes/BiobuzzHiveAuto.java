@@ -63,6 +63,19 @@ public class BiobuzzHiveAuto extends LinearOpMode {
   protected HiveAutoRoute createRoute(Alliance alliance) { return new HiveAutoRoute(alliance); }
   protected boolean canRunRoute() { return HiveAutoConfig.canRun(); }
   protected boolean usesSingleShooter() { return false; }
+  protected double autoBudgetSeconds() { return HiveAutoConfig.AUTO_BUDGET_SECONDS; }
+  protected double legTimeoutSeconds() { return HiveAutoConfig.LEG_TIMEOUT_SECONDS; }
+  protected double positionToleranceInches() { return 1.5; }
+  protected double pickupPositionToleranceInches() { return positionToleranceInches(); }
+  protected void configureMovementPath(Path path) {
+    if (Double.isInfinite(legTimeoutSeconds())) { path.setTimeoutConstraint(Double.POSITIVE_INFINITY); }
+  }
+  protected final boolean positionWithinTolerance(double errorInches) {
+    return positionWithinTolerance(errorInches, positionToleranceInches());
+  }
+  protected final boolean positionWithinTolerance(double errorInches, double toleranceInches) {
+    return Double.isFinite(errorInches) && errorInches >= 0 && errorInches <= toleranceInches;
+  }
 
   @Override public void runOpMode() {
     telemetry.setMsTransmissionInterval(50);
@@ -138,7 +151,9 @@ public class BiobuzzHiveAuto extends LinearOpMode {
             : requiresPlacementConfirmation()
                 ? "Alliance locked by OpMode | A: confirm placement | DS STOP: abort"
                 : "Alliance locked by OpMode | Play: confirm placement and start | DS STOP: abort");
-        telemetry.addLine("Enable DS 30-second AUTO timer. No gamepad interaction after Play (G401).");
+        telemetry.addLine(Double.isInfinite(autoBudgetSeconds())
+            ? "PRACTICE ONLY: disable DS AUTO timer; runs to park or STOP/fault. Not for matches."
+            : "Enable DS 30-second AUTO timer. No gamepad interaction after Play (G401).");
         show();
         idle();
       }
@@ -215,6 +230,10 @@ public class BiobuzzHiveAuto extends LinearOpMode {
   }
 
   private boolean move(Waypoint p, boolean parking) {
+    return move(p, parking, positionToleranceInches());
+  }
+
+  private boolean move(Waypoint p, boolean parking, double toleranceInches) {
     target = p;
     if (!healthy()) { return false; }
     Pose from = follower.getPose();
@@ -223,6 +242,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
     } else {
       Path path = new Path(new BezierLine(from, pose(p)));
       path.setLinearHeadingInterpolation(from.getHeading(), Math.toRadians(p.getHeadingDegrees()));
+      configureMovementPath(path);
       follower.followPath(path, true);
     }
     double started = clock.seconds(), settled = -1;
@@ -237,14 +257,21 @@ public class BiobuzzHiveAuto extends LinearOpMode {
         }
         Pose current = follower.getPose();
         double angle = Math.toRadians(p.getHeadingDegrees()) - current.getHeading();
-        boolean atPose = Math.hypot(p.getX() - current.getX(), p.getY() - current.getY()) <= 1.5
-            && Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) <= Math.toRadians(5);
+        double positionError = Math.hypot(p.getX() - current.getX(), p.getY() - current.getY());
+        double headingError = Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle)));
+        telemetry.addData("Move position error / allowed", "%.2f / %.2f in", positionError, toleranceInches);
+        telemetry.addData("Move heading error / allowed", "%.1f / 5 deg", Math.toDegrees(headingError));
+        boolean atPose = positionWithinTolerance(positionError, toleranceInches)
+            && headingError <= Math.toRadians(5);
         if (!atPose) { settled = -1; }
         else if (settled < 0) { settled = now; }
         else if (now - settled >= 0.1) { return true; }
-        if (now - started >= HiveAutoConfig.LEG_TIMEOUT_SECONDS) {
+        if (now - started >= legTimeoutSeconds()) {
           movementFault = true;
-          status = "ABORTED: movement timeout; no blind recovery"; return false;
+          status = String.format(java.util.Locale.US,
+              "ABORTED: movement timeout at %s; error %.1f in / %.1f deg; no blind recovery",
+              currentStage, positionError, Math.toDegrees(headingError));
+          return false;
         }
         status = parking ? "Driving to loading-zone park" : "Moving to " + currentStage;
         show(); idle();
@@ -329,7 +356,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
             && Math.abs(shooter.getActualRpm2() - HiveAutoConfig.SHOOT_RPM_2) <= 150;
         Pose current = follower.getPose();
         double angle = Math.toRadians(target.getHeadingDegrees()) - current.getHeading();
-        boolean poseReady = Math.hypot(target.getX() - current.getX(), target.getY() - current.getY()) <= 1.5
+        boolean poseReady = positionWithinTolerance(Math.hypot(target.getX() - current.getX(), target.getY() - current.getY()))
             && Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) <= Math.toRadians(5);
         shot.update(now, tags.isConnected(), detector.isHighConfirmed() && detector.isHighVisible(),
             detector.isLowCandidate(), detector.isTipped(), rpmReady, poseReady);
@@ -372,14 +399,14 @@ public class BiobuzzHiveAuto extends LinearOpMode {
     }
   }
 
-  /** Intake runs during an 8-inch creep and bounded dwell; updates continue without sleeps. */
+  /** Intake creep and bounded dwell; updates continue without sleeps. */
   private boolean pickup(Waypoint destination) {
     if (!inventory.canPickup()) { status = "Pickup blocked by four-element limit"; return false; }
     boolean accounted = false;
     try {
       follower.setMaxPower(HiveAutoConfig.PICKUP_DRIVE_POWER);
       if (pickupIntake != null) { pickupIntake.setPower(HiveAutoConfig.PICKUP_INTAKE_POWER); }
-      if (!move(destination, false)) { return false; }
+      if (!move(destination, false, pickupPositionToleranceInches())) { return false; }
       if (!HiveAutoConfig.DRY_RUN) {
         follower.holdPoint(pose(destination), false);
         double started = clock.seconds();
@@ -391,7 +418,8 @@ public class BiobuzzHiveAuto extends LinearOpMode {
           }
           Pose p = follower.getPose();
           double angle = Math.toRadians(destination.getHeadingDegrees()) - p.getHeading();
-          if (Math.hypot(destination.getX() - p.getX(), destination.getY() - p.getY()) > 1.5
+          if (!positionWithinTolerance(Math.hypot(destination.getX() - p.getX(), destination.getY() - p.getY()),
+              pickupPositionToleranceInches())
               || Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) > Math.toRadians(5)) {
             status = "Pickup pose drift: no refill assumed; attempt parking"; return false;
           }
@@ -414,7 +442,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
 
   private boolean healthy() {
     Pose p = follower.getPose();
-    boolean ready = opModeIsActive() && clock.seconds() < HiveAutoConfig.AUTO_BUDGET_SECONDS
+    boolean ready = opModeIsActive() && clock.seconds() < autoBudgetSeconds()
         && pinpoint.getDeviceStatus() == GoBildaPinpointDriver.DeviceStatus.READY
         && Double.isFinite(p.getX()) && Double.isFinite(p.getY()) && Double.isFinite(p.getHeading());
     if (!ready) {
@@ -429,8 +457,8 @@ public class BiobuzzHiveAuto extends LinearOpMode {
     return true;
   }
 
-  private static double scoringDeadline() {
-    return HiveAutoConfig.AUTO_BUDGET_SECONDS - HiveAutoConfig.PARK_RESERVE_SECONDS;
+  private double scoringDeadline() {
+    return autoBudgetSeconds() - HiveAutoConfig.PARK_RESERVE_SECONDS;
   }
 
   private void setFeed(boolean on) {
@@ -456,7 +484,18 @@ public class BiobuzzHiveAuto extends LinearOpMode {
     telemetry.addData("Expected Pollen / Limit", inventory.isKnown()
         ? inventory.getRemaining() + " / 4 (timing model, not sensor)" : "UNKNOWN: interrupted batch/pickup");
     telemetry.addData("Completed Batch Feed Estimate", inventory.getTotalFed());
-    telemetry.addData("AUTO Time / Budget", "%.1f / %.0f s", clock.seconds(), HiveAutoConfig.AUTO_BUDGET_SECONDS);
+    if (Double.isInfinite(autoBudgetSeconds())) {
+      telemetry.addData("Practice elapsed time", "%.1f s (no overall deadline)", clock.seconds());
+    } else {
+      telemetry.addData("AUTO Time / Budget", "%.1f / %.0f s", clock.seconds(), autoBudgetSeconds());
+    }
+    if (Double.isInfinite(legTimeoutSeconds())) {
+      telemetry.addData("Movement leg timeout", "DISABLED for driving-only practice; STOP to abort");
+    } else {
+      telemetry.addData("Movement leg timeout", "%.0f s", legTimeoutSeconds());
+    }
+    telemetry.addData("Position tolerance", "%.1f in (heading tolerance 5 deg)", positionToleranceInches());
+    telemetry.addData("Pickup position tolerance", "%.1f in", pickupPositionToleranceInches());
     telemetry.addData("Vision-confirmed transitions (not official score)", confirmedTips);
     telemetry.addData("Limelight Position Fix", fixStatus);
     if (tags != null) {

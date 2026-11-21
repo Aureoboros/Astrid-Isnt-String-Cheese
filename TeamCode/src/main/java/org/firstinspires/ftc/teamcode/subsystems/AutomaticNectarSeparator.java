@@ -36,7 +36,7 @@ public final class AutomaticNectarSeparator implements AutoCloseable {
 
   private void initializeMotor() {
     motor.setPower(0);
-    motor.setDirection(DcMotor.Direction.FORWARD);
+    motor.setDirection(RobotConfig.GateMotor.MOTOR_DIRECTION);
     motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
   }

@@ -34,14 +34,41 @@ rotated 180 degrees. With an 18-inch starting length:
 | --- | --- | --- |
 | Start | (-36, -63, 90°), RED_B1_AUDIENCE | (36, 63, 270°), BLUE_E6_FAR |
 | Batch 1, side 1 | (-12.75, -40, 90°) | (12.75, 40, 270°) |
-| Flower 1 pickup | (-57, -24, 180°) | (57, 24, 0°) |
-| Batches 2 and 3, side 2 | (-12.75, 40, 270°) | (12.75, -40, 90°) |
-| Flower 2 pickup | (-24, 57, 90°) | (24, -57, 270°) |
-| Park | (-60, 36, 180°) | (60, -36, 0°) |
+| Flower 1 pickup | (-54, -24, 180°) | (54, 24, 0°) |
+| Batches 2 and 3, side 2 | (-12.75, 46, 270°) | (12.75, -46, 90°) |
+| Flower 2 pickup | (-24, 58, 90°) | (24, -58, 270°) |
+| Park center: nearest inner corner | (-61, 48, 180°) | (61, -48, 0°) |
 
 Pickup poses are provisional robot-center positions, not flower centers. The last
-eight inches are an intake creep at reduced drive power, followed by a bounded
-dwell in live mode. Confirm intake reach and real field clearances.
+11 inches (flower 1) or 15 inches (flower 2) are an intake creep at reduced drive power.
+Flower depth remains six
+inches; the approach stays six inches back from the original approach, but the
+pickup target now adds three inches of extra reach toward the flower. The net
+target standoff is three inches for flower 1. Flower 2 adds another four inches
+(`FLOWER_2_ADDITIONAL_REACH_INCHES = 4`), placing its target one inch farther toward
+the flower than the original pickup position; its approach remains unchanged.
+`FLOWER_PICKUP_EXTRA_REACH_INCHES = 3` adjusts this reach independently of depth.
+Pickup arrival requires **one-inch** position error or less, so the general
+three-inch waypoint tolerance no longer cancels the added reach. Flower 2 now
+turns to face the flower during the lateral approach and keeps that heading for
+the final approach/creep, instead of turning 180 degrees on a short segment.
+A bounded dwell follows
+in live mode. The opposite shooting pose is six inches farther back along the
+robot's heading; both refill batches use it. These adjustments live in
+`PreloadedHiveAutoConfig.FLOWER_PICKUP_DEPTH_INCHES`, `FLOWER_PICKUP_EXTRA_REACH_INCHES`,
+`FLOWER_2_ADDITIONAL_REACH_INCHES`, `PICKUP_POSITION_TOLERANCE_INCHES`, and
+`OPPOSITE_SHOT_BACKOFF_INCHES`.
+
+The park center is at the nearest inner corner of the existing nominal loading-zone
+map: Red X=-61, Y=48; Blue X=61, Y=-48 (`RED_PARK_CORNER_X/Y`, mirrored for Blue).
+Measure the actual taped zone and adjust those coordinates if needed. Wall-side
+corners were not used, because placing the robot center on the wall would put half
+the robot outside the field.
+
+Verify real intake/flower clearance and reach slowly; ideal pose checks do not
+account for overshoot or extended mechanisms. The three-inch
+tolerance does not guarantee wall clearance or that the park center lands exactly
+on the taped corner.
 
 ## Files and commissioning
 
@@ -72,12 +99,50 @@ an early tip does not justify assuming the robot is empty and collecting more.
 Measure high/low tag heights, signed intake feed power, pulse duration, and flywheel
 settings before live use. Confirm both hive tips physically; vision is only a proxy.
 
-The shared 28-second budget reserves seven seconds for parking. If time runs short,
-the executor interrupts scoring and attempts parking; it does not guarantee all
-three batches fit. Measure actual route duration and mechanism timing on the field.
+## Slow driving practice: no overall timer
+
+The new Blue/Red entries currently use
+`PreloadedHiveAutoConfig.UNLIMITED_DRIVING_TEST = true` while `DRY_RUN = true`.
+They have **no overall time limit or parking-reserve cutoff**: Play starts the
+complete route and it runs to the park endpoint unless stopped or faulted.
+There is also **no movement-leg timeout or Pedro path-end correction timeout**
+in this driving-only practice mode. STOP, Pinpoint readiness and finite-pose
+checks remain active. INIT telemetry displays the unlimited-practice warning.
+If a target cannot be reached, the robot may keep applying power indefinitely:
+press STOP if it stalls. Position and heading checks are not bypassed, so removing
+timers is not a fix for poor heading control or low-power/friction problems.
+Read-only camera relocalization attempts remain bounded so missing tags cannot
+hang the route. Live shooting/controller safety timeouts remain unchanged.
+
+Driving-only Blue/Red tests now accept **up to 3 inches of radial position error**
+at waypoints (`PRACTICE_POSITION_TOLERANCE_INCHES`). Heading must still be within
+5 degrees, with a 0.1-second settling check. Telemetry shows the active tolerance.
+Parking/transit legs may finish up to three inches short; pickup legs require
+one-inch error or less. The pickup limit is used during arrival and live pickup hold.
+Verify actual nectar reach, loading-zone overlap, and clearance on the field.
+Switching to live mode restores the 1.5-inch position tolerance; old autos remain
+at 1.5 inches; the new pickup check remains at one inch in both modes.
+The offline movement simulation still settles at exact endpoints
+and does not certify obstacle clearance with three inches of real tracking error.
+
+If flower 2 still stops short, record `Status`, `Stage`, `Move position error / allowed`,
+and `Move heading error / allowed` from telemetry. Movement-timeout details remain
+available in timed modes; driving-only practice has no movement timers. STOP/fault
+checks remain; the current driving-only mode still runs no intake/shooter.
+
+**Disable the Driver Station AUTO timer manually for this practice run.** The app
+cannot override a Driver Station stop. This mode is not for competition matches.
+Set `UNLIMITED_DRIVING_TEST = false` to restore normal timing. Switching
+`DRY_RUN = false` also restores the shared 28-second budget, seven-second parking
+reserve and five-second leg timeout; unlimited timing never enables live mechanisms.
+The older autonomous routines keep their existing timing behavior.
+
+With live timing, the executor may interrupt scoring and attempt parking; it does
+not guarantee all three batches fit. Measure actual mechanism/transit durations.
 Build/deploy the app to see these entries; no hub deployment is performed by editing source.
 
 See [Red/Blue offline movement simulation](BIOBUZZ_MOVEMENT_SIMULATION.md) for
 repeatable geometry/timing tests and their limitations. At illustrative nominal
-speed the driving-only route completes; adding shooting/pickup timing reaches
+speed the driving-only route completes; slow unlimited practice also completes
+beyond 30 seconds. Adding shooting/pickup timing in the timed baseline reaches
 the scoring cutoff early. A dry-run pass is not proof that live scoring fits.

@@ -2,11 +2,49 @@ package org.firstinspires.ftc.teamcode.navigation;
 
 import static org.junit.Assert.*;
 import org.firstinspires.ftc.teamcode.config.HiveAutoConfig;
+import org.firstinspires.ftc.teamcode.config.PreloadedHiveAutoConfig;
 import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap.Alliance;
 import org.junit.Test;
 
 /** Illustrative speed profiles, NOT measured robot velocities or a test of Pedro PID dynamics. */
 public final class HiveRouteMovementSimulationTest {
+  @Test public void unlimitedPracticeCompletesBothRoutesAtSlowSpeedBeyondThirtySeconds() {
+    for (Alliance a : Alliance.values()) {
+      HiveRouteMovementSimulator s = new HiveRouteMovementSimulator(a, 20, 72, true,
+          PreloadedHiveAutoConfig.autoBudgetSeconds(), PreloadedHiveAutoConfig.legTimeoutSeconds()).run();
+      System.out.println("UNLIMITED PRACTICE " + s.summary(a));
+      assertEquals("FULL_ROUTE_PARKED", s.outcome);
+      assertEquals(5, s.completedStages);
+      assertEquals(12, s.inventory.getTotalFed());
+      assertTrue(s.time > 30);
+      assertFalse(s.reserveReached); assertFalse(s.movementFault); assertTrue(s.parked);
+      assertEquals(a == Alliance.RED ? -61 : 61, s.current.getX(), 1e-6);
+      assertEquals(a == Alliance.RED ? 48 : -48, s.current.getY(), 1e-6);
+    }
+  }
+
+  @Test public void unlimitedPracticeStallWaitsBeyondOldLegTimeoutUntilDriverStop() {
+    for (Alliance a : Alliance.values()) {
+      HiveRouteMovementSimulator s = new HiveRouteMovementSimulator(a, 0, 360, true,
+          PreloadedHiveAutoConfig.autoBudgetSeconds(), PreloadedHiveAutoConfig.legTimeoutSeconds());
+      s.stopAtSeconds = 40;
+      s.run();
+      assertTrue(s.movementFault); assertFalse(s.parked);
+      assertEquals("DRIVER_STOP_ABORT", s.outcome);
+      assertEquals(40, s.time, 0.03);
+    }
+  }
+
+  @Test public void individualLegCanExceedThirtySecondsWithoutAbortingRoute() {
+    for (Alliance a : Alliance.values()) {
+      HiveRouteMovementSimulator s = new HiveRouteMovementSimulator(a, 5, 18, true,
+          PreloadedHiveAutoConfig.autoBudgetSeconds(), PreloadedHiveAutoConfig.legTimeoutSeconds()).run();
+      assertEquals("FULL_ROUTE_PARKED", s.outcome);
+      assertTrue(s.time > 200);
+      assertEquals(5, s.completedStages); assertTrue(s.parked); assertFalse(s.movementFault);
+    }
+  }
+
   @Test public void bothDrivingOnlyRoutesFinishAndParkUnderNominalAssumedSpeed() {
     HiveRouteMovementSimulator red = simulate(Alliance.RED, 100, 360, true);
     HiveRouteMovementSimulator blue = simulate(Alliance.BLUE, 100, 360, true);
@@ -18,8 +56,8 @@ public final class HiveRouteMovementSimulationTest {
       assertFalse(s.movementFault);
       assertTrue(s.time < HiveAutoConfig.AUTO_BUDGET_SECONDS);
     }
-    assertEquals(-60, red.current.getX(), 1e-6); assertEquals(36, red.current.getY(), 1e-6);
-    assertEquals(60, blue.current.getX(), 1e-6); assertEquals(-36, blue.current.getY(), 1e-6);
+    assertEquals(-61, red.current.getX(), 1e-6); assertEquals(48, red.current.getY(), 1e-6);
+    assertEquals(61, blue.current.getX(), 1e-6); assertEquals(-48, blue.current.getY(), 1e-6);
     assertEquals(red.time, blue.time, 1e-6);
     assertEquals(red.distance, blue.distance, 1e-6);
     assertEquals(red.samples.size(), blue.samples.size());

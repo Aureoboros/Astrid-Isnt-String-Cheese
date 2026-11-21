@@ -12,6 +12,9 @@ areas are for drive teams, not robot starting positions.
 
 ## Coordinate frame and location matrix
 
+For a simplified audience-direction and heading diagram, see
+[Field headings and audience direction](FIELD_HEADING_DIAGRAM.md).
+
 `BiobuzzFieldMap` uses the nominal 144-by-144-inch field and 24-inch tiles. `(0, 0)` is the
 **center of the field**, and X and Y each run from −72 to +72 inches, so the field splits into four
 quadrants. Looking into the field from the audience, X increases rightward from column A to F; Y

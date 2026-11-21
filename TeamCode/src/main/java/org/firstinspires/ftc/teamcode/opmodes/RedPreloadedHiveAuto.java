@@ -15,4 +15,8 @@ public final class RedPreloadedHiveAuto extends BiobuzzHiveAuto {
   @Override protected HiveAutoRoute createRoute(Alliance alliance) { return new PreloadedHiveAutoRoute(alliance); }
   @Override protected boolean canRunRoute() { return PreloadedHiveAutoConfig.canRun(); }
   @Override protected boolean usesSingleShooter() { return true; }
+  @Override protected double autoBudgetSeconds() { return PreloadedHiveAutoConfig.autoBudgetSeconds(); }
+  @Override protected double legTimeoutSeconds() { return PreloadedHiveAutoConfig.legTimeoutSeconds(); }
+  @Override protected double positionToleranceInches() { return PreloadedHiveAutoConfig.positionToleranceInches(); }
+  @Override protected double pickupPositionToleranceInches() { return PreloadedHiveAutoConfig.PICKUP_POSITION_TOLERANCE_INCHES; }
 }

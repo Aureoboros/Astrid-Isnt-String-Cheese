@@ -107,6 +107,34 @@ public final class RobotConfig {
     public static final double TEST_INITIAL_RPM = 100.0;
     public static final double TEST_RPM_STEP = 25.0;
 
+    // Motor metadata does not calibrate one-ball travel or the gate's blocking position.
+    public static final boolean AUTO_FEED_ENABLED = false;
+    public static final boolean ONE_BALL_INDEX_VERIFIED = false;
+    public static final boolean START_BLOCK_POSITION_VERIFIED = false;
+    // Signed encoder ticks in MOTOR_DIRECTION between successive blocking positions.
+    public static final int TICKS_PER_INDEX = 0;
+    public static final double INDEX_POWER = 0.2;
+    public static final int POSITION_TOLERANCE_TICKS = 2;
+    public static final double POSITION_SETTLE_SECONDS = 0.05;
+    public static final double INDEX_TIMEOUT_SECONDS = 1.0;
+    public static final double MIN_BALL_INTERVAL_SECONDS = 0.1;
+    public static final double SHOOTER_RPM_TOLERANCE = 150;
+    public static final double SHOOTER_STABLE_SECONDS = 0.25;
+    public static final double MIN_SHOOTER_RPM = 1000;
+
+    public static boolean autoFeedReady() {
+      return AUTO_FEED_ENABLED && ONE_BALL_INDEX_VERIFIED && START_BLOCK_POSITION_VERIFIED
+          && Math.abs((long) TICKS_PER_INDEX) > POSITION_TOLERANCE_TICKS
+          && POSITION_TOLERANCE_TICKS >= 0
+          && Double.isFinite(INDEX_POWER) && INDEX_POWER > 0 && INDEX_POWER <= 1
+          && Double.isFinite(POSITION_SETTLE_SECONDS) && POSITION_SETTLE_SECONDS >= 0
+          && Double.isFinite(INDEX_TIMEOUT_SECONDS) && INDEX_TIMEOUT_SECONDS > POSITION_SETTLE_SECONDS
+          && Double.isFinite(MIN_BALL_INTERVAL_SECONDS) && MIN_BALL_INTERVAL_SECONDS >= 0.1
+          && Double.isFinite(SHOOTER_RPM_TOLERANCE) && SHOOTER_RPM_TOLERANCE > 0
+          && Double.isFinite(SHOOTER_STABLE_SECONDS) && SHOOTER_STABLE_SECONDS > 0
+          && Double.isFinite(MIN_SHOOTER_RPM) && MIN_SHOOTER_RPM > SHOOTER_RPM_TOLERANCE;
+    }
+
     private GateMotor() {}
   }
 
