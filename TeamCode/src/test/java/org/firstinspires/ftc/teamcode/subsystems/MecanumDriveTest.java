@@ -12,21 +12,21 @@ public final class MecanumDriveTest {
   public void forwardCommandUsesInstalledChassisForwardPattern() {
     DrivePower power = MecanumDrive.configuredRobotCentric(1.0, 0.0, 0.0);
 
-    assertPower(power, -1.0, 1.0, 1.0, -1.0);
+    assertPower(power, 1.0, 1.0, 1.0, 1.0);
   }
 
   @Test
   public void strafeCommandUsesInstalledChassisStrafePattern() {
     DrivePower power = MecanumDrive.configuredRobotCentric(0.0, 1.0, 0.0);
 
-    assertPower(power, -1.0, -1.0, -1.0, -1.0);
+    assertPower(power, 1.0, -1.0, -1.0, 1.0);
   }
 
   @Test
-  public void installedLayoutReversesRotationPattern() {
+  public void clockwiseRotationUsesOppositeSidePowers() {
     DrivePower power = MecanumDrive.configuredRobotCentric(0.0, 0.0, 1.0);
 
-    assertPower(power, -1.0, 1.0, -1.0, 1.0);
+    assertPower(power, 1.0, -1.0, 1.0, -1.0);
   }
 
   private static void assertPower(

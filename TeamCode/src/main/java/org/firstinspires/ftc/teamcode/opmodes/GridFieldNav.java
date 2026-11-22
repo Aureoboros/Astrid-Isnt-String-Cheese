@@ -13,16 +13,17 @@ import org.firstinspires.ftc.teamcode.localization.AprilTagObservation;
 import org.firstinspires.ftc.teamcode.localization.AprilTagTracker;
 import org.firstinspires.ftc.teamcode.navigation.GridField;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 
 /**
- * 6 x 6 grid navigation. During INIT the robot reads AprilTag 40 (grid point 2,1) to find where it
+ * Field-center grid navigation. During INIT the robot reads the configured anchor tag to find where it
  * is. After Play, the D-pad picks a grid point (up/down = Y, right/left = X), A drives there in a
- * straight line, then the robot turns to face the field center (3, 3). B cancels a move.
+ * straight line, then the robot turns to face the field center (0, 0). B cancels a move.
  */
 @TeleOp(name = "Grid Field Nav", group = "Pedro Pathing")
 public final class GridFieldNav extends LinearOpMode {
   /**
-   * Field heading the robot has while it looks at tag 40. 90 degrees means the robot faces +Y, so
+   * Field heading the robot has while it looks at the anchor tag. 90 degrees means the robot faces +Y, so
    * it starts below the tag (smaller Y). Change this if the robot starts facing the tag from a
    * different side.
    */
@@ -61,7 +62,7 @@ public final class GridFieldNav extends LinearOpMode {
     int samples = 0;
 
     try {
-      // Locate the robot from tag 40 while waiting for Play.
+      // Locate the robot from the configured anchor while waiting for Play.
       while (opModeInInit() || (opModeIsActive() && samples == 0)) {
         AprilTagObservation tag = readTags();
         if (tag != null) {
@@ -121,7 +122,7 @@ public final class GridFieldNav extends LinearOpMode {
     }
   }
 
-  /** Straight line to the grid point keeping the current heading, then turn to face (3, 3). */
+  /** Straight line to the grid point keeping the current heading, then turn to face (0, 0). */
   private void goTo(int gridX, int gridY) {
     Pose from = follower.getPose();
     double x = GridField.toInches(gridX);
@@ -183,7 +184,7 @@ public final class GridFieldNav extends LinearOpMode {
     return false;
   }
 
-  /** Rising-edge D-pad: up/down change Y, right/left change X, clamped to 0..6. */
+  /** Rising-edge D-pad: up/down change Y, right/left change X, clamped to -6..6. */
   private void handleDpad() {
     boolean up = gamepad1.dpad_up;
     boolean down = gamepad1.dpad_down;
@@ -237,7 +238,9 @@ public final class GridFieldNav extends LinearOpMode {
     telemetry.addData("Robot (in)", "X %.1f, Y %.1f, heading %.1f deg",
         pose.getX(), pose.getY(), Math.toDegrees(pose.getHeading()));
     telemetry.addData("Target (grid)", "(%d, %d)", targetX, targetY);
+    telemetry.addData("Grid unit", "%.0f inches; center (0, 0)", GridField.TILE_INCHES);
     telemetry.addLine("D-pad: up/down = Y, right/left = X | A = go | B = cancel");
+    OdometryTelemetry.add(telemetry);
     telemetry.update();
   }
 }

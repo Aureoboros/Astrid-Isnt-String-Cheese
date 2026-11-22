@@ -7,6 +7,21 @@ import org.firstinspires.ftc.teamcode.localization.AprilTagAim;
 import org.junit.Test;
 
 public final class ImagePanTrackerTest {
+  @Test public void selectedTagTestIgnoresOtherIdsAndCanSwitchTargets() {
+    ImagePanTracker t = tracker();
+    t.start(0, 1); t.setDirection(-1); t.setTargetIdRange(35, 35); t.toggleTracking();
+    t.update(tag(20, 20), 2, 0.6);
+    assertEquals(0.2, t.getPosition(), 0);
+    assertEquals(-1, t.getTargetId());
+    t.update(tag(35, 0), 3, 0.7);
+    assertEquals(35, t.getTargetId());
+    t.setTargetIdRange(20, 20);
+    t.update(tag(35, 20), 4, 0.8);
+    assertEquals(-1, t.getTargetId());
+    t.update(tag(20, 20), 5, 0.9);
+    assertEquals(20, t.getTargetId());
+    assertEquals(0.19, t.getPosition(), 1e-9);
+  }
   private static ImagePanTracker tracker() {
     return new ImagePanTracker(0.05, 0.2, 0.35, 0.2, 0.001, 0.01, 2, 0.35, 0.5, 1);
   }

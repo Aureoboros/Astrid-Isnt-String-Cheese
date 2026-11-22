@@ -22,8 +22,6 @@ import org.firstinspires.ftc.teamcode.control.LimelightPanController;
 import org.firstinspires.ftc.teamcode.control.TeleTourneyMechanismControls;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.SingleShooterSubsystem;
-import org.firstinspires.ftc.teamcode.pedroPathing.PushTunaFinal;
-
 /** Competition drive TeleOp with live two-wheel odometry and Limelight AprilTag telemetry. */
 @TeleOp(name = "TeleTourney", group = "Competition")
 public final class TeleTourney extends LinearOpMode {
@@ -86,6 +84,7 @@ public final class TeleTourney extends LinearOpMode {
             gamepad1.a || gamepad2.a, gamepad1.b || gamepad2.b);
 
         telemetry.addData("Active Driver", "Gamepad %d", command.getGamepadNumber());
+        telemetry.addData("Position recovery", pushTuna.getState());
         telemetry.addData("Intake", intake.isEnabled() ? "ON / " + intake.getDirection() : "OFF");
         telemetry.addData("Shoot1", shooter.isActive() ? "ON" : "OFF");
         telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");

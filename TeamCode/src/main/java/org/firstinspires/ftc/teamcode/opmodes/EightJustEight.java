@@ -37,7 +37,7 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
  * Side 1 preloads -> park.
  * HiveAutoConfig controls commissioning; DRY_RUN drives but simulates mechanisms.
  */
-@Autonomous(name = "8", group = "Competition")
+@Autonomous(name = "BIOBUZZ: Preload Only + Park", group = "Competition")
 public final class EightJustEight extends LinearOpMode {
     /** Ordered stages. Side 1 = initially raised cell; side 2 = opposite cell. */
     enum Stage {

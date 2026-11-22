@@ -1,10 +1,11 @@
 package org.firstinspires.ftc.teamcode.navigation;
 
 /**
- * A 6 x 6 tile coordinate field laid over Pedro's 0-144 inch field.
+ * Field-center grid over the 144-inch field, with 12 inches per grid unit.
  *
- * <p>Grid points run from (0, 0) to (6, 6); one grid unit is one 24-inch field tile. AprilTag 40
- * marks grid point (2, 1). All headings are field-relative radians, counter-clockwise from +X.
+ * <p>Grid points run from (-6, -6) to (6, 6). The configured anchor is AprilTag 36 at
+ * (1, -2); confirm its physical location before localization. Headings are field-relative
+ * radians, counter-clockwise from +X. Waypoint constructors still take inches, not grid units.
  */
 public final class GridField {
   public static final int MIN = -6;
@@ -58,7 +59,7 @@ public final class GridField {
   }
 
   /**
-   * Heading that points the robot at the field center (3, 3), or {@code fallback} when the robot is
+   * Heading that points the robot at the field center (0, 0), or {@code fallback} when the robot is
    * already in the center and no direction is defined.
    */
   public static double headingToCenter(double xInches, double yInches, double fallback) {

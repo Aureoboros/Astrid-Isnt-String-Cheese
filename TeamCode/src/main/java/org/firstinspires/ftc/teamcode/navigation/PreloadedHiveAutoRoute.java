@@ -1,4 +1,3 @@
-/**
 package org.firstinspires.ftc.teamcode.navigation;
 
 import java.util.Arrays;
@@ -8,7 +7,6 @@ import org.firstinspires.ftc.teamcode.config.PreloadedHiveAutoConfig;
 import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap.Alliance;
 
 /** Only side 1 starts with three nectars: four tip it; two four-nectar batches tip side 2. */
-/**
 public final class PreloadedHiveAutoRoute extends HiveAutoRoute {
   private final Alliance alliance;
   private static final List<Stage> STAGES = Collections.unmodifiableList(Arrays.asList(
@@ -92,4 +90,3 @@ public final class PreloadedHiveAutoRoute extends HiveAutoRoute {
             PreloadedHiveAutoConfig.RED_PARK_CORNER_Y, 180));
   }
 }
-*/
