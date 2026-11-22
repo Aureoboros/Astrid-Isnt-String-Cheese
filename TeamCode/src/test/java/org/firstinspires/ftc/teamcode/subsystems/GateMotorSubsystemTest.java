@@ -18,6 +18,7 @@ public final class GateMotorSubsystemTest {
   private DcMotor.RunMode mode;
   private DcMotor.ZeroPowerBehavior zeroPower;
   private double measuredVelocity;
+  private int position;
 
   private DcMotorEx motor() {
     return (DcMotorEx) Proxy.newProxyInstance(DcMotorEx.class.getClassLoader(),
@@ -30,6 +31,7 @@ public final class GateMotorSubsystemTest {
             case "setZeroPowerBehavior": zeroPower = (DcMotor.ZeroPowerBehavior) args[0]; break;
             case "setVelocity": velocities.add((double) args[0]); break;
             case "getVelocity": return measuredVelocity;
+            case "getCurrentPosition": return position;
             default: throw new AssertionError("Unexpected hardware access: " + method.getName());
           }
           return null;
@@ -79,5 +81,28 @@ public final class GateMotorSubsystemTest {
       try { new GateMotorSubsystem(motor(), 435, invalid, 100); fail("Invalid encoder resolution accepted"); }
       catch (IllegalArgumentException expected) { assertTrue(velocities.isEmpty()); }
     }
+  }
+
+  @Test public void jamRecoveryAppliesPauseReverseAndRestartWithoutChangingSelectedDirection() {
+    GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 435, 384.5, 100);
+    gate.setState(true, false, 100, 0);
+    gate.setState(true, false, 100, .91);
+    assertEquals(0, gate.getOutputRpm(), 0);
+    gate.setState(true, false, 100, 1.02);
+    assertEquals(-60, gate.getOutputRpm(), 0);
+    assertEquals(-60 * 384.5 / 60, velocities.get(velocities.size() - 1), 1e-9);
+    assertFalse(gate.isReversed());
+    assertEquals(100, gate.getCommandedRpm(), 0);
+    gate.setState(true, false, 100, 1.18);
+    assertEquals(0, gate.getOutputRpm(), 0);
+    gate.setState(true, false, 100, 1.29);
+    assertEquals(100, gate.getOutputRpm(), 0);
+    measuredVelocity = 100 * 384.5 / 60;
+    position = 600;
+    gate.setState(true, false, 100, 2.3);
+    assertEquals(100, gate.getOutputRpm(), 0);
+    assertEquals(1, gate.getRecoveryCount());
+    gate.stop();
+    assertEquals(0, gate.getOutputRpm(), 0);
   }
 }

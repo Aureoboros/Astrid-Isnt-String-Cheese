@@ -34,6 +34,7 @@ public final class GateMotorTestTeleOp extends LinearOpMode {
       telemetry.addData("Shoot1 starts ON at Play", "%.0f RPM (closed-loop)", controls.getShooterRpm());
       telemetry.addLine("Intake runs FORWARD continuously from Play. Keep hands clear.");
       telemetry.addLine("Stop and allow coast-down before reversing the gate.");
+      telemetry.addLine("Auto jam recovery: stop/reverse/retry; after 3 failed retries, B OFF then ON resets.");
       telemetry.addLine("No drive, servo or camera is initialized.");
       OdometryTelemetry.add(telemetry);
       telemetry.update();
@@ -52,6 +53,14 @@ public final class GateMotorTestTeleOp extends LinearOpMode {
         telemetry.addData("Gate direction", gate.isReversed() ? "REVERSE" : "FORWARD");
         telemetry.addData("Gate target / actual", "%.0f / %.0f RPM",
             gate.getTargetRpm(), Math.abs(gate.getActualRpm()));
+        telemetry.addData("Gate applied RPM (signed)", "%.0f", gate.getOutputRpm());
+        telemetry.addData("Gate recovery", gate.getRecoveryState());
+        telemetry.addData("Gate retry / limit", "%d / %d",
+            gate.getRecoveryAttempts(), RobotConfig.GateMotor.JAM_MAX_ATTEMPTS);
+        telemetry.addData("Gate jam recoveries", gate.getRecoveryCount());
+        if (gate.getRecoveryState() == org.firstinspires.ftc.teamcode.control.GateJamRecoveryController.State.FAULT) {
+          telemetry.addLine("Gate stopped: jam persists. Clear obstruction; B OFF then ON to retry.");
+        }
         telemetry.addLine("A: gate dir | B: gate on/off | X: shooter on/off");
         telemetry.addLine("D-pad L/R: gate RPM | D-pad U/D: shooter RPM");
         OdometryTelemetry.add(telemetry);

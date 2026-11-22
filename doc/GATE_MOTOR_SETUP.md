@@ -38,6 +38,33 @@ reversing; keep hands clear. Check the separator unloaded first.
 Telemetry also shows the continuously running intake and configured odometry
 ticks-to-inches coefficient; this test does not initialize or read Pinpoint.
 
+## Automatic jam recovery
+
+Jam recovery is enabled in `GateMotorSubsystem`, currently used by **Test: Gate Motor**.
+When the gate is requested ON at 5 RPM or higher, it allows 400 ms for startup.
+It then compares encoder movement over a 500 ms window with the commanded speed.
+Both encoder progress and measured RPM must be below 20% of the target to declare
+a stall; a short speed dip alone does not trigger recovery.
+
+Each recovery stops for 100 ms, reverses for 150 ms at up to 60 RPM (never faster
+than the selected speed), pauses for 100 ms, and resumes the original direction
+and selected RPM. The loop continues updating the other mechanisms throughout.
+Changing direction or speed cancels the recovery pulse; B OFF and Driver Station
+STOP stop the gate immediately.
+
+Three consecutive retry cycles are allowed. If it remains stalled after those,
+the gate latches **FAULT** and commands zero velocity. Clear the obstruction, then
+press B to select OFF and again to select ON to retry. Two seconds of sustained
+healthy encoder movement reset the consecutive retry count. Telemetry shows
+recovery state, retry count, total recovery cycles started, and signed applied RPM.
+
+All thresholds and timings are in `RobotConfig.GateMotor.JAM_*`; tune the reverse
+duration on the actual separator. The encoder cable must be connected. This detects
+a stalled motor, not a slipping wheel that jams while the motor shaft still turns.
+The indexed `AutomaticNectarSeparator` helper remains disabled until calibrated;
+this change applies to continuous-velocity gate control. TeleTourney currently
+does not initialize a gate motor.
+
 The indexed separator helper's settings live in `RobotConfig.GateMotor`.
 Automatic feeding remains disabled and uncalibrated (`AUTO_FEED_ENABLED = false`,
 `TICKS_PER_INDEX = 0`); these settings do not change this manual test's A/B controls.

@@ -24,6 +24,13 @@ Gate motor: `RobotConfig.Hardware.GATE_MOTOR` and `RobotConfig.GateMotor` define
 set the current diagnostic defaults. Automatic indexed feeding remains disabled
 until calibrated. See [Gate setup](GATE_MOTOR_SETUP.md).
 
+Gate jam detection/retry: [GateJamRecoveryController.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/control/GateJamRecoveryController.java),
+called every loop by `GateMotorSubsystem`. Edit `RobotConfig.GateMotor.JAM_*` for
+startup grace (0.4 s), stall window (0.5 s), minimum speed/progress fraction (0.2),
+stop/reverse/restart pauses (0.1/0.15/0.1 s), reverse cap (60 RPM), and retry limit (3).
+Enabled in **Test: Gate Motor**; B OFF then ON clears a persistent-jam fault.
+No sleep/thread is used, and the selected RPM/direction remain unchanged during recovery.
+
 ## Controller assignments
 
 Shoot1 motor/encoder metadata: `RobotConfig.ShooterMotor` and

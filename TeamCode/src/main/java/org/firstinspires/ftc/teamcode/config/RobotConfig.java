@@ -107,6 +107,19 @@ public final class RobotConfig {
     public static final double TEST_INITIAL_RPM = 60.0;
     public static final double TEST_RPM_STEP = 10.0;
 
+    // Continuous-velocity gate jam recovery (Test: Gate Motor). All timings are nonblocking.
+    public static final boolean JAM_RECOVERY_ENABLED = true;
+    public static final double JAM_STARTUP_GRACE_SECONDS = 0.4;
+    public static final double JAM_STALL_WINDOW_SECONDS = 0.5;
+    public static final double JAM_MIN_SPEED_FRACTION = 0.2;
+    public static final double JAM_STOP_SECONDS = 0.1;
+    public static final double JAM_REVERSE_SECONDS = 0.15;
+    public static final double JAM_RESTART_PAUSE_SECONDS = 0.1;
+    public static final double JAM_REVERSE_MAX_RPM = 60;
+    public static final double JAM_HEALTHY_RESET_SECONDS = 2;
+    public static final double JAM_MIN_COMMAND_RPM = 5;
+    public static final int JAM_MAX_ATTEMPTS = 3;
+
     // Motor metadata does not calibrate one-ball travel or the gate's blocking position.
     public static final boolean AUTO_FEED_ENABLED = false;
     public static final boolean ONE_BALL_INDEX_VERIFIED = false;
