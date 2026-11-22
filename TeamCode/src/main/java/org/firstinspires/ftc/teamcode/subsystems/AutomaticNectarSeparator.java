@@ -1,3 +1,4 @@
+/**
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -5,7 +6,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.teamcode.config.RobotConfig;
 import org.firstinspires.ftc.teamcode.control.NectarSeparatorController;
 
-/** Sole gate owner in shooter integrations; never opens it without explicit index calibration. */
+Sole gate owner in shooter integrations; never opens it without explicit index calibration. 
 public final class AutomaticNectarSeparator implements AutoCloseable {
   private final DcMotor motor;
   private final NectarSeparatorController controller;
@@ -70,3 +71,4 @@ public final class AutomaticNectarSeparator implements AutoCloseable {
     if (motor != null) { motor.setPower(0); }
   }
 }
+*/

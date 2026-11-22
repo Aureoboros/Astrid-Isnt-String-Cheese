@@ -1,3 +1,4 @@
+/**
 package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -7,6 +8,7 @@ import org.firstinspires.ftc.teamcode.navigation.HiveAutoRoute;
 import org.firstinspires.ftc.teamcode.navigation.PreloadedHiveAutoRoute;
 
 /** Blue wall start; three four-nectar batches and two alliance-flower pickups, then park. */
+/**
 @Autonomous(name = "BIOBUZZ: Blue 3 Batches + Park", group = "Competition")
 public final class BluePreloadedHiveAuto extends BiobuzzHiveAuto {
   @Override protected Alliance initialAlliance() { return Alliance.BLUE; }
@@ -20,3 +22,4 @@ public final class BluePreloadedHiveAuto extends BiobuzzHiveAuto {
   @Override protected double positionToleranceInches() { return PreloadedHiveAutoConfig.positionToleranceInches(); }
   @Override protected double pickupPositionToleranceInches() { return PreloadedHiveAutoConfig.PICKUP_POSITION_TOLERANCE_INCHES; }
 }
+*/

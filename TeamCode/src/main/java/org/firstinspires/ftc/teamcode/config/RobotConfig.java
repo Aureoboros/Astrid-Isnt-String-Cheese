@@ -102,10 +102,10 @@ public final class RobotConfig {
     /** goBILDA 435 RPM encoder counts per output-shaft revolution (28 x 13.7:1). */
     public static final double TICKS_PER_REVOLUTION = 384.5;
     /** Motor direction that the code calls FORWARD; REVERSE flips the physical spin. */
-    public static final DcMotorSimple.Direction MOTOR_DIRECTION = DcMotorSimple.Direction.REVERSE;
+    public static final DcMotorSimple.Direction MOTOR_DIRECTION = DcMotorSimple.Direction.FORWARD;
     // Closed-loop (encoder) diagnostic speed.
-    public static final double TEST_INITIAL_RPM = 100.0;
-    public static final double TEST_RPM_STEP = 25.0;
+    public static final double TEST_INITIAL_RPM = 60.0;
+    public static final double TEST_RPM_STEP = 10.0;
 
     // Motor metadata does not calibrate one-ball travel or the gate's blocking position.
     public static final boolean AUTO_FEED_ENABLED = false;
