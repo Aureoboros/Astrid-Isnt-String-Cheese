@@ -70,79 +70,72 @@ account for overshoot or extended mechanisms. The three-inch
 tolerance does not guarantee wall clearance or that the park center lands exactly
 on the taped corner.
 
-## Files and commissioning
+## Live mechanism operation
 
-- `opmodes/BluePreloadedHiveAuto.java` and `RedPreloadedHiveAuto.java`: separate
-  Driver Station entries, locked starts, and selection of Shoot1-only control.
-- `navigation/PreloadedHiveAutoRoute.java`: ordered stages, transit coordinates,
-  target tag clusters, and which batches require a tip. The old seven-stage route
-  remains available in `BiobuzzHiveAuto`; `FortyEight` is unchanged.
-- `opmodes/BiobuzzHiveAuto.java`: shared nonblocking Pedro/Pinpoint executor,
-  Limelight position correction, vision tip checks, pickup/feed loop, and cleanup.
-- `config/PreloadedHiveAutoConfig.java`: new route approval and Shoot1 settings.
-  Defaults are **4800 RPM, reverse**, matching TeleTourney. No Shoot2 is initialized.
-- `config/HiveAutoConfig.java`: shared vision/timing, live-mechanism verification,
-  feeder selection, and timeouts. `DRY_RUN = true` means real driving but simulated
-  shots/pickups. `servoMotor` remains camera pan, not a feeder.
+Both Driver Station entries now enable real intake pickups, Shoot1 and gateMotor.
+`PreloadedHiveAutoConfig.MECHANISMS_ENABLED = true` records the operator's
+validation. Shoot1 is set to **2900 RPM, reverse**; gateMotor uses **60 RPM, forward**.
+TeleTourney and the older autonomous entries retain their existing defaults.
 
-**The operator enabled the new route (`PreloadedHiveAutoConfig.ROUTE_VERIFIED = true`).**
-With the current shared `DRY_RUN = true`, Play starts actual driving and simulates
-shots/pickups. Check the displayed start, physical clearances and route before Play.
-The original `BiobuzzHiveAuto` retains its A-button placement confirmation.
-Do not enable live shooting until the shared camera/shooting, pickups, and timed
-counting flags are commissioned, `FEEDER = INTAKE` is verified, and `DRY_RUN` is false.
-The gate separator is not automatically armed by these routines.
+The intake runs at the shared pickup power during each final flower approach and
+the 1.5-second pickup dwell. At the hive, the gate and intake feed only during the
+four-pulse batch. The intake pauses while the gate is stopped, reversing, or below
+its movement threshold. Feeding resumes after jam recovery. A persistent gate fault
+aborts the batch, stops the mechanisms, invalidates expected inventory and attempts
+parking if the drivetrain is healthy. The robot does not attempt another pickup
+with unknown inventory.
 
-Four feed pulses/four collected nectars are **timing estimates**, not sensor counts.
-Low-tag evidence immediately stops feeding, even before four pulses complete;
-an early tip does not justify assuming the robot is empty and collecting more.
-Measure high/low tag heights, signed intake feed power, pulse duration, and flywheel
-settings before live use. Confirm both hive tips physically; vision is only a proxy.
+Each 0.15-second feed pulse is credited from encoder travel at the selected gate
+speed, rather than elapsed wall time during a jam. Reverse travel must be regained
+before additional feed progress is credited. Four feeds/four picked-up nectars remain
+**estimates**, without a counting sensor. STOP stops the mechanisms; none spin in INIT.
 
-## Slow driving practice: no overall timer
+The camera servo holds **center 0.20** during these autos. The known center mount
+is configured on pipeline 0 in INIT; fresh matching frames after servo settling
+are required before robot-space observations are published. This avoids the
+uncalibrated moving-pan mode, which withholds tag-height measurements. Live shots
+still require visible high-tag evidence, a settled robot pose and Shoot1 RPM readiness.
+Low-tag evidence stops feeding immediately. First and final batches require a
+confirmed high-to-low transition; the middle batch does not.
 
-The new Blue/Red entries currently use
-`PreloadedHiveAutoConfig.UNLIMITED_DRIVING_TEST = true` while `DRY_RUN = true`.
-They have **no overall time limit or parking-reserve cutoff**: Play starts the
-complete route and it runs to the park endpoint unless stopped or faulted.
-There is also **no movement-leg timeout or Pedro path-end correction timeout**
-in this driving-only practice mode. STOP, Pinpoint readiness and finite-pose
-checks remain active. INIT telemetry displays the unlimited-practice warning.
-If a target cannot be reached, the robot may keep applying power indefinitely:
-press STOP if it stalls. Position and heading checks are not bypassed, so removing
-timers is not a fix for poor heading control or low-power/friction problems.
-Read-only camera relocalization attempts remain bounded so missing tags cannot
-hang the route. Live shooting/controller safety timeouts remain unchanged.
+The shot controller allows 20 seconds of batch-control time for visibility and
+flywheel spin-up. Gate stalls/reversal do not advance a feed pulse. An individual
+feed with no sufficient progress aborts after 10 seconds of real time; jam recovery
+also retains its three-retry limit. These are mechanism fault guards, separate from
+the disabled movement deadlines.
 
-Driving-only Blue/Red tests now accept **up to 3 inches of radial position error**
-at waypoints (`PRACTICE_POSITION_TOLERANCE_INCHES`). Heading must still be within
-5 degrees, with a 0.1-second settling check. Telemetry shows the active tolerance.
-Parking/transit legs may finish up to three inches short; pickup legs require
-one-inch error or less. The pickup limit is used during arrival and live pickup hold.
-Verify actual nectar reach, loading-zone overlap, and clearance on the field.
-Switching to live mode restores the 1.5-inch position tolerance; old autos remain
-at 1.5 inches; the new pickup check remains at one inch in both modes.
-The offline movement simulation still settles at exact endpoints
-and does not certify obstacle clearance with three inches of real tracking error.
+## Files for quick changes
 
-If flower 2 still stops short, record `Status`, `Stage`, `Move position error / allowed`,
-and `Move heading error / allowed` from telemetry. Movement-timeout details remain
-available in timed modes; driving-only practice has no movement timers. STOP/fault
-checks remain; the current driving-only mode still runs no intake/shooter.
+- `opmodes/BluePreloadedHiveAuto.java` and `RedPreloadedHiveAuto.java`: locked alliance,
+  Play placement confirmation, live-mechanism and single-shooter selection.
+- `config/PreloadedHiveAutoConfig.java`: mechanism enable, Shoot1 RPM/direction,
+  gate RPM/direction, route reach/backoff and arrival tolerances.
+- `opmodes/BiobuzzHiveAuto.java`: shared executor, centered camera setup,
+  pickup/feed coordination and cleanup.
+- `control/GateFeedProgress.java`: encoder-based pulse progress and reverse repayment.
+- `subsystems/GateMotorSubsystem.java` and `control/GateJamRecoveryController.java`:
+  gate motor commands and nonblocking jam recovery.
+- `config/HiveAutoConfig.java`: shared feed/pickup power, pulse/dwell durations and
+  tag height bands. Its `DRY_RUN = true` still applies to the older entries;
+  Red/Blue use their separate mechanism-enable setting.
+- `navigation/PreloadedHiveAutoRoute.java`: mirrored route and stage sequence.
 
-**Disable the Driver Station AUTO timer manually for this practice run.** The app
-cannot override a Driver Station stop. This mode is not for competition matches.
-Set `UNLIMITED_DRIVING_TEST = false` to restore normal timing. Switching
-`DRY_RUN = false` also restores the shared 28-second budget, seven-second parking
-reserve and five-second leg timeout; unlimited timing never enables live mechanisms.
-The older autonomous routines keep their existing timing behavior.
+## Untimed field testing
 
-With live timing, the executor may interrupt scoring and attempt parking; it does
-not guarantee all three batches fit. Measure actual mechanism/transit durations.
-Build/deploy the app to see these entries; no hub deployment is performed by editing source.
+The existing `UNLIMITED_DRIVING_TEST = true` setting retains its legacy name but
+now keeps these live Red/Blue routes untimed as requested. There is no overall
+budget, parking-reserve cutoff, movement-leg timer or Pedro path-end correction
+timer. Set it false to restore the shared 28-second budget, seven-second parking
+reserve and five-second movement-leg timer. Mechanism enable is independent.
 
-See [Red/Blue offline movement simulation](BIOBUZZ_MOVEMENT_SIMULATION.md) for
-repeatable geometry/timing tests and their limitations. At illustrative nominal
-speed the driving-only route completes; slow unlimited practice also completes
-beyond 30 seconds. Adding shooting/pickup timing in the timed baseline reaches
-the scoring cutoff early. A dry-run pass is not proof that live scoring fits.
+General arrival remains **3 inches / 5 degrees**, settled for 0.1 second; flower
+pickup arrival and dwell use **1 inch / 5 degrees**. All previous flower reach,
+six-inch opposite-side shooting backoff and corner parking adjustments are shared
+by Red and Blue. STOP and finite/READY Pinpoint checks remain active.
+
+Disable the Driver Station AUTO timer for an untimed field test; the app cannot
+override a Driver Station stop. Use timed operation for matches.
+
+Build and deploy the app to run these changes. The offline movement simulation
+checks mirrored geometry and illustrative timing; controller unit tests check
+gated batches and jam behavior. These do not reproduce physical nectar flow.

@@ -28,7 +28,8 @@ Gate jam detection/retry: [GateJamRecoveryController.java](../TeamCode/src/main/
 called every loop by `GateMotorSubsystem`. Edit `RobotConfig.GateMotor.JAM_*` for
 startup grace (0.4 s), stall window (0.5 s), minimum speed/progress fraction (0.2),
 stop/reverse/restart pauses (0.1/0.15/0.1 s), reverse cap (60 RPM), and retry limit (3).
-Enabled in **Test: Gate Motor**; B OFF then ON clears a persistent-jam fault.
+Enabled in **Test: Gate Motor** and Red/Blue three-batch autos; B OFF then ON clears
+a persistent-jam fault in the test. An auto gate fault aborts the batch and attempts parking.
 No sleep/thread is used, and the selected RPM/direction remain unchanged during recovery.
 
 ## Controller assignments
@@ -66,6 +67,7 @@ the custom XML profile keeps Expansion motor port 2. See [Shooter setup](SHOOTER
 
 - Field/start locations: [BiobuzzFieldMap.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/navigation/BiobuzzFieldMap.java); route points: [BiobuzzAutoRoutes.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/navigation/BiobuzzAutoRoutes.java).
 - Red/Blue 3 Batches + Park: [PreloadedHiveAutoRoute.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/navigation/PreloadedHiveAutoRoute.java), [PreloadedHiveAutoConfig.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/config/PreloadedHiveAutoConfig.java). Route waypoints take inches. [GridField.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/navigation/GridField.java) separately uses a centered -6..6 grid, 12 inches/unit, with configured anchor tag 36 at (1, -2). Convert grid coordinates explicitly before passing them to a waypoint.
+- Red/Blue live mechanisms: `PreloadedHiveAutoConfig.MECHANISMS_ENABLED = true`, `SHOOT_RPM = 2900` (reverse), `GATE_RPM = 60` (forward). Shared `HiveAutoConfig` holds intake power and feed/pickup durations. Camera stays at center 0.20 for tag-height confirmation; feed progress uses gate encoder travel. Untimed movement and 3-inch general / 1-inch pickup tolerances remain active. Details: [Live Red/Blue auto](BIOBUZZ_PRELOADED_HIVE_AUTO.md).
 - The pulled `EightJustEight` draft has the distinct Driver Station name **BIOBUZZ: Preload Only + Park**; it is separate from **8** (`FortyEight`) and the Red/Blue three-batch autos.
 - Hive shooting/pickup times, RPM, height bands and safety gates: [HiveAutoConfig.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/config/HiveAutoConfig.java). Square-test geometry/completion: [SquareTestRoutes.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedroPathing/SquareTestRoutes.java) / [SquareTestCompletion.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedroPathing/SquareTestCompletion.java).
 - Shared coefficient print: [OdometryTelemetry.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/telemetry/OdometryTelemetry.java); camera pan display: [CameraPanTelemetry.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/telemetry/CameraPanTelemetry.java). Other displayed fields are often in the selected OpMode's `telemetry.addData(...)` calls.

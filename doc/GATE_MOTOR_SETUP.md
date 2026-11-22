@@ -40,7 +40,8 @@ ticks-to-inches coefficient; this test does not initialize or read Pinpoint.
 
 ## Automatic jam recovery
 
-Jam recovery is enabled in `GateMotorSubsystem`, currently used by **Test: Gate Motor**.
+Jam recovery is enabled in `GateMotorSubsystem`, used by **Test: Gate Motor** and
+both **BIOBUZZ: Red/Blue 3 Batches + Park** autos.
 When the gate is requested ON at 5 RPM or higher, it allows 400 ms for startup.
 It then compares encoder movement over a 500 ms window with the commanded speed.
 Both encoder progress and measured RPM must be below 20% of the target to declare
@@ -62,19 +63,19 @@ All thresholds and timings are in `RobotConfig.GateMotor.JAM_*`; tune the revers
 duration on the actual separator. The encoder cable must be connected. This detects
 a stalled motor, not a slipping wheel that jams while the motor shaft still turns.
 The indexed `AutomaticNectarSeparator` helper remains disabled until calibrated;
-this change applies to continuous-velocity gate control. TeleTourney currently
+this change applies to continuous-velocity gate control. In Red/Blue autos the gate
+runs during shooting feed pulses at 60 RPM, pauses the intake during recovery, and
+credits pulse progress from encoder travel. Shoot1 is 2900 RPM, reverse. See
+[live Red/Blue auto setup](BIOBUZZ_PRELOADED_HIVE_AUTO.md). TeleTourney currently
 does not initialize a gate motor.
 
 The indexed separator helper's settings live in `RobotConfig.GateMotor`.
 Automatic feeding remains disabled and uncalibrated (`AUTO_FEED_ENABLED = false`,
 `TICKS_PER_INDEX = 0`); these settings do not change this manual test's A/B controls.
 
-Autonomous remains driving only, and TeleTourney controls are unchanged. This test
-does not implement automatic nectar separation. Before adding automatic separator
-logic, verify the gate's feed direction, mechanism travel/cycle, required interval
-between nectar, and whether a sensor is available. Motor RPM alone cannot guarantee
-that two nectar pieces will not arrive together. Prefer nonblocking feed timing so
-waiting for a separation interval does not pause drivetrain updates.
+Red/Blue autos now use real gated feeding. TeleTourney controls are unchanged.
+Motor travel alone cannot count actual nectar or guarantee that two pieces will not
+arrive together. Automatic feed and recovery keep updating the drivetrain without sleeps.
 
 Rebuild/deploy source and separately update/activate the hardware configuration
 on the Robot Controller; repository XML edits are not automatically uploaded.

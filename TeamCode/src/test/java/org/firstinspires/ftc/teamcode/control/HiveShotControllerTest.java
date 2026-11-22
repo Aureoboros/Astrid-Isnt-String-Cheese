@@ -4,6 +4,16 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 public final class HiveShotControllerTest {
+  @Test public void liveGatedBatchesAllowLongerSpinupWithoutChangingLegacyTimeout() {
+    HiveShotController live = new HiveShotController(0,.15,4,false,20);
+    live.update(7,true,true,false,false,false,true);
+    assertFalse(live.isDone());
+    live.update(20,true,true,false,false,false,true);
+    assertEquals(HiveShotController.State.FAILED,live.getState());
+    HiveShotController legacy = new HiveShotController(0,.15,4,false);
+    legacy.update(7,true,true,false,false,false,true);
+    assertEquals(HiveShotController.State.FAILED,legacy.getState());
+  }
   @Test public void newThreeBatchPlanConfirmsFirstAndThirdTipsButNotMiddleBatch() {
     boolean[] requireTip = {true, false, true};
     int totalFed = 0;

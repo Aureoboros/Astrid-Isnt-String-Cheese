@@ -10,26 +10,34 @@ public final class HiveShotController {
   private int completedPulses;
   private final int pulseLimit;
   private final boolean requireTip;
+  private final double timeoutSeconds;
   private boolean tipConfirmed;
   public HiveShotController(double now, double pulseSeconds) {
     this(now, pulseSeconds, 2, true);
   }
 
   public HiveShotController(double now, double pulseSeconds, int pulseLimit, boolean requireTip) {
+    this(now, pulseSeconds, pulseLimit, requireTip, 6);
+  }
+
+  public HiveShotController(double now, double pulseSeconds, int pulseLimit, boolean requireTip,
+      double timeoutSeconds) {
     if (!Double.isFinite(now) || !Double.isFinite(pulseSeconds)
-        || pulseSeconds <= 0 || pulseSeconds > 0.5 || pulseLimit < 1 || pulseLimit > 4) {
+        || pulseSeconds <= 0 || pulseSeconds > 0.5 || pulseLimit < 1 || pulseLimit > 4
+        || !Double.isFinite(timeoutSeconds) || timeoutSeconds <= 0) {
       throw new IllegalArgumentException("Finite time and feed pulse in (0, 0.5] required");
     }
     started = since = now;
     this.pulseSeconds = pulseSeconds;
     this.pulseLimit = pulseLimit;
     this.requireTip = requireTip;
+    this.timeoutSeconds = timeoutSeconds;
   }
 
   public void update(double now, boolean connected, boolean highConfirmed,
       boolean lowCandidate, boolean tipped, boolean rpmsReady, boolean poseReady) {
     if (isDone()) { return; }
-    if (!Double.isFinite(now) || now < since || !connected || !poseReady || now - started >= 6) {
+    if (!Double.isFinite(now) || now < since || !connected || !poseReady || now - started >= timeoutSeconds) {
       transition(State.FAILED, now); return;
     }
     if (tipped) { tipConfirmed = true; transition(State.COMPLETE, now); return; }

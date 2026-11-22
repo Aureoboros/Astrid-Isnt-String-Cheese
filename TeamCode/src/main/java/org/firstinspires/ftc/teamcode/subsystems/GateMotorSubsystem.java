@@ -98,6 +98,7 @@ public final class GateMotorSubsystem {
   public GateJamRecoveryController.State getRecoveryState() { return jam.getState(); }
   public int getRecoveryAttempts() { return jam.getAttempts(); }
   public int getRecoveryCount() { return jam.getRecoveryCount(); }
+  public int getPositionTicks() { return motor.getCurrentPosition(); }
   public void stop() { active = false; jam.stop(); motor.setVelocity(0); }
 
   private double clampRpm(double rpm) { return Math.max(0, Math.min(maxRpm, rpm)); }

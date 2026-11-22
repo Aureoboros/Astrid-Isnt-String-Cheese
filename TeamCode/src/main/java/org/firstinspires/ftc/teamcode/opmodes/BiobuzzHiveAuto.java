@@ -9,11 +9,18 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.List;
 import org.firstinspires.ftc.teamcode.config.HiveAutoConfig;
 import org.firstinspires.ftc.teamcode.config.RobotConfig;
 import org.firstinspires.ftc.teamcode.config.PreloadedHiveAutoConfig;
+import org.firstinspires.ftc.teamcode.config.CameraPanConfig;
+import org.firstinspires.ftc.teamcode.control.GateFeedProgress;
+import org.firstinspires.ftc.teamcode.control.GateJamRecoveryController;
+import org.firstinspires.ftc.teamcode.localization.CameraMountPose;
+import org.firstinspires.ftc.teamcode.localization.PanPoseGate;
+import org.firstinspires.ftc.teamcode.localization.LimelightPipelineConfiguration;
 import org.firstinspires.ftc.teamcode.control.HiveShotController;
 import org.firstinspires.ftc.teamcode.control.PollenBatchInventory;
 import org.firstinspires.ftc.teamcode.control.LimelightPanController;
@@ -29,6 +36,7 @@ import org.firstinspires.ftc.teamcode.navigation.Waypoint;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.SingleShooterSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.GateMotorSubsystem;
 import org.firstinspires.ftc.teamcode.telemetry.FieldLocationTelemetry;
 import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 
@@ -46,6 +54,10 @@ public class BiobuzzHiveAuto extends LinearOpMode {
   private LimelightPanController pan;
   private ShooterSubsystem shooter;
   private SingleShooterSubsystem singleShooter;
+  private GateMotorSubsystem gateMotor;
+  private Servo centeredCamera;
+  private PanPoseGate centeredCameraGate;
+  private CameraMountPose centeredMount;
   private DcMotor intakeFeeder;
   private DcMotor pickupIntake;
   private final ElapsedTime clock = new ElapsedTime();
@@ -63,6 +75,8 @@ public class BiobuzzHiveAuto extends LinearOpMode {
   protected HiveAutoRoute createRoute(Alliance alliance) { return new HiveAutoRoute(alliance); }
   protected boolean canRunRoute() { return HiveAutoConfig.canRun(); }
   protected boolean usesSingleShooter() { return false; }
+  protected boolean mechanismsEnabled() { return !HiveAutoConfig.DRY_RUN; }
+  protected boolean usesGateFeeder() { return false; }
   protected double autoBudgetSeconds() { return HiveAutoConfig.AUTO_BUDGET_SECONDS; }
   protected double legTimeoutSeconds() { return HiveAutoConfig.LEG_TIMEOUT_SECONDS; }
   protected double positionToleranceInches() { return 1.5; }
@@ -92,7 +106,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
       pinpoint = ((PinpointLocalizer) follower.getPoseTracker().getLocalizer()).getPinpoint();
       follower.setMaxPower(HiveAutoConfig.MAX_DRIVE_POWER);
       follower.setStartingPose(pose(field.startPose(route.start())));
-      if (!HiveAutoConfig.DRY_RUN && canRunRoute()) {
+      if (mechanismsEnabled() && canRunRoute()) {
         if (usesSingleShooter()) {
           singleShooter = new SingleShooterSubsystem(hardwareMap);
           singleShooter.setState(false, PreloadedHiveAutoConfig.SHOOT_REVERSED,
@@ -103,12 +117,14 @@ public class BiobuzzHiveAuto extends LinearOpMode {
         }
         pickupIntake = hardwareMap.get(DcMotor.class, RobotConfig.Hardware.INTAKE);
         pickupIntake.setPower(0);
-        if (HiveAutoConfig.FEEDER == HiveAutoConfig.Feeder.INTAKE) {
+        if (usesGateFeeder()) { gateMotor = new GateMotorSubsystem(hardwareMap); }
+        if (usesGateFeeder() || HiveAutoConfig.FEEDER == HiveAutoConfig.Feeder.INTAKE) {
           intakeFeeder = pickupIntake;
         }
         setFeed(false);
         tags = new AprilTagTracker(hardwareMap);
-        pan = new LimelightPanController(hardwareMap, tags);
+        if (usesGateFeeder()) { initializeCenteredCamera(); }
+        else { pan = new LimelightPanController(hardwareMap, tags); }
         tags.start();
       }
       if (tags == null && HiveAutoConfig.RELOCALIZE_AT_HIVE && canRunRoute()) {
@@ -141,10 +157,15 @@ public class BiobuzzHiveAuto extends LinearOpMode {
           telemetry.addData("Placement confirmation", "Play confirms the displayed start pose");
         }
         telemetry.addData("Calibration Allows Run", canRunRoute());
-        telemetry.addData("Mode", HiveAutoConfig.DRY_RUN
+        telemetry.addData("Mode", !mechanismsEnabled()
             ? "DRIVING ONLY: real movement, shooting/intake disabled" : "LIVE");
         telemetry.addLine(route.description());
         telemetry.addData("Shooter hardware", usesSingleShooter() ? "Shoot1 only" : "Shoot1 + Shoot2");
+        if (gateMotor != null) {
+          telemetry.addData("Shoot1 selected RPM", "%.0f", PreloadedHiveAutoConfig.SHOOT_RPM);
+          telemetry.addData("Gate selected RPM", "%.0f", PreloadedHiveAutoConfig.GATE_RPM);
+          telemetry.addLine("LIVE: intake pickups + gated shooting; camera holds center for tag-height confirmation");
+        }
         telemetry.addLine("Live pickups/counting require separate commissioning; counts are timed estimates.");
         telemetry.addLine(allowAllianceSelection()
             ? "D-pad Left/Right: alliance | A: confirm placement | DS STOP: abort"
@@ -167,10 +188,15 @@ public class BiobuzzHiveAuto extends LinearOpMode {
       }
       follower.setPose(pose(field.startPose(route.start())));
       follower.updatePose();
-      if (!HiveAutoConfig.DRY_RUN && tags != null && !tags.isConnected()) {
+      if (mechanismsEnabled() && tags != null && !tags.isConnected()) {
         status = "NO MOVEMENT: Limelight is disconnected"; show(); return;
       }
       if (pan != null) { pan.start(); }
+      if (centeredCamera != null) {
+        centeredCameraGate.beginMove(centeredMount, tags.getAimFrameTimestamp());
+        centeredCamera.setPosition(CameraPanConfig.CENTER_POSITION);
+        centeredCameraGate.acknowledgeUpdate(System.nanoTime() / 1e9);
+      }
       for (Stage stage : route.stages()) {
         if (!validate(field, route.approach(stage))
             || (stage.isPickup() && !field.footprintInsideField(route.pickupTarget(stage)))) {
@@ -208,7 +234,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
       if (!movementFault && healthy()) {
         List<Waypoint> parking = route.parkFrom(waypoint(follower.getPose()));
         if (validate(field, parking) && moveAll(parking, true)) {
-          status = HiveAutoConfig.DRY_RUN ? "Driving-only route finished; parked, no tips claimed"
+          status = !mechanismsEnabled() ? "Driving-only route finished; parked, no tips claimed"
               : "At nominal loading-zone park pose; vision-confirmed transitions: " + confirmedTips;
         }
       }
@@ -227,6 +253,26 @@ public class BiobuzzHiveAuto extends LinearOpMode {
       if (!move(p, parking)) { return false; }
     }
     return true;
+  }
+
+  /** Configure the known center mount before Play; no moving-pan geometry is assumed. */
+  private void initializeCenteredCamera() {
+    centeredCamera = hardwareMap.get(Servo.class, RobotConfig.Hardware.SERVO_MOTOR);
+    centeredMount = new CameraMountPose(
+        CameraPanConfig.PIVOT_FORWARD_METERS + CameraPanConfig.LENS_FORWARD_FROM_PIVOT_METERS,
+        CameraPanConfig.PIVOT_RIGHT_METERS + CameraPanConfig.LENS_RIGHT_FROM_PIVOT_METERS,
+        CameraPanConfig.PIVOT_UP_METERS + CameraPanConfig.LENS_UP_FROM_PIVOT_METERS,
+        CameraPanConfig.FIXED_ROLL_DEGREES, CameraPanConfig.FIXED_PITCH_DEGREES,
+        CameraPanConfig.YAW_AT_CENTER_DEGREES);
+    centeredCameraGate = new PanPoseGate(CameraPanConfig.SETTLE_SECONDS);
+    tags.attachPanGate(centeredCameraGate);
+    try {
+      // INIT only: bounded HTTP configuration, never during movement/feed updates.
+      LimelightPipelineConfiguration.applyMount(RobotConfig.Localization.LIMELIGHT_API_HOST,
+          RobotConfig.Localization.APRILTAG_PIPELINE, centeredMount);
+    } catch (java.io.IOException failed) {
+      throw new IllegalStateException("Cannot configure centered autonomous camera mount", failed);
+    }
   }
 
   private boolean move(Waypoint p, boolean parking) {
@@ -330,12 +376,18 @@ public class BiobuzzHiveAuto extends LinearOpMode {
     if (!inventory.isKnown() || inventory.getRemaining() != PollenBatchInventory.CAPACITY) {
       status = "Shot blocked: four-pollen expected batch required"; return false;
     }
-    if (HiveAutoConfig.DRY_RUN) {
+    if (!mechanismsEnabled()) {
       inventory.recordFed(4);
       status = "DRY RUN: simulated four-pollen batch at cluster " + minTag + "; no tip claimed";
       show(); return true;
     }
-    HiveShotController shot = new HiveShotController(clock.seconds(), HiveAutoConfig.FEED_PULSE_SECONDS, 4, requireTip);
+    HiveShotController shot = new HiveShotController(clock.seconds(), HiveAutoConfig.FEED_PULSE_SECONDS,
+        4, requireTip, gateMotor == null ? 6 : PreloadedHiveAutoConfig.SHOOT_BATCH_TIMEOUT_SECONDS);
+    double shotTime = clock.seconds(), lastRealTime = shotTime, feedStarted = shotTime;
+    boolean wasFeeding = false;
+    GateFeedProgress feedProgress = gateMotor == null ? null : new GateFeedProgress(
+        RobotConfig.GateMotor.TICKS_PER_REVOLUTION,
+        (PreloadedHiveAutoConfig.GATE_REVERSED ? -1 : 1) * PreloadedHiveAutoConfig.GATE_RPM);
     boolean accounted = false;
     follower.holdPoint(pose(target), false);
     try {
@@ -345,6 +397,26 @@ public class BiobuzzHiveAuto extends LinearOpMode {
         updateTags();
         if (!healthy()) { return false; }
         double now = clock.seconds();
+        if (gateMotor != null) {
+          if (wasFeeding && now - feedStarted >= PreloadedHiveAutoConfig.FEED_PROGRESS_FAULT_SECONDS) {
+            status = "Gate feed made insufficient progress: abort batch and attempt parking";
+            return false;
+          }
+          // Keep the gate's recovery state machine running throughout an interrupted feed.
+          gateMotor.setState(shot.feederOn(), PreloadedHiveAutoConfig.GATE_REVERSED,
+              PreloadedHiveAutoConfig.GATE_RPM);
+          if (gateMotor.getRecoveryState() == GateJamRecoveryController.State.FAULT) {
+            status = "Gate jam persists: abort batch, stop mechanisms and attempt parking";
+            return false;
+          }
+          if (wasFeeding) {
+            boolean advancing = gateMotor.getRecoveryState() == GateJamRecoveryController.State.RUNNING
+                && Math.abs(gateMotor.getActualRpm()) >= PreloadedHiveAutoConfig.GATE_RPM
+                    * RobotConfig.GateMotor.JAM_MIN_SPEED_FRACTION;
+            shotTime += feedProgress.update(gateMotor.getPositionTicks(), advancing, now - lastRealTime);
+          } else { shotTime += now - lastRealTime; }
+        } else { shotTime = now; }
+        lastRealTime = now;
         detector.update(now, tags.getResultTimestamp(), tags.getObservations());
         boolean rpmReady = singleShooter != null
             ? Double.isFinite(singleShooter.getActualRpm())
@@ -358,11 +430,16 @@ public class BiobuzzHiveAuto extends LinearOpMode {
         double angle = Math.toRadians(target.getHeadingDegrees()) - current.getHeading();
         boolean poseReady = positionWithinTolerance(Math.hypot(target.getX() - current.getX(), target.getY() - current.getY()))
             && Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) <= Math.toRadians(5);
-        shot.update(now, tags.isConnected(), detector.isHighConfirmed() && detector.isHighVisible(),
+        shot.update(shotTime, tags.isConnected(), detector.isHighConfirmed() && detector.isHighVisible(),
             detector.isLowCandidate(), detector.isTipped(), rpmReady, poseReady);
         if (singleShooter != null) { singleShooter.setActive(shot.shooterOn()); }
         else { shooter.setActive(shot.shooterOn()); }
         setFeed(shot.feederOn());
+        if (feedProgress != null && shot.feederOn() && !wasFeeding) {
+          feedProgress.start(gateMotor.getPositionTicks());
+          feedStarted = now;
+        }
+        wasFeeding = shot.feederOn();
         telemetry.addData("Cluster / Locked Tag", "%d-%d / %d", minTag, minTag + 3, detector.getLockedId());
         telemetry.addData("Shot State / Commanded Pulses", "%s / %d", shot.getState(), shot.getPulses());
         telemetry.addData("Completed Feed Pulses (estimated pollen)", "%d / 4", shot.getCompletedPulses());
@@ -407,7 +484,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
       follower.setMaxPower(HiveAutoConfig.PICKUP_DRIVE_POWER);
       if (pickupIntake != null) { pickupIntake.setPower(HiveAutoConfig.PICKUP_INTAKE_POWER); }
       if (!move(destination, false, pickupPositionToleranceInches())) { return false; }
-      if (!HiveAutoConfig.DRY_RUN) {
+      if (mechanismsEnabled()) {
         follower.holdPoint(pose(destination), false);
         double started = clock.seconds();
         while (opModeIsActive() && clock.seconds() - started < HiveAutoConfig.PICKUP_HOLD_SECONDS) {
@@ -430,7 +507,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
       if (!healthy() || clock.seconds() >= scoringDeadline()) { return false; }
       inventory.recordPickup();
       accounted = true;
-      status = HiveAutoConfig.DRY_RUN ? "DRY RUN: simulated four-pollen refill" : "Calibrated timed refill complete";
+      status = !mechanismsEnabled() ? "DRY RUN: simulated four-pollen refill" : "Calibrated timed refill complete";
       return true;
     } finally {
       if (!accounted) { inventory.invalidate(); }
@@ -463,6 +540,13 @@ public class BiobuzzHiveAuto extends LinearOpMode {
 
   private void setFeed(boolean on) {
     double power = on ? HiveAutoConfig.FEED_POWER : 0;
+    if (gateMotor != null) {
+      gateMotor.setState(on, PreloadedHiveAutoConfig.GATE_REVERSED, PreloadedHiveAutoConfig.GATE_RPM);
+      // Intake pauses while the gate clears the obstruction; keep nectar away from the shooter.
+      if (gateMotor.getRecoveryState() != GateJamRecoveryController.State.RUNNING
+          || Math.abs(gateMotor.getActualRpm()) < PreloadedHiveAutoConfig.GATE_RPM
+              * RobotConfig.GateMotor.JAM_MIN_SPEED_FRACTION) { power = 0; }
+    }
     if (intakeFeeder != null) { intakeFeeder.setPower(power); }
   }
 
@@ -473,6 +557,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
 
   private void stopMechanisms() {
     setFeed(false);
+    if (gateMotor != null) { gateMotor.stop(); }
     if (pickupIntake != null) { pickupIntake.setPower(0); }
     if (shooter != null) { shooter.stop(); }
     if (singleShooter != null) { singleShooter.stop(); }
@@ -484,13 +569,19 @@ public class BiobuzzHiveAuto extends LinearOpMode {
     telemetry.addData("Expected Pollen / Limit", inventory.isKnown()
         ? inventory.getRemaining() + " / 4 (timing model, not sensor)" : "UNKNOWN: interrupted batch/pickup");
     telemetry.addData("Completed Batch Feed Estimate", inventory.getTotalFed());
+    if (gateMotor != null) {
+      telemetry.addData("Gate recovery / retries", "%s / %d", gateMotor.getRecoveryState(), gateMotor.getRecoveryAttempts());
+      telemetry.addData("Gate output / actual RPM", "%.0f / %.0f", gateMotor.getOutputRpm(), gateMotor.getActualRpm());
+      telemetry.addData("Gate recovery cycles", gateMotor.getRecoveryCount());
+      telemetry.addData("Camera", "Fixed at center %.3f; fresh matching mount required", CameraPanConfig.CENTER_POSITION);
+    }
     if (Double.isInfinite(autoBudgetSeconds())) {
       telemetry.addData("Practice elapsed time", "%.1f s (no overall deadline)", clock.seconds());
     } else {
       telemetry.addData("AUTO Time / Budget", "%.1f / %.0f s", clock.seconds(), autoBudgetSeconds());
     }
     if (Double.isInfinite(legTimeoutSeconds())) {
-      telemetry.addData("Movement leg timeout", "DISABLED for driving-only practice; STOP to abort");
+      telemetry.addData("Movement leg timeout", "DISABLED for untimed field test; STOP to abort");
     } else {
       telemetry.addData("Movement leg timeout", "%.0f s", legTimeoutSeconds());
     }

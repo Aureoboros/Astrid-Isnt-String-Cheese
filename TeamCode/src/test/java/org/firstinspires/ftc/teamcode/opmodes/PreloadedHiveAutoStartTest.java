@@ -8,6 +8,16 @@ import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap.Alliance;
 import org.junit.Test;
 
 public final class PreloadedHiveAutoStartTest {
+  @Test public void redAndBlueBothRunInstalledMechanismsAndLegacyAutoStaysDrivingOnly() {
+    for (BiobuzzHiveAuto auto : new BiobuzzHiveAuto[] {new BluePreloadedHiveAuto(), new RedPreloadedHiveAuto()}) {
+      assertTrue(auto.mechanismsEnabled());
+      assertTrue(auto.usesGateFeeder());
+      assertTrue(auto.usesSingleShooter());
+      assertTrue(auto.canRunRoute());
+    }
+    assertFalse(new BiobuzzHiveAuto().mechanismsEnabled());
+    assertFalse(new BiobuzzHiveAuto().usesGateFeeder());
+  }
   @Test public void practicePathsHaveNoPedroEndCorrectionTimerButOldAutoRemainsTimed() {
     for (BiobuzzHiveAuto auto : new BiobuzzHiveAuto[] {new BluePreloadedHiveAuto(), new RedPreloadedHiveAuto()}) {
       Path path = new Path(new BezierLine(new Pose(0, 0, 0), new Pose(12, 0, 0)));
