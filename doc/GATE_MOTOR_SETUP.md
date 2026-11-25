@@ -40,8 +40,8 @@ ticks-to-inches coefficient; this test does not initialize or read Pinpoint.
 
 ## Automatic jam recovery
 
-Jam recovery is enabled in `GateMotorSubsystem`, used by **Test: Gate Motor** and
-both **BIOBUZZ: Red/Blue 3 Batches + Park** autos.
+Jam recovery is enabled in `GateMotorSubsystem`, used by **Test: Gate Motor**,
+**TeleTourney**, and both **BIOBUZZ: Red/Blue 3 Batches + Park** autos.
 When the gate is requested ON at 5 RPM or higher, it allows 400 ms for startup.
 It then compares encoder movement over a 500 ms window with the commanded speed.
 Both encoder progress and measured RPM must be below 20% of the target to declare
@@ -66,14 +66,26 @@ The indexed `AutomaticNectarSeparator` helper remains disabled until calibrated;
 this change applies to continuous-velocity gate control. In Red/Blue autos the gate
 runs during shooting feed pulses at 60 RPM, pauses the intake during recovery, and
 credits pulse progress from encoder travel. Shoot1 is 2900 RPM, reverse. See
-[live Red/Blue auto setup](BIOBUZZ_PRELOADED_HIVE_AUTO.md). TeleTourney currently
-does not initialize a gate motor.
+[live Red/Blue auto setup](BIOBUZZ_PRELOADED_HIVE_AUTO.md).
+
+## TeleTourney controls
+
+TeleTourney initializes gateMotor stopped. **B** on either controller toggles it
+ON/OFF at **60 RPM forward**, using `RobotConfig.GateMotor.TEST_INITIAL_RPM`.
+Held or overlapping B presses toggle only once until both controllers release B.
+The gate runs independently of X (shooter) and Y (intake), with automatic jam
+recovery. A gate fault stays stopped until B OFF then B ON resets it. Driver
+Station STOP stops the gate with the other motors. Telemetry shows requested
+state, target/actual/applied RPM, recovery state and retry count.
+
+**A** still re-anchors the tag/odometry check; **Back** now clears that check.
+B is exclusively the gate toggle in TeleTourney.
 
 The indexed separator helper's settings live in `RobotConfig.GateMotor`.
 Automatic feeding remains disabled and uncalibrated (`AUTO_FEED_ENABLED = false`,
 `TICKS_PER_INDEX = 0`); these settings do not change this manual test's A/B controls.
 
-Red/Blue autos now use real gated feeding. TeleTourney controls are unchanged.
+Red/Blue autos use real gated feeding. TeleTourney uses the manual B gate toggle.
 Motor travel alone cannot count actual nectar or guarantee that two pieces will not
 arrive together. Automatic feed and recovery keep updating the drivetrain without sleeps.
 

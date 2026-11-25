@@ -91,7 +91,7 @@ there is no blind sweep. A tag beyond the safe travel limits cannot be centered.
 
 | OpMode | Camera controls |
 | --- | --- |
-| TeleTourney | Automatic image-only tracking after Play. X/Y control Shoot1/intake; A/B keep odometry-validation controls (validation withheld until geometry calibration) |
+| TeleTourney | Automatic image-only tracking after Play. Hold D-pad LEFT/RIGHT on either controller for manual pan; release to resume tracking. X/Y control Shoot1/intake; B toggles gateMotor; A re-anchors and Back clears the tag/odo check. |
 | Test: Limelight | X toggles tracking; Y requests center; A freezes display only |
 | Limelight TeleOp (legacy) | B toggles tracking request; movement/mechanism workers remain separate |
 | BIOBUZZ: Two Hive Tips + Park | Automatic, no gamepad controls after Play; restricts target to active cell cluster |

@@ -8,12 +8,20 @@ public final class TeleTourneyMechanismControls {
   private enum IntakeState { STOP_BEFORE_FORWARD, FORWARD, STOP_BEFORE_REVERSE, REVERSE }
   private IntakeState intakeState = IntakeState.STOP_BEFORE_FORWARD;
   private boolean shooterEnabled;
+  private boolean gateEnabled, previousB;
   private boolean previousX, previousY, previousUp, previousDown;
   private double shooterRpm = Math.max(0, Math.min(6000, RobotConfig.TeleTourney.SHOOTER_INITIAL_RPM));
 
   public void update(Gamepad gamepad1, Gamepad gamepad2) {
     updateButtons(gamepad1.x, gamepad1.y, gamepad1.dpad_up, gamepad1.dpad_down,
         gamepad2.x, gamepad2.y, gamepad2.dpad_up, gamepad2.dpad_down);
+    updateGateButton(gamepad1.b, gamepad2.b);
+  }
+
+  void updateGateButton(boolean b1, boolean b2) {
+    boolean b = b1 || b2;
+    if (b && !previousB) { gateEnabled = !gateEnabled; }
+    previousB = b;
   }
 
   void updateButtons(boolean x1, boolean y1, boolean up1, boolean down1,
@@ -39,4 +47,6 @@ public final class TeleTourneyMechanismControls {
   public boolean isShooterEnabled() { return shooterEnabled; }
   public boolean isShooterReversed() { return RobotConfig.TeleTourney.SHOOTER_REVERSED; }
   public double getShooterRpm() { return shooterRpm; }
+  public boolean isGateEnabled() { return gateEnabled; }
+  public double getGateRpm() { return RobotConfig.GateMotor.TEST_INITIAL_RPM; }
 }

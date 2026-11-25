@@ -43,6 +43,7 @@ public final class CameraPanConfig {
   public static final double MIN_UPDATE_INTERVAL_SECONDS = 0.5;
   public static final double LOST_TARGET_HOLD_SECONDS = 1;
   public static final double MANUAL_POSITION_STEP = 0.005;
+  public static final double MANUAL_REPEAT_SECONDS = 0.1;
 
   public static boolean travelReady() {
     return TRAVEL_VERIFIED && Double.isFinite(MIN_POSITION)

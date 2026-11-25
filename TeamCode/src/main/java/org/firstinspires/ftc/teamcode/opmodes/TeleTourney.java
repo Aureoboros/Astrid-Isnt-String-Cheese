@@ -22,12 +22,15 @@ import org.firstinspires.ftc.teamcode.control.LimelightPanController;
 import org.firstinspires.ftc.teamcode.control.TeleTourneyMechanismControls;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.SingleShooterSubsystem;
+import org.firstinspires.ftc.teamcode.subsystems.GateMotorSubsystem;
+import org.firstinspires.ftc.teamcode.control.GateJamRecoveryController;
 /** Competition drive TeleOp with live two-wheel odometry and Limelight AprilTag telemetry. */
 @TeleOp(name = "TeleTourney", group = "Competition")
 public final class TeleTourney extends LinearOpMode {
   @Override
   public void runOpMode() {
     Follower follower = Constants.createFollower(hardwareMap);
+    follower.setMaxPower(RobotConfig.TeleTourney.MAX_DRIVE_POWER);
     PushTunaFinal pushTuna = new PushTunaFinal(follower);
     GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, RobotConfig.Hardware.PINPOINT);
     AprilTagTracker aprilTags = new AprilTagTracker(hardwareMap);
@@ -38,19 +41,26 @@ public final class TeleTourney extends LinearOpMode {
 
     SingleShooterSubsystem shooter = null;
     IntakeSubsystem intake = null;
+    GateMotorSubsystem gateMotor = null;
     TeleTourneyMechanismControls mechanisms = new TeleTourneyMechanismControls();
     try {
       shooter = new SingleShooterSubsystem(hardwareMap);
       shooter.setState(false, mechanisms.isShooterReversed(), mechanisms.getShooterRpm());
       intake = new IntakeSubsystem(hardwareMap);
+      gateMotor = new GateMotorSubsystem(hardwareMap);
+      gateMotor.setState(false, false, mechanisms.getGateRpm());
       telemetry.setMsTransmissionInterval(50);
-      telemetry.addData("Status", "Drive, intake, Shoot1, odometry, and Limelight initialized");
+      telemetry.addData("Status", "Drive, intake, Shoot1, gateMotor, odometry, and Limelight initialized");
       telemetry.addLine("Left stick: drive/strafe | Triggers: rotate");
+      telemetry.addData("Drive power limit", "%.0f%%", RobotConfig.TeleTourney.MAX_DRIVE_POWER * 100);
       telemetry.addLine("Y: intake FORWARD -> STOP -> REVERSE -> STOP (per press)");
       telemetry.addLine("X: Shoot1 ON/OFF | D-pad up/down: +/-50 RPM");
-      telemetry.addLine("First visible tag anchors the check. A: re-anchor | B: clear");
+      telemetry.addLine("B: gateMotor ON/OFF (forward) | Either gamepad");
+      telemetry.addLine("Hold D-pad left/right: pan camera left/right | Release: resume tag tracking");
+      telemetry.addLine("First visible tag anchors the check. A: re-anchor | Back: clear");
       telemetry.addLine("Camera pan: horizontal image tracking; robot-space poses need calibration");
       telemetry.addData("Intake / Shoot1", "OFF / OFF");
+      telemetry.addData("GateMotor", "OFF / %.0f RPM selected", mechanisms.getGateRpm());
       telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");
       telemetry.addData("Shoot1 Selected RPM", "%.0f", mechanisms.getShooterRpm());
       telemetry.addData("Shoot1 Encoder ticks/rev", "%.0f", shooter.getEncoderTicksPerRevolution());
@@ -76,16 +86,29 @@ public final class TeleTourney extends LinearOpMode {
         intake.setState(mechanisms.isIntakeEnabled(), mechanisms.isIntakeReversed()
             ? IntakeSubsystem.Direction.REVERSE : IntakeSubsystem.Direction.FORWARD);
         shooter.setState(mechanisms.isShooterEnabled(), mechanisms.isShooterReversed(), mechanisms.getShooterRpm());
-        pan.update();
+        gateMotor.setState(mechanisms.isGateEnabled(), false, mechanisms.getGateRpm());
+        pan.update(gamepad1.dpad_left || gamepad2.dpad_left,
+            gamepad1.dpad_right || gamepad2.dpad_right);
         Pose pose = follower.getPose();
         List<AprilTagObservation> visibleTags = aprilTags.getObservations();
         AprilTagObservation nearestTag = aprilTags.getNearestObservation();
         validation.update(pose, visibleTags, aprilTags.isConnected(),
-            gamepad1.a || gamepad2.a, gamepad1.b || gamepad2.b);
+            gamepad1.a || gamepad2.a, gamepad1.back || gamepad2.back);
 
         telemetry.addData("Active Driver", "Gamepad %d", command.getGamepadNumber());
+        telemetry.addData("Drive power limit", "%.0f%%", RobotConfig.TeleTourney.MAX_DRIVE_POWER * 100);
         telemetry.addData("Position recovery", pushTuna.getState());
+        telemetry.addData("Camera control", pan.isManualPan() ? "MANUAL: D-pad left/right"
+            : pan.isTracking() ? "AUTO: tag tracking" : "HOLD");
         telemetry.addData("Intake", intake.isEnabled() ? "ON / " + intake.getDirection() : "OFF");
+        telemetry.addData("Gate requested", mechanisms.isGateEnabled() ? "ON / FORWARD" : "OFF");
+        telemetry.addData("Gate target / actual RPM", "%.0f / %.0f", gateMotor.getTargetRpm(), gateMotor.getActualRpm());
+        telemetry.addData("Gate applied RPM", "%.0f", gateMotor.getOutputRpm());
+        telemetry.addData("Gate recovery / retries", "%s / %d", gateMotor.getRecoveryState(), gateMotor.getRecoveryAttempts());
+        if (gateMotor.getRecoveryState() == GateJamRecoveryController.State.FAULT) {
+          telemetry.addLine("Gate jam fault: clear obstruction, then B OFF and B ON to retry");
+        }
+        telemetry.addLine("B: gate on/off | A: re-anchor tag check | Back: clear tag check");
         telemetry.addData("Shoot1", shooter.isActive() ? "ON" : "OFF");
         telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");
         telemetry.addData("Shoot1 Selected RPM", "%.0f", shooter.getTargetRpm());
@@ -142,9 +165,13 @@ public final class TeleTourney extends LinearOpMode {
           if (intake != null) { intake.stop(); }
         } finally {
           try {
-            follower.breakFollowing();
+            if (gateMotor != null) { gateMotor.stop(); }
           } finally {
-            try { pan.close(); } finally { aprilTags.stop(); }
+            try {
+              follower.breakFollowing();
+            } finally {
+              try { pan.close(); } finally { aprilTags.stop(); }
+            }
           }
         }
       }

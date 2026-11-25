@@ -21,9 +21,11 @@ public final class LimelightPanController implements AutoCloseable {
   private PanPoseGate gate;
   private PanTargetSelector selector;
   private ImagePanTracker imageAim;
+  private ServoTrackingTestControls manualImageControls;
   private ExecutorService worker;
   private Future<?> pending;
   private boolean started, tracking = true, waitingForFrame, fault, centerRequested;
+  private boolean manualPan;
   private double position = CameraPanConfig.START_POSITION;
   private double lastMove = Double.NEGATIVE_INFINITY;
   private double lastAimTimestamp = Double.NaN;
@@ -45,6 +47,8 @@ public final class LimelightPanController implements AutoCloseable {
             CameraPanConfig.SETTLE_SECONDS, CameraPanConfig.MIN_UPDATE_INTERVAL_SECONDS,
             CameraPanConfig.LOST_TARGET_HOLD_SECONDS);
         imageAim.setDirection(CameraPanConfig.TX_TO_POSITION_SIGN);
+        manualImageControls = new ServoTrackingTestControls(imageAim,
+            CameraPanConfig.MANUAL_POSITION_STEP, CameraPanConfig.MANUAL_REPEAT_SECONDS);
         servo = hardwareMap.get(Servo.class, RobotConfig.Hardware.SERVO_MOTOR);
         // Never acknowledge this gate: unknown yaw must not publish misleading robot poses.
         tags.attachPanGate(new PanPoseGate(CameraPanConfig.SETTLE_SECONDS));
@@ -113,7 +117,13 @@ public final class LimelightPanController implements AutoCloseable {
 
   /** Nonblocking: hardware commands occur only here/start; network calls occur only on worker. */
   public void update() {
+    update(false, false);
+  }
+
+  /** Manual physical left/right inputs take priority over tracking while held. */
+  public void update(boolean manualLeft, boolean manualRight) {
     if (!started || fault) { return; }
+    manualPan = manualLeft || manualRight;
     if (imageAim != null) {
       double before = imageAim.getPosition();
       if (centerRequested) {
@@ -122,7 +132,8 @@ public final class LimelightPanController implements AutoCloseable {
         // Preserve existing center semantics: tracking resumes unless explicitly disabled.
         if (tracking) { imageAim.toggleTracking(); }
       } else {
-        imageAim.update(tags.getAimTargets(), tags.getAimFrameTimestamp(), now());
+        manualImageControls.update(false, false, manualLeft, manualRight,
+            tags.getAimTargets(), tags.getAimFrameTimestamp(), now());
       }
       position = imageAim.getPosition();
       if (Math.abs(before - position) > 1e-6) { servo.setPosition(position); }
@@ -149,6 +160,18 @@ public final class LimelightPanController implements AutoCloseable {
       selector.clear();
       move(CameraPanConfig.CENTER_POSITION);
       return;
+    }
+    if (manualPan) {
+      int direction = (manualLeft ? 1 : 0) - (manualRight ? 1 : 0);
+      // A missing tag must not block manual panning. Pending HTTP work is handled above,
+      // and move() keeps robot-space poses gated until the new mount/frame settles.
+      if (direction != 0 && now() - lastMove >= Math.max(
+          CameraPanConfig.MANUAL_REPEAT_SECONDS, CameraPanConfig.MIN_UPDATE_INTERVAL_SECONDS)) {
+        double next = calibration.clamp(position - CameraPanConfig.TX_TO_POSITION_SIGN
+            * direction * CameraPanConfig.MANUAL_POSITION_STEP);
+        if (Math.abs(next - position) > 1e-6) { move(next); }
+      }
+      return; // Opposing inputs hold position and also suppress automatic corrections.
     }
     if (waitingForFrame) {
       if (!tags.isRobotPoseReady()) { return; }
@@ -190,6 +213,7 @@ public final class LimelightPanController implements AutoCloseable {
         ? "IMAGE ONLY: " + imageAim.getStatus() + "; robot poses WITHHELD" : status;
   }
   public boolean isImageOnly() { return imageAim != null; }
+  public boolean isManualPan() { return started && !fault && manualPan; }
   public double getTargetTxDegrees() {
     return imageAim == null ? Double.NaN : imageAim.getTargetTx();
   }

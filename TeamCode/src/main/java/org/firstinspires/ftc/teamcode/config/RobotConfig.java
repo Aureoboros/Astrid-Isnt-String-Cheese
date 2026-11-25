@@ -152,6 +152,8 @@ public final class RobotConfig {
   }
 
   public static final class TeleTourney {
+    /** Temporary drive power limit for testing (1.0 restores full power). */
+    public static final double MAX_DRIVE_POWER = 0.35;
     public static final double SHOOTER_INITIAL_RPM = 4800.0;
     public static final boolean SHOOTER_REVERSED = true;
 

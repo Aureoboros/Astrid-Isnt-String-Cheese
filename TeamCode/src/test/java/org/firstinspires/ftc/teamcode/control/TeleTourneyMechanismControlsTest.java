@@ -14,6 +14,8 @@ public final class TeleTourneyMechanismControlsTest {
     assertFalse(controls.isIntakeEnabled());
     assertFalse(controls.isIntakeReversed());
     assertFalse(controls.isShooterEnabled());
+    assertFalse(controls.isGateEnabled());
+    assertEquals(60, controls.getGateRpm(), 0);
     assertEquals(4800, controls.getShooterRpm(), 0);
     assertTrue(controls.isShooterReversed());
   }
@@ -125,17 +127,49 @@ public final class TeleTourneyMechanismControlsTest {
     assertEquals(0, c.getShooterRpm(), 0);
   }
 
-  @Test public void publicGamepadMappingIgnoresValidationButtons() {
+  @Test public void publicGamepadMappingKeepsValidationSeparateFromGateB() {
     TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
     Gamepad first = new Gamepad(), second = new Gamepad();
     first.a = first.b = true;
     c.update(first, second);
     assertFalse(c.isIntakeEnabled());
     assertFalse(c.isShooterEnabled());
+    assertTrue(c.isGateEnabled());
     second.x = second.y = second.dpad_down = true;
     c.update(first, second);
     assertTrue(c.isIntakeEnabled());
     assertTrue(c.isShooterEnabled());
     assertEquals(4750, c.getShooterRpm(), 0);
+    assertTrue(c.isGateEnabled());
+  }
+
+  @Test public void bTogglesGateOncePerPressIncludingOverlappingControllers() {
+    TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
+    c.updateGateButton(false, true);
+    assertTrue(c.isGateEnabled());
+    c.updateGateButton(true, true);
+    c.updateGateButton(true, false);
+    assertTrue(c.isGateEnabled());
+    c.updateGateButton(false, false);
+    c.updateGateButton(true, false);
+    assertFalse(c.isGateEnabled());
+    assertFalse(c.isIntakeEnabled());
+    assertFalse(c.isShooterEnabled());
+  }
+
+  @Test public void gateControlsWorkIndependentlyOfShooterIntakeAndValidation() {
+    TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
+    Gamepad first = new Gamepad(), second = new Gamepad();
+    second.b = second.x = second.y = true;
+    c.update(first, second);
+    assertTrue(c.isGateEnabled()); assertTrue(c.isShooterEnabled()); assertTrue(c.isIntakeEnabled());
+    second.b = second.x = second.y = false;
+    second.a = second.back = true;
+    c.update(first, second);
+    assertTrue(c.isGateEnabled()); assertTrue(c.isShooterEnabled()); assertTrue(c.isIntakeEnabled());
+    first.b = true;
+    c.update(first, second);
+    assertFalse(c.isGateEnabled());
+    assertTrue(c.isShooterEnabled()); assertTrue(c.isIntakeEnabled());
   }
 }
