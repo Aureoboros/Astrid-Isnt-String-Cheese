@@ -160,8 +160,10 @@ public final class RobotConfig {
 
   /** TeleOpTourney: launcher always on; A drives to the autonomous shooting pose. */
   public static final class TeleOpTourney {
-    /** Same launcher speed the autonomous uses from the same shooting pose. */
-    public static final double SHOOTER_RPM = PreloadedHiveAutoConfig.SHOOT_RPM;
+    /** Launcher speed at Play; D-pad up/down adjusts it by SHOOTER_RPM_STEP. */
+    public static final double SHOOTER_INITIAL_RPM = 3200.0;
+    public static final double SHOOTER_RPM_STEP = 50.0;
+    public static final double SHOOTER_MAX_RPM = 6000.0;
     public static final double GATE_RPM = PreloadedHiveAutoConfig.GATE_RPM;
     /** Pedro power cap while A drives to the shooting pose. Driver input always cancels. */
     public static final double DRIVE_TO_SHOOT_MAX_POWER = 0.7;

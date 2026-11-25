@@ -46,4 +46,16 @@ public final class TeleOpTourneyControlsTest {
     c.updateButtons(true, false, false, false);
     assertFalse(c.isDriveToShootRequested());
   }
+
+  @Test public void launcherStartsAt3200AndDpadStepsOncePerPress() {
+    TeleOpTourneyControls c = new TeleOpTourneyControls();
+    assertEquals(3200, c.getShooterRpm(), 0);
+    c.updateButtons(false, false, false, false, true, false);
+    c.updateButtons(false, false, false, false, true, false); // held: one step only
+    assertEquals(3250, c.getShooterRpm(), 0);
+    c.updateButtons(false, false, false, false, false, true);
+    c.updateButtons(false, false, false, false, false, false);
+    c.updateButtons(false, false, false, false, false, true);
+    assertEquals(3150, c.getShooterRpm(), 0);
+  }
 }

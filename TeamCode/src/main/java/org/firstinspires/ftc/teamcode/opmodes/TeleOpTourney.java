@@ -30,7 +30,8 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
  * Competition TeleOp.
  * Left stick: drive/strafe | Triggers: rotate | A: drive to the autonomous shooting pose
  * Y: intake toggle (starts ON) | X: gate toggle (starts OFF) | B (hold): spit
- * Launcher (Shoot1) runs the whole match. The gate uses automatic jam recovery.
+ * D-pad up/down: launcher RPM. Launcher (Shoot1) runs the whole match from 3200 RPM.
+ * The gate uses automatic jam recovery.
  */
 @TeleOp(name = "TeleOpTourney", group = "Competition")
 public final class TeleOpTourney extends LinearOpMode {
@@ -58,7 +59,7 @@ public final class TeleOpTourney extends LinearOpMode {
       intake = new IntakeSubsystem(hardwareMap);
       gate = new GateMotorSubsystem(hardwareMap);
       shooter.setState(false, RobotConfig.TeleTourney.SHOOTER_REVERSED,
-          RobotConfig.TeleOpTourney.SHOOTER_RPM);
+          controls.getShooterRpm());
       gate.setState(false, false, RobotConfig.TeleOpTourney.GATE_RPM);
 
       while (opModeInInit()) {
@@ -83,7 +84,8 @@ public final class TeleOpTourney extends LinearOpMode {
         telemetry.addLine("Left stick: drive | Triggers: rotate | A: go to shoot pose");
         telemetry.addLine("Y: intake on/off (starts ON) | X: gate on/off (starts OFF)");
         telemetry.addLine("B (hold): spit - intake + gate reversed");
-        telemetry.addData("Launcher", "ON whole match at %.0f RPM", RobotConfig.TeleOpTourney.SHOOTER_RPM);
+        telemetry.addData("Launcher", "ON whole match, starts at %.0f RPM (D-pad up/down: +/-%.0f)",
+            controls.getShooterRpm(), RobotConfig.TeleOpTourney.SHOOTER_RPM_STEP);
         OdometryTelemetry.add(telemetry);
         telemetry.update();
         idle();
@@ -119,7 +121,7 @@ public final class TeleOpTourney extends LinearOpMode {
         }
 
         shooter.setState(true, RobotConfig.TeleTourney.SHOOTER_REVERSED,
-            RobotConfig.TeleOpTourney.SHOOTER_RPM);
+            controls.getShooterRpm());
         intake.setState(controls.isIntakeEnabled(), controls.isIntakeReversed()
             ? IntakeSubsystem.Direction.REVERSE : IntakeSubsystem.Direction.FORWARD);
         // Called every loop: this is what advances the gate's jam-recovery state machine.
@@ -145,7 +147,7 @@ public final class TeleOpTourney extends LinearOpMode {
         if (gate.getRecoveryState() == GateJamRecoveryController.State.FAULT) {
           telemetry.addLine("GATE JAMMED: clear it, then X off and X on to retry.");
         }
-        telemetry.addData("Launcher target / actual", "%.0f / %.0f RPM",
+        telemetry.addData("Launcher (D-pad up/down) target / actual", "%.0f / %.0f RPM",
             shooter.getTargetRpm(), Math.abs(shooter.getActualRpm()));
         OdometryTelemetry.add(telemetry);
         telemetry.update();
