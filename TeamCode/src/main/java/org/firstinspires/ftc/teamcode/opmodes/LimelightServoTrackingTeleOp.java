@@ -28,8 +28,8 @@ public final class LimelightServoTrackingTeleOp extends LinearOpMode {
     ImagePanTracker aim = new ImagePanTracker(CameraPanConfig.MIN_POSITION,
         CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION, CameraPanConfig.START_POSITION,
         CameraPanConfig.POSITION_GAIN_PER_TX_DEGREE, CameraPanConfig.MAX_POSITION_STEP,
-        CameraPanConfig.TX_DEADBAND_DEGREES, CameraPanConfig.SETTLE_SECONDS,
-        CameraPanConfig.MIN_UPDATE_INTERVAL_SECONDS, CameraPanConfig.LOST_TARGET_HOLD_SECONDS);
+        CameraPanConfig.TX_DEADBAND_DEGREES, CameraPanConfig.IMAGE_SETTLE_SECONDS,
+        CameraPanConfig.IMAGE_UPDATE_INTERVAL_SECONDS, CameraPanConfig.LOST_TARGET_HOLD_SECONDS);
     aim.setDirection(CameraPanConfig.TX_TO_POSITION_SIGN);
     ServoTrackingTestControls controls = new ServoTrackingTestControls(aim,
         CameraPanConfig.MANUAL_POSITION_STEP, 0.1);

@@ -9,7 +9,10 @@ Horizontal image-only tracking is enabled in `config/CameraPanConfig.java` with
 turns the camera **left**, so `TX_TO_POSITION_SIGN = -1`: a tag to the right
 (positive image `tx`) decreases servo position. MIN is **0.05**, CENTER/START
 **0.2**, and MAX **0.35**, with verified travel. Tracking starts after Play in
-TeleTourney and Test: Limelight; drivetrain and mechanism buttons are unchanged.
+TeleTourney and Test: Limelight. TeleTourney updates driving and camera tracking
+on every control-loop iteration, including while sticks/triggers are held.
+Telemetry formatting and extra hardware reads run at 10 Hz to reduce control-loop
+overhead; the displayed control-loop time helps diagnose hub slowdown.
 
 Yaw/geometry-aware tracking remains disabled (`ENABLED = false`,
 `GEOMETRY_VERIFIED = false`). While image-only tracking is active, robot-relative
@@ -24,8 +27,8 @@ Run **Test: Tag Servo Tracking** to test only the Limelight and camera servo.
 After Play, the servo starts at **0.2**, with tracking **ON**. Hold **D-pad left/right**
 (or **A/B**) on either gamepad to pan the camera physically left/right. Manual
 input overrides tracking, stepping **0.005** at most every **0.1 seconds**. Release
-the buttons and the test automatically resumes aligning the visible tag after
-settling and fresh-frame checks. Increasing servo position pans left, as verified;
+the buttons and the test automatically resumes aligning the visible tag on the
+next eligible fresh frame. Increasing servo position pans left, as verified;
 D-pad no longer changes the feedback calibration.
 
 **X** pauses/resumes automatic tracking; **Y** centers and pauses. Manual movement
@@ -44,7 +47,10 @@ for an off-screen tag.
 
 The servo centers the tag horizontally within a **2-degree deadband**, not
 vertically: pitch is fixed. Corrections are limited to **0.01** per step, at least
-**0.5 seconds** apart, with settling/fresh-frame checks. Lost targets hold position;
+**0.05 seconds** apart (up to 20 corrections/second), using fresh frames without
+a servo-settling pause. `IMAGE_UPDATE_INTERVAL_SECONDS` sets that cadence;
+`IMAGE_SETTLE_SECONDS = 0` selects continuous feedback while the camera and robot
+move. Calibrated robot-space pose gating retains its separate settling settings. Lost targets hold position;
 there is no blind sweep. A tag beyond the safe travel limits cannot be centered.
 
 ## Commissioning

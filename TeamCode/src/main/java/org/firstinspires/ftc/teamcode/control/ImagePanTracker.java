@@ -97,13 +97,14 @@ public final class ImagePanTracker {
     }
     if (!Double.isFinite(timestamp) || timestamp <= frameAtMove || timestamp <= lastFrame) { return; }
     lastFrame = timestamp;
-    // Discard the first new frame after settling: it may have been captured during servo motion.
-    if (!Double.isFinite(settledFrame)) {
+    // Settled measurement mode discards a barrier frame. Continuous image feedback
+    // (settle == 0) uses every eligible fresh frame, even while camera/robot move.
+    if (settle > 0 && !Double.isFinite(settledFrame)) {
       settledFrame = timestamp;
       status = "SETTLING: waiting for another fresh frame";
       return;
     }
-    if (timestamp <= settledFrame) { return; }
+    if (settle > 0 && timestamp <= settledFrame) { return; }
     if (Math.abs(targetTx) <= deadband) { status = "TRACKING: horizontally centered"; return; }
     double change = Math.max(-maxStep, Math.min(maxStep, direction * gain * targetTx));
     double next = clamp(position + change);

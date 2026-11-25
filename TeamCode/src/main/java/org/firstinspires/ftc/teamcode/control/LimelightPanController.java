@@ -44,7 +44,7 @@ public final class LimelightPanController implements AutoCloseable {
             CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION,
             CameraPanConfig.START_POSITION, CameraPanConfig.POSITION_GAIN_PER_TX_DEGREE,
             CameraPanConfig.MAX_POSITION_STEP, CameraPanConfig.TX_DEADBAND_DEGREES,
-            CameraPanConfig.SETTLE_SECONDS, CameraPanConfig.MIN_UPDATE_INTERVAL_SECONDS,
+            CameraPanConfig.IMAGE_SETTLE_SECONDS, CameraPanConfig.IMAGE_UPDATE_INTERVAL_SECONDS,
             CameraPanConfig.LOST_TARGET_HOLD_SECONDS);
         imageAim.setDirection(CameraPanConfig.TX_TO_POSITION_SIGN);
         manualImageControls = new ServoTrackingTestControls(imageAim,

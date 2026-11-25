@@ -7,6 +7,59 @@ import org.firstinspires.ftc.teamcode.localization.AprilTagAim;
 import org.junit.Test;
 
 public final class ImagePanTrackerTest {
+  private static ImagePanTracker continuousTracker() {
+    ImagePanTracker t = new ImagePanTracker(CameraPanConfig.MIN_POSITION,
+        CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION,
+        CameraPanConfig.START_POSITION, CameraPanConfig.POSITION_GAIN_PER_TX_DEGREE,
+        CameraPanConfig.MAX_POSITION_STEP, CameraPanConfig.TX_DEADBAND_DEGREES,
+        CameraPanConfig.IMAGE_SETTLE_SECONDS, CameraPanConfig.IMAGE_UPDATE_INTERVAL_SECONDS,
+        CameraPanConfig.LOST_TARGET_HOLD_SECONDS);
+    t.setDirection(CameraPanConfig.TX_TO_POSITION_SIGN);
+    t.start(0, 1); t.toggleTracking();
+    return t;
+  }
+
+  @Test public void continuousTrackingFollowsChangingBearingWithoutSettlingBarrier() {
+    ImagePanTracker t = continuousTracker();
+    t.update(tag(35, 20), 2, 0.051);
+    assertEquals(0.19, t.getPosition(), 1e-9); // First eligible fresh frame corrects.
+    t.update(tag(35, 20), 3, 0.102);
+    assertEquals(0.18, t.getPosition(), 1e-9);
+    t.update(tag(35, -20), 4, 0.153); // Bearing changes as the robot turns/passes the tag.
+    assertEquals(0.19, t.getPosition(), 1e-9);
+    t.update(tag(35, 0), 5, 0.204);
+    assertEquals(0.19, t.getPosition(), 1e-9);
+    assertTrue(t.getStatus().contains("centered"));
+  }
+
+  @Test public void continuousTrackingStillRejectsDuplicatesAndLimitsCorrectionRate() {
+    ImagePanTracker t = continuousTracker();
+    t.update(tag(35, 20), 2, 0.051);
+    t.update(tag(35, 20), 3, 0.06); // Fresh but too soon.
+    t.update(tag(35, 20), 2, 0.11); // Old frame, even after interval elapsed.
+    t.update(tag(35, 20), Double.NaN, 0.12);
+    assertEquals(0.19, t.getPosition(), 1e-9);
+    t.update(tag(35, 20), 4, 0.13);
+    assertEquals(0.18, t.getPosition(), 1e-9);
+    t.update(Collections.emptyList(), Double.NaN, 0.2);
+    assertEquals(0.18, t.getPosition(), 1e-9);
+  }
+
+  @Test public void continuousTrackingResumesQuicklyAfterManualPanAndHonorsLimits() {
+    ImagePanTracker t = continuousTracker();
+    ServoTrackingTestControls controls = new ServoTrackingTestControls(t, 0.005, 0.1);
+    controls.update(false, false, true, false, tag(35, 20), 2, 0.1);
+    assertEquals(0.205, t.getPosition(), 1e-9);
+    controls.update(false, false, false, false, tag(35, 20), 3, 0.151);
+    assertEquals(0.195, t.getPosition(), 1e-9);
+    for (int i = 0; i < 50; i++) {
+      t.update(tag(35, 30), 4 + i, 0.21 + i * 0.06);
+      assertTrue(t.getPosition() >= CameraPanConfig.MIN_POSITION);
+    }
+    assertEquals(CameraPanConfig.MIN_POSITION, t.getPosition(), 1e-9);
+    assertTrue(t.getStatus().contains("travel limit"));
+  }
+
   @Test public void selectedTagTestIgnoresOtherIdsAndCanSwitchTargets() {
     ImagePanTracker t = tracker();
     t.start(0, 1); t.setDirection(-1); t.setTargetIdRange(35, 35); t.toggleTracking();

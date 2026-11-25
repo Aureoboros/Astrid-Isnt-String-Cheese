@@ -39,6 +39,11 @@ public final class CameraPanConfig {
   public static final double POSITION_GAIN_PER_TX_DEGREE = 0.001;
   public static final double MAX_POSITION_STEP = 0.01;
   public static final double TX_DEADBAND_DEGREES = 2;
+  // Continuous image feedback while driving: fresh frames, up to 20 corrections/second.
+  // Unlike robot-space pose measurements, tx does not require a stationary camera.
+  public static final double IMAGE_SETTLE_SECONDS = 0;
+  public static final double IMAGE_UPDATE_INTERVAL_SECONDS = 0.05;
+  // Keep separate settling/configuration timing for calibrated robot-space poses.
   public static final double SETTLE_SECONDS = 0.35;
   public static final double MIN_UPDATE_INTERVAL_SECONDS = 0.5;
   public static final double LOST_TARGET_HOLD_SECONDS = 1;

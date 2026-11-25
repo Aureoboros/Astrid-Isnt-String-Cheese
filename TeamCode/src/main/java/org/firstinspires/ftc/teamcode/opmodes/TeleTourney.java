@@ -77,7 +77,12 @@ public final class TeleTourney extends LinearOpMode {
       follower.startTeleopDrive(true);
       aprilTags.start();
       pan.start();
+      long lastTelemetryNanos = 0;
+      long previousLoopNanos = System.nanoTime();
       while (opModeIsActive()) {
+        long loopNanos = System.nanoTime();
+        double loopMilliseconds = (loopNanos - previousLoopNanos) / 1e6;
+        previousLoopNanos = loopNanos;
         DriveCommand command = DualGamepadDriveControls.read(gamepad1, gamepad2);
         // Pedro uses positive left strafe and counterclockwise turn; the mapper uses right/CW.
         pushTuna.update(command.getDrive(), -command.getStrafe(), -command.getRotate());
@@ -96,66 +101,71 @@ public final class TeleTourney extends LinearOpMode {
         validation.update(pose, visibleTags, aprilTags.isConnected(),
             gamepad1.left_bumper || gamepad2.left_bumper, gamepad1.back || gamepad2.back);
 
-        telemetry.addData("Active Driver", "Gamepad %d", command.getGamepadNumber());
-        telemetry.addData("Drive power limit", "%.0f%%", RobotConfig.TeleTourney.MAX_DRIVE_POWER * 100);
-        telemetry.addData("Position recovery", pushTuna.getState());
-        telemetry.addData("Camera control", pan.isManualPan() ? "MANUAL: D-pad left/right"
-            : pan.isTracking() ? "AUTO: tag tracking" : "HOLD");
-        telemetry.addData("Intake", "%s / %s", intake.isEnabled() ? "ON" : "OFF", intake.getDirection());
-        telemetry.addData("Gate requested", mechanisms.isGateEnabled() ? "ON / FORWARD" : "OFF");
-        telemetry.addData("Gate target / actual RPM", "%.0f / %.0f", gateMotor.getTargetRpm(), gateMotor.getActualRpm());
-        telemetry.addData("Gate applied RPM", "%.0f", gateMotor.getOutputRpm());
-        telemetry.addData("Gate recovery / retries", "%s / %d", gateMotor.getRecoveryState(), gateMotor.getRecoveryAttempts());
-        if (gateMotor.getRecoveryState() == GateJamRecoveryController.State.FAULT) {
-          telemetry.addLine("Gate jam fault: clear obstruction, then B OFF and B ON to retry");
-        }
-        telemetry.addLine("A: intake reverse | B: gate on/off | Left bumper: re-anchor | Back: clear check");
-        telemetry.addData("Shoot1", shooter.isActive() ? "ON" : "OFF");
-        telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");
-        telemetry.addData("Shoot1 Selected RPM", "%.0f", shooter.getTargetRpm());
-        double actualRpm = shooter.getActualRpm();
-        telemetry.addData("Shoot1 Signed target RPM", "%.0f", shooter.getCommandedRpm());
-        telemetry.addData("Shoot1 Actual speed RPM", "%.0f", Math.abs(actualRpm));
-        telemetry.addData("Shoot1 Signed actual RPM", "%.0f", actualRpm);
-        telemetry.addData("Shoot1 Encoder ticks/rev", "%.0f", shooter.getEncoderTicksPerRevolution());
-        telemetry.addData("Shoot1 Encoder ticks/s", "%.1f", shooter.getRawEncoderTicksPerSecond());
-        telemetry.addData("Shoot1 Error", "%.0f RPM", shooter.getCommandedRpm() - actualRpm);
-        telemetry.addData(
-            "Drive / Strafe / Rotate",
-            "%.2f / %.2f / %.2f",
-            command.getDrive(),
-            command.getStrafe(),
-            command.getRotate());
-        telemetry.addData("Field Position", "X %.2f in, Y %.2f in", pose.getX(), pose.getY());
-        telemetry.addData("Heading", "%.1f°", Math.toDegrees(pose.getHeading()));
-        telemetry.addData("Forward Odo", "%d ticks", pinpoint.getEncoderX());
-        telemetry.addData("Strafe Odo", "%d ticks", pinpoint.getEncoderY());
-        telemetry.addData("Pinpoint Status", pinpoint.getDeviceStatus());
-        telemetry.addData("Pose Source", "Pedro: Pinpoint (2 pods + onboard IMU)");
-        telemetry.addData("Limelight", aprilTags.isConnected() ? "CONNECTED" : "DISCONNECTED");
-        telemetry.addData("AprilTags detected", aprilTags.getAimTargets().size());
-        telemetry.addData("Tags with robot pose", visibleTags.size());
-        if (nearestTag == null) {
-          telemetry.addData("Nearest Tag", aprilTags.getAimTargets().isEmpty()
-              ? "None visible" : "Robot-space measurements withheld");
-        } else {
-          telemetry.addData("Nearest Tag", "ID %d", nearestTag.getId());
+        // Control and aiming run every loop; expensive telemetry reads/formatting run at 10 Hz.
+        if (loopNanos - lastTelemetryNanos >= 100_000_000L) {
+          lastTelemetryNanos = loopNanos;
+          telemetry.addData("Control loop", "%.1f ms (drive + camera active)", loopMilliseconds);
+          telemetry.addData("Active Driver", "Gamepad %d", command.getGamepadNumber());
+          telemetry.addData("Drive power limit", "%.0f%%", RobotConfig.TeleTourney.MAX_DRIVE_POWER * 100);
+          telemetry.addData("Position recovery", pushTuna.getState());
+          telemetry.addData("Camera control", pan.isManualPan() ? "MANUAL: D-pad left/right"
+              : pan.isTracking() ? "AUTO: tag tracking" : "HOLD");
+          telemetry.addData("Intake", "%s / %s", intake.isEnabled() ? "ON" : "OFF", intake.getDirection());
+          telemetry.addData("Gate requested", mechanisms.isGateEnabled() ? "ON / FORWARD" : "OFF");
+          telemetry.addData("Gate target / actual RPM", "%.0f / %.0f", gateMotor.getTargetRpm(), gateMotor.getActualRpm());
+          telemetry.addData("Gate applied RPM", "%.0f", gateMotor.getOutputRpm());
+          telemetry.addData("Gate recovery / retries", "%s / %d", gateMotor.getRecoveryState(), gateMotor.getRecoveryAttempts());
+          if (gateMotor.getRecoveryState() == GateJamRecoveryController.State.FAULT) {
+            telemetry.addLine("Gate jam fault: clear obstruction, then B OFF and B ON to retry");
+          }
+          telemetry.addLine("A: intake reverse | B: gate on/off | Left bumper: re-anchor | Back: clear check");
+          telemetry.addData("Shoot1", shooter.isActive() ? "ON" : "OFF");
+          telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");
+          telemetry.addData("Shoot1 Selected RPM", "%.0f", shooter.getTargetRpm());
+          double actualRpm = shooter.getActualRpm();
+          telemetry.addData("Shoot1 Signed target RPM", "%.0f", shooter.getCommandedRpm());
+          telemetry.addData("Shoot1 Actual speed RPM", "%.0f", Math.abs(actualRpm));
+          telemetry.addData("Shoot1 Signed actual RPM", "%.0f", actualRpm);
+          telemetry.addData("Shoot1 Encoder ticks/rev", "%.0f", shooter.getEncoderTicksPerRevolution());
+          telemetry.addData("Shoot1 Encoder ticks/s", "%.1f", shooter.getRawEncoderTicksPerSecond());
+          telemetry.addData("Shoot1 Error", "%.0f RPM", shooter.getCommandedRpm() - actualRpm);
           telemetry.addData(
-              "Tag Position",
-              "forward %.1f in, left %.1f in",
-              nearestTag.getForwardInches(),
-              nearestTag.getLeftInches());
-          telemetry.addData(
-              "Tag Distance",
-              "horizontal %.1f in, range %.1f in",
-              nearestTag.getHorizontalDistanceInches(),
-              nearestTag.getRangeInches());
-          telemetry.addData("Tag Height", "%.1f in", nearestTag.getHeightInches());
+              "Drive / Strafe / Rotate",
+              "%.2f / %.2f / %.2f",
+              command.getDrive(),
+              command.getStrafe(),
+              command.getRotate());
+          telemetry.addData("Field Position", "X %.2f in, Y %.2f in", pose.getX(), pose.getY());
+          telemetry.addData("Heading", "%.1f°", Math.toDegrees(pose.getHeading()));
+          telemetry.addData("Forward Odo", "%d ticks", pinpoint.getEncoderX());
+          telemetry.addData("Strafe Odo", "%d ticks", pinpoint.getEncoderY());
+          telemetry.addData("Pinpoint Status", pinpoint.getDeviceStatus());
+          telemetry.addData("Pose Source", "Pedro: Pinpoint (2 pods + onboard IMU)");
+          telemetry.addData("Limelight", aprilTags.isConnected() ? "CONNECTED" : "DISCONNECTED");
+          telemetry.addData("AprilTags detected", aprilTags.getAimTargets().size());
+          telemetry.addData("Tags with robot pose", visibleTags.size());
+          if (nearestTag == null) {
+            telemetry.addData("Nearest Tag", aprilTags.getAimTargets().isEmpty()
+                ? "None visible" : "Robot-space measurements withheld");
+          } else {
+            telemetry.addData("Nearest Tag", "ID %d", nearestTag.getId());
+            telemetry.addData(
+                "Tag Position",
+                "forward %.1f in, left %.1f in",
+                nearestTag.getForwardInches(),
+                nearestTag.getLeftInches());
+            telemetry.addData(
+                "Tag Distance",
+                "horizontal %.1f in, range %.1f in",
+                nearestTag.getHorizontalDistanceInches(),
+                nearestTag.getRangeInches());
+            telemetry.addData("Tag Height", "%.1f in", nearestTag.getHeightInches());
+          }
+          PedroValidationTelemetry.add(telemetry, validation);
+          CameraPanTelemetry.add(telemetry, pan, aprilTags);
+          OdometryTelemetry.add(telemetry);
+          telemetry.update();
         }
-        PedroValidationTelemetry.add(telemetry, validation);
-        CameraPanTelemetry.add(telemetry, pan, aprilTags);
-        OdometryTelemetry.add(telemetry);
-        telemetry.update();
         idle();
       }
     } finally {
