@@ -78,7 +78,9 @@ recovery. A gate fault stays stopped until B OFF then B ON resets it. Driver
 Station STOP stops the gate with the other motors. Telemetry shows requested
 state, target/actual/applied RPM, recovery state and retry count.
 
-**A** still re-anchors the tag/odometry check; **Back** now clears that check.
+**Y** only toggles intake ON/OFF, retaining its selected direction.
+**A** reverses intake direction while preserving its current ON/OFF state.
+**Left bumper** re-anchors the tag/odometry check; **Back** clears it.
 B is exclusively the gate toggle in TeleTourney.
 
 The indexed separator helper's settings live in `RobotConfig.GateMotor`.

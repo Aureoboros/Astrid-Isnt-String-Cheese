@@ -53,11 +53,12 @@ public final class TeleTourney extends LinearOpMode {
       telemetry.addData("Status", "Drive, intake, Shoot1, gateMotor, odometry, and Limelight initialized");
       telemetry.addLine("Left stick: drive/strafe | Triggers: rotate");
       telemetry.addData("Drive power limit", "%.0f%%", RobotConfig.TeleTourney.MAX_DRIVE_POWER * 100);
-      telemetry.addLine("Y: intake FORWARD -> STOP -> REVERSE -> STOP (per press)");
+      telemetry.addLine("Y: intake ON/OFF (preserves selected direction)");
+      telemetry.addLine("A: reverse intake direction (keeps current ON/OFF state)");
       telemetry.addLine("X: Shoot1 ON/OFF | D-pad up/down: +/-50 RPM");
       telemetry.addLine("B: gateMotor ON/OFF (forward) | Either gamepad");
       telemetry.addLine("Hold D-pad left/right: pan camera left/right | Release: resume tag tracking");
-      telemetry.addLine("First visible tag anchors the check. A: re-anchor | Back: clear");
+      telemetry.addLine("First visible tag anchors the check. Left bumper: re-anchor | Back: clear");
       telemetry.addLine("Camera pan: horizontal image tracking; robot-space poses need calibration");
       telemetry.addData("Intake / Shoot1", "OFF / OFF");
       telemetry.addData("GateMotor", "OFF / %.0f RPM selected", mechanisms.getGateRpm());
@@ -93,14 +94,14 @@ public final class TeleTourney extends LinearOpMode {
         List<AprilTagObservation> visibleTags = aprilTags.getObservations();
         AprilTagObservation nearestTag = aprilTags.getNearestObservation();
         validation.update(pose, visibleTags, aprilTags.isConnected(),
-            gamepad1.a || gamepad2.a, gamepad1.back || gamepad2.back);
+            gamepad1.left_bumper || gamepad2.left_bumper, gamepad1.back || gamepad2.back);
 
         telemetry.addData("Active Driver", "Gamepad %d", command.getGamepadNumber());
         telemetry.addData("Drive power limit", "%.0f%%", RobotConfig.TeleTourney.MAX_DRIVE_POWER * 100);
         telemetry.addData("Position recovery", pushTuna.getState());
         telemetry.addData("Camera control", pan.isManualPan() ? "MANUAL: D-pad left/right"
             : pan.isTracking() ? "AUTO: tag tracking" : "HOLD");
-        telemetry.addData("Intake", intake.isEnabled() ? "ON / " + intake.getDirection() : "OFF");
+        telemetry.addData("Intake", "%s / %s", intake.isEnabled() ? "ON" : "OFF", intake.getDirection());
         telemetry.addData("Gate requested", mechanisms.isGateEnabled() ? "ON / FORWARD" : "OFF");
         telemetry.addData("Gate target / actual RPM", "%.0f / %.0f", gateMotor.getTargetRpm(), gateMotor.getActualRpm());
         telemetry.addData("Gate applied RPM", "%.0f", gateMotor.getOutputRpm());
@@ -108,7 +109,7 @@ public final class TeleTourney extends LinearOpMode {
         if (gateMotor.getRecoveryState() == GateJamRecoveryController.State.FAULT) {
           telemetry.addLine("Gate jam fault: clear obstruction, then B OFF and B ON to retry");
         }
-        telemetry.addLine("B: gate on/off | A: re-anchor tag check | Back: clear tag check");
+        telemetry.addLine("A: intake reverse | B: gate on/off | Left bumper: re-anchor | Back: clear check");
         telemetry.addData("Shoot1", shooter.isActive() ? "ON" : "OFF");
         telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");
         telemetry.addData("Shoot1 Selected RPM", "%.0f", shooter.getTargetRpm());

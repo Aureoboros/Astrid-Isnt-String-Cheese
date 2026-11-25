@@ -5,10 +5,10 @@ import org.firstinspires.ftc.teamcode.config.RobotConfig;
 
 /** Competition-only mechanism map; both controllers share edge-triggered buttons. */
 public final class TeleTourneyMechanismControls {
-  private enum IntakeState { STOP_BEFORE_FORWARD, FORWARD, STOP_BEFORE_REVERSE, REVERSE }
-  private IntakeState intakeState = IntakeState.STOP_BEFORE_FORWARD;
+  private boolean intakeEnabled;
+  private boolean intakeReversed;
   private boolean shooterEnabled;
-  private boolean gateEnabled, previousB;
+  private boolean gateEnabled, previousB, previousA;
   private boolean previousX, previousY, previousUp, previousDown;
   private double shooterRpm = Math.max(0, Math.min(6000, RobotConfig.TeleTourney.SHOOTER_INITIAL_RPM));
 
@@ -16,6 +16,16 @@ public final class TeleTourneyMechanismControls {
     updateButtons(gamepad1.x, gamepad1.y, gamepad1.dpad_up, gamepad1.dpad_down,
         gamepad2.x, gamepad2.y, gamepad2.dpad_up, gamepad2.dpad_down);
     updateGateButton(gamepad1.b, gamepad2.b);
+    updateIntakeReverse(gamepad1.a, gamepad2.a);
+  }
+
+  /** Flip the selected direction without changing ON/OFF, including while stopped. */
+  void updateIntakeReverse(boolean a1, boolean a2) {
+    boolean a = a1 || a2;
+    if (a && !previousA) {
+      intakeReversed = !intakeReversed;
+    }
+    previousA = a;
   }
 
   void updateGateButton(boolean b1, boolean b2) {
@@ -30,7 +40,7 @@ public final class TeleTourneyMechanismControls {
     boolean up = up1 || up2, down = down1 || down2;
     if (x && !previousX) { shooterEnabled = !shooterEnabled; }
     if (y && !previousY) {
-      intakeState = IntakeState.values()[(intakeState.ordinal() + 1) % IntakeState.values().length];
+      intakeEnabled = !intakeEnabled;
     }
     int steps = (up && !previousUp ? 1 : 0) - (down && !previousDown ? 1 : 0);
     shooterRpm = Math.max(0, Math.min(6000,
@@ -39,10 +49,10 @@ public final class TeleTourneyMechanismControls {
   }
 
   public boolean isIntakeEnabled() {
-    return intakeState == IntakeState.FORWARD || intakeState == IntakeState.REVERSE;
+    return intakeEnabled;
   }
   public boolean isIntakeReversed() {
-    return intakeState == IntakeState.REVERSE || intakeState == IntakeState.STOP_BEFORE_REVERSE;
+    return intakeReversed;
   }
   public boolean isShooterEnabled() { return shooterEnabled; }
   public boolean isShooterReversed() { return RobotConfig.TeleTourney.SHOOTER_REVERSED; }

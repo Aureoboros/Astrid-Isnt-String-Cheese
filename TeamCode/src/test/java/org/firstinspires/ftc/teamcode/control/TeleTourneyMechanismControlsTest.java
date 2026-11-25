@@ -20,17 +20,16 @@ public final class TeleTourneyMechanismControlsTest {
     assertTrue(controls.isShooterReversed());
   }
 
-  @Test public void intakeCyclesForwardStopReverseStopAndRepeatsWithoutHoldRepeats() {
+  @Test public void yOnlyTogglesOnOffWithoutChangingDirectionOrRepeatingWhileHeld() {
     TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
     boolean[] enabled = {true, false, true, false, true, false, true, false};
-    boolean[] reversed = {false, true, true, false, false, true, true, false};
     for (int i = 0; i < enabled.length; i++) {
-      // Alternate the operator; the intake cycle belongs to the robot, not one controller.
+      // Alternate the operator; both controllers share the intake state.
       boolean first = i % 2 == 0;
       for (int heldLoop = 0; heldLoop < 3; heldLoop++) {
         c.updateButtons(false, first, false, false, false, !first, false, false);
         assertEquals(enabled[i], c.isIntakeEnabled());
-        assertEquals(reversed[i], c.isIntakeReversed());
+        assertFalse(c.isIntakeReversed());
         assertFalse(c.isShooterEnabled());
         assertEquals(4800, c.getShooterRpm(), 0);
       }
@@ -39,7 +38,7 @@ public final class TeleTourneyMechanismControlsTest {
     }
   }
 
-  @Test public void overlappingYDoesNotSkipStopOrAdvanceReverseState() {
+  @Test public void overlappingYDoesNotDoubleToggleOrChangeDirection() {
     TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
     c.updateButtons(false, true, false, false, false, false, false, false);
     c.updateButtons(false, true, false, false, false, true, false, false);
@@ -52,7 +51,7 @@ public final class TeleTourneyMechanismControlsTest {
     release(c);
     c.updateButtons(false, true, false, false, false, true, false, false);
     assertTrue(c.isIntakeEnabled());
-    assertTrue(c.isIntakeReversed());
+    assertFalse(c.isIntakeReversed());
   }
 
   @Test public void xAndYIndependentlyToggleOnlyOnFreshPresses() {
@@ -127,12 +126,13 @@ public final class TeleTourneyMechanismControlsTest {
     assertEquals(0, c.getShooterRpm(), 0);
   }
 
-  @Test public void publicGamepadMappingKeepsValidationSeparateFromGateB() {
+  @Test public void publicGamepadMappingHandlesIntakeAAndGateBIndependently() {
     TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
     Gamepad first = new Gamepad(), second = new Gamepad();
     first.a = first.b = true;
     c.update(first, second);
     assertFalse(c.isIntakeEnabled());
+    assertTrue(c.isIntakeReversed());
     assertFalse(c.isShooterEnabled());
     assertTrue(c.isGateEnabled());
     second.x = second.y = second.dpad_down = true;
@@ -164,12 +164,56 @@ public final class TeleTourneyMechanismControlsTest {
     c.update(first, second);
     assertTrue(c.isGateEnabled()); assertTrue(c.isShooterEnabled()); assertTrue(c.isIntakeEnabled());
     second.b = second.x = second.y = false;
-    second.a = second.back = true;
+    second.left_bumper = second.back = true;
     c.update(first, second);
     assertTrue(c.isGateEnabled()); assertTrue(c.isShooterEnabled()); assertTrue(c.isIntakeEnabled());
     first.b = true;
     c.update(first, second);
     assertFalse(c.isGateEnabled());
     assertTrue(c.isShooterEnabled()); assertTrue(c.isIntakeEnabled());
+  }
+
+  @Test public void aReversesRunningIntakeAndHeldOverlappingButtonsToggleOnlyOnce() {
+    TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
+    Gamepad first = new Gamepad(), second = new Gamepad();
+    first.y = true; c.update(first, second);
+    first.y = false; c.update(first, second);
+    second.a = true; c.update(first, second);
+    assertTrue(c.isIntakeEnabled()); assertTrue(c.isIntakeReversed());
+    first.a = true; c.update(first, second);
+    second.a = false; c.update(first, second);
+    assertTrue(c.isIntakeReversed());
+    first.a = false; c.update(first, second);
+    first.a = true; c.update(first, second);
+    assertTrue(c.isIntakeEnabled()); assertFalse(c.isIntakeReversed());
+    assertFalse(c.isGateEnabled()); assertFalse(c.isShooterEnabled());
+  }
+
+  @Test public void aWhileStoppedSelectsReverseForNextYWithoutStartingMotor() {
+    TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
+    Gamepad first = new Gamepad(), second = new Gamepad();
+    first.a = true; c.update(first, second);
+    assertFalse(c.isIntakeEnabled()); assertTrue(c.isIntakeReversed());
+    first.a = false; c.update(first, second);
+    second.y = true; c.update(first, second);
+    assertTrue(c.isIntakeEnabled()); assertTrue(c.isIntakeReversed());
+    second.y = false; c.update(first, second);
+    second.y = true; c.update(first, second);
+    assertFalse(c.isIntakeEnabled());
+    assertTrue(c.isIntakeReversed());
+    second.y = false; c.update(first, second);
+    first.y = true; c.update(first, second);
+    assertTrue(c.isIntakeEnabled()); assertTrue(c.isIntakeReversed());
+  }
+
+  @Test public void simultaneousYAndAStartsInReverseAndBumperDoesNotChangeIntake() {
+    TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
+    Gamepad first = new Gamepad(), second = new Gamepad();
+    first.y = second.a = true; c.update(first, second);
+    assertTrue(c.isIntakeEnabled()); assertTrue(c.isIntakeReversed());
+    first.y = second.a = false;
+    first.left_bumper = second.back = true; c.update(first, second);
+    assertTrue(c.isIntakeEnabled()); assertTrue(c.isIntakeReversed());
+    assertFalse(c.isGateEnabled()); assertFalse(c.isShooterEnabled());
   }
 }
