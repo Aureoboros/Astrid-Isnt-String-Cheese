@@ -60,7 +60,7 @@ public final class TeleOpTourney extends LinearOpMode {
       gate = new GateMotorSubsystem(hardwareMap);
       shooter.setState(false, RobotConfig.TeleTourney.SHOOTER_REVERSED,
           controls.getShooterRpm());
-      gate.setState(false, false, RobotConfig.TeleOpTourney.GATE_RPM);
+      gate.setState(false, RobotConfig.TeleOpTourney.GATE_REVERSED, RobotConfig.TeleOpTourney.GATE_RPM);
 
       while (opModeInInit()) {
         if (gamepad1.dpad_left || gamepad2.dpad_left) { alliance = Alliance.RED; }
@@ -125,7 +125,9 @@ public final class TeleOpTourney extends LinearOpMode {
         intake.setState(controls.isIntakeEnabled(), controls.isIntakeReversed()
             ? IntakeSubsystem.Direction.REVERSE : IntakeSubsystem.Direction.FORWARD);
         // Called every loop: this is what advances the gate's jam-recovery state machine.
-        gate.setState(controls.isGateEnabled(), controls.isGateReversed(),
+        // GATE_REVERSED flips the normal feed direction; spit always runs opposite to it.
+        gate.setState(controls.isGateEnabled(),
+            controls.isGateReversed() != RobotConfig.TeleOpTourney.GATE_REVERSED,
             RobotConfig.TeleOpTourney.GATE_RPM);
 
         Pose pose = follower.getPose();

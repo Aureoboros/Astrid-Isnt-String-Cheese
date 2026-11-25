@@ -165,6 +165,8 @@ public final class RobotConfig {
     public static final double SHOOTER_RPM_STEP = 50.0;
     public static final double SHOOTER_MAX_RPM = 6000.0;
     public static final double GATE_RPM = PreloadedHiveAutoConfig.GATE_RPM;
+    /** Normal gate feed runs reversed in TeleOpTourney; spit (B) runs the opposite way. */
+    public static final boolean GATE_REVERSED = true;
     /** Pedro power cap while A drives to the shooting pose. Driver input always cancels. */
     public static final double DRIVE_TO_SHOOT_MAX_POWER = 0.7;
     public static final double DRIVE_TO_SHOOT_POSITION_TOLERANCE_INCHES = 1.5;
