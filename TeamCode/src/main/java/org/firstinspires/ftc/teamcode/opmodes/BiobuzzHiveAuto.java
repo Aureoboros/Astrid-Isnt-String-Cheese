@@ -26,6 +26,7 @@ import org.firstinspires.ftc.teamcode.control.PollenBatchInventory;
 import org.firstinspires.ftc.teamcode.control.LimelightPanController;
 import org.firstinspires.ftc.teamcode.telemetry.CameraPanTelemetry;
 import org.firstinspires.ftc.teamcode.localization.AprilTagTracker;
+import org.firstinspires.ftc.teamcode.localization.AutoPoseHandoff;
 import org.firstinspires.ftc.teamcode.localization.HiveTagRelocalizer;
 import org.firstinspires.ftc.teamcode.localization.HiveTipDetector;
 import org.firstinspires.ftc.teamcode.navigation.BiobuzzFieldMap;
@@ -100,7 +101,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
         RobotConfig.Autonomous.START_LENGTH_INCHES, RobotConfig.Autonomous.START_WIDTH_INCHES);
     Alliance alliance = initialAlliance();
     HiveAutoRoute route = createRoute(alliance);
-    boolean confirmed = false, oldA = false;
+    boolean confirmed = false, oldA = false, routeStarted = false;
     try {
       follower = Constants.createFollower(hardwareMap);
       pinpoint = ((PinpointLocalizer) follower.getPoseTracker().getLocalizer()).getPinpoint();
@@ -188,6 +189,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
       }
       follower.setPose(pose(field.startPose(route.start())));
       follower.updatePose();
+      routeStarted = true;
       if (mechanismsEnabled() && tags != null && !tags.isConnected()) {
         status = "NO MOVEMENT: Limelight is disconnected"; show(); return;
       }
@@ -242,7 +244,11 @@ public class BiobuzzHiveAuto extends LinearOpMode {
       show();
     } finally {
       stopMechanisms();
-      if (follower != null) { follower.breakFollowing(); }
+      if (follower != null) {
+        follower.breakFollowing();
+        // Only a run that began from the known start pose has a meaningful end pose.
+        if (routeStarted) { AutoPoseHandoff.save(waypoint(follower.getPose()), alliance); }
+      }
       if (pan != null) { pan.close(); }
       if (tags != null) { tags.stop(); }
     }
