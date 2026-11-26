@@ -8,6 +8,7 @@ import org.firstinspires.ftc.teamcode.subsystems.GateMotorSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.subsystems.SingleShooterSubsystem;
 import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 /**
  * Driver Station diagnostic: initializes gateMotor, the intake and Shoot1. From Play the intake
@@ -27,6 +28,9 @@ public final class GateMotorTestTeleOp extends LinearOpMode {
       shooter = new SingleShooterSubsystem(hardwareMap);
       shooter.setState(false, shooterReversed, controls.getShooterRpm());
       telemetry.addLine("gateMotor: Expansion Hub motor port 1 (goBILDA 435 RPM, encoder required).");
+      PIDFCoefficients gains = gate.getVelocityPidf();
+      telemetry.addData("Gate hub velocity PIDF", "P %.3f I %.3f D %.3f F %.3f / %s",
+          gains.p, gains.i, gains.d, gains.f, gains.algorithm);
       telemetry.addLine("A: gate FORWARD/REVERSE | B: gate START/HOLD (either controller).");
       telemetry.addLine("X: shooter on/off | D-pad left/right: gate RPM | D-pad up/down: shooter RPM.");
       telemetry.addData("Gate starts OFF at", "%.0f RPM (closed-loop)", controls.getGateRpm());
@@ -52,13 +56,17 @@ public final class GateMotorTestTeleOp extends LinearOpMode {
         telemetry.addData("Shoot1 target / actual", "%.0f / %.0f RPM",
             shooter.getTargetRpm(), Math.abs(shooter.getActualRpm()));
         telemetry.addData("Gate motor", gate.isHolding() ? "HOLD POSITION" : "RUN / RECOVERY");
+        telemetry.addData("Gate hub mode", gate.getRunMode());
         if (gate.isHolding()) {
           telemetry.addData("Gate hold target / error", "%d / %d ticks",
               gate.getHoldPositionTicks(), gate.getHoldErrorTicks());
         }
         telemetry.addData("Gate direction", gate.isReversed() ? "REVERSE" : "FORWARD");
-        telemetry.addData("Gate target / actual", "%.0f / %.0f RPM",
+        telemetry.addData("Gate selected / measured speed", "%.1f / %.1f RPM",
             gate.getTargetRpm(), Math.abs(gate.getActualRpm()));
+        telemetry.addData("Gate raw encoder speed", "%.1f ticks/s (signed)", gate.getRawEncoderTicksPerSecond());
+        telemetry.addData("Gate encoder position", "%d ticks (accumulated)", gate.getPositionTicks());
+        telemetry.addData("Gate encoder resolution", "%.1f ticks/rev (fixed)", gate.getEncoderTicksPerRevolution());
         telemetry.addData("Gate applied RPM (signed)", "%.0f", gate.getOutputRpm());
         telemetry.addData("Gate recovery", gate.getRecoveryState());
         telemetry.addData("Gate retry / limit", "%d / %d",

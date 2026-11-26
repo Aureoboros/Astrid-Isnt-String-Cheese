@@ -17,7 +17,7 @@ public final class PreloadedHiveAutoConfigTest {
 
   @Test public void usesRequested2900RpmAndExistingShootOneDirection() {
     assertEquals(2900, PreloadedHiveAutoConfig.SHOOT_RPM, 0);
-    assertEquals(4800, RobotConfig.TeleTourney.SHOOTER_INITIAL_RPM, 0);
+    assertEquals(3200, RobotConfig.TeleTourney.SHOOTER_INITIAL_RPM, 0);
     assertTrue(PreloadedHiveAutoConfig.SHOOT_REVERSED);
   }
 }

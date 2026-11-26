@@ -40,13 +40,7 @@ public final class LimelightPanController implements AutoCloseable {
         if (!CameraPanConfig.travelReady()) {
           throw new IllegalArgumentException("Verify servo travel first");
         }
-        imageAim = new ImagePanTracker(CameraPanConfig.MIN_POSITION,
-            CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION,
-            CameraPanConfig.START_POSITION, CameraPanConfig.POSITION_GAIN_PER_TX_DEGREE,
-            CameraPanConfig.MAX_POSITION_STEP, CameraPanConfig.TX_DEADBAND_DEGREES,
-            CameraPanConfig.IMAGE_SETTLE_SECONDS, CameraPanConfig.IMAGE_UPDATE_INTERVAL_SECONDS,
-            CameraPanConfig.LOST_TARGET_HOLD_SECONDS);
-        imageAim.setDirection(CameraPanConfig.TX_TO_POSITION_SIGN);
+        imageAim = CameraPanConfig.imageTracker();
         manualImageControls = new ServoTrackingTestControls(imageAim,
             CameraPanConfig.MANUAL_POSITION_STEP, CameraPanConfig.MANUAL_REPEAT_SECONDS);
         servo = hardwareMap.get(Servo.class, RobotConfig.Hardware.SERVO_MOTOR);

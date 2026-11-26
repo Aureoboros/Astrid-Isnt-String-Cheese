@@ -11,6 +11,9 @@ public final class ImagePanTracker {
   private double targetTx = Double.NaN;
   private int direction;
   private boolean started, tracking;
+  private boolean stableFeedback, centered;
+  private double resumeDeadband;
+  private int confirmationFrames, pendingSign, pendingFrames, lastErrorSign, stabilityTargetId = -1;
   private String status = "READY: no movement before Play";
 
   public ImagePanTracker(double min, double center, double max, double start,
@@ -29,6 +32,24 @@ public final class ImagePanTracker {
     selector = new PanTargetSelector(lostHold);
   }
 
+  /** Hysteresis and direction confirmation for fast feedback with camera/servo latency. */
+  public void configureStability(double resumeDeadband, int confirmationFrames) {
+    if (started || !Double.isFinite(resumeDeadband) || resumeDeadband <= deadband
+        || confirmationFrames < 1) {
+      throw new IllegalArgumentException("Invalid image-pan stability settings");
+    }
+    this.resumeDeadband = resumeDeadband;
+    this.confirmationFrames = confirmationFrames;
+    stableFeedback = true;
+    resetStability();
+  }
+
+  private void resetStability() {
+    centered = false;
+    pendingSign = pendingFrames = lastErrorSign = 0;
+    stabilityTargetId = -1;
+  }
+
   /** Called only after Play; returned commanded position initially equals configured start. */
   public void start(double now, double frameTimestamp) {
     if (started) { return; }
@@ -40,6 +61,7 @@ public final class ImagePanTracker {
   public void setDirection(int direction) {
     if (direction != 1 && direction != -1) { throw new IllegalArgumentException("Direction must be +/-1"); }
     this.direction = direction;
+    resetStability();
     tracking = false;
     selector.clear();
     targetTx = Double.NaN;
@@ -48,6 +70,7 @@ public final class ImagePanTracker {
 
   public void clearDirection() {
     direction = 0;
+    resetStability();
     tracking = false;
     selector.clear();
     targetTx = Double.NaN;
@@ -60,12 +83,14 @@ public final class ImagePanTracker {
       return;
     }
     tracking = !tracking;
+    resetStability();
     status = tracking ? "TRACKING: waiting for a fresh tag" : "HOLD: tracking OFF";
   }
 
   public void center(double now, double timestamp) {
     if (!started) { return; }
     tracking = false;
+    resetStability();
     selector.clear();
     targetTx = Double.NaN;
     move(center, now, timestamp);
@@ -81,6 +106,7 @@ public final class ImagePanTracker {
   /** Explicit manual override; caller must suspend update() until manual input is released. */
   public void manualOverride(double step, double now, double timestamp) {
     if (!started || !Double.isFinite(step)) { return; }
+    resetStability();
     move(position + step, now, timestamp);
     targetTx = Double.NaN;
     status = "MANUAL: automatic corrections suspended until release";
@@ -90,7 +116,10 @@ public final class ImagePanTracker {
     if (!started || !tracking || !Double.isFinite(now)) { return; }
     AprilTagAim target = selector.select(tags, now);
     targetTx = target == null ? Double.NaN : target.getTxDegrees();
-    if (target == null) { status = "HOLD: no locked tag visible (no search sweep)"; return; }
+    if (target == null) {
+      pendingSign = pendingFrames = 0;
+      status = "HOLD: no locked tag visible (no search sweep)"; return;
+    }
     if (now - lastMove < Math.max(settle, interval)) {
       status = "SETTLING: waiting before next correction";
       return;
@@ -105,14 +134,40 @@ public final class ImagePanTracker {
       return;
     }
     if (settle > 0 && timestamp <= settledFrame) { return; }
+    double error = targetTx;
+    if (stableFeedback) {
+      if (stabilityTargetId != target.getId()) {
+        resetStability();
+        stabilityTargetId = target.getId();
+      }
+      if (Math.abs(error) <= deadband || (centered && Math.abs(error) < resumeDeadband)) {
+        centered = true;
+        pendingSign = pendingFrames = lastErrorSign = 0;
+        status = "TRACKING: horizontally centered; holding position";
+        return;
+      }
+      int sign = error > 0 ? 1 : -1;
+      if (centered || (lastErrorSign != 0 && sign != lastErrorSign)) {
+        if (pendingSign != sign) { pendingSign = sign; pendingFrames = 0; }
+        if (++pendingFrames < confirmationFrames) {
+          status = "HOLD: confirming fresh-frame bearing change";
+          return;
+        }
+      }
+      centered = false;
+      pendingSign = pendingFrames = 0;
+      // Taper correction near center instead of integrating the whole deadband error.
+      error = Math.copySign(Math.abs(error) - deadband, error);
+    }
     if (Math.abs(targetTx) <= deadband) { status = "TRACKING: horizontally centered"; return; }
-    double change = Math.max(-maxStep, Math.min(maxStep, direction * gain * targetTx));
+    double change = Math.max(-maxStep, Math.min(maxStep, direction * gain * error));
     double next = clamp(position + change);
     if (Math.abs(next - position) < 1e-6) {
       status = "HOLD: travel limit; tag not centered";
       return;
     }
     move(next, now, timestamp);
+    lastErrorSign = targetTx > 0 ? 1 : -1;
     status = "TRACKING: correcting horizontal offset";
   }
 

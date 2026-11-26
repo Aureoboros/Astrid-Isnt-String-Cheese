@@ -32,10 +32,13 @@ camera is initialized. Keep hands clear before Play.
 - Driver Station STOP or exiting the test stops all three motors.
 
 Feeding uses closed-loop encoder velocity control. HOLD captures the current encoder
-position once, switches to `RUN_TO_POSITION`, and applies up to
+position once after cutting feeding power and commanding zero velocity, switches
+to `RUN_TO_POSITION`, and applies up to
 `RobotConfig.GateMotor.HOLD_POWER = 0.25` power. The hub corrects displacement back
 toward that target; repeated updates and direction/RPM selection while holding do
 not move the target. `HOLD_POSITION_TOLERANCE_TICKS = 2` sets the tolerance.
+The hold power is a limit for correcting displacement; it does not command
+continuous rotation. B HOLD stops feeding and locks the angle at that press.
 Telemetry shows RUN/HOLD, hold target/error ticks, direction, and selected/measured RPM.
 Test holding torque under load and adjust HOLD_POWER if needed. Holding the current
 angle does not find a mechanically closed gate position; stop feeding with the
@@ -45,6 +48,52 @@ The gate's configured base motor direction is FORWARD. Stop and allow coast-down
 reversing; keep hands clear. Check the separator unloaded first.
 Telemetry also shows the continuously running intake and configured odometry
 ticks-to-inches coefficient; this test does not initialize or read Pinpoint.
+
+## Encoder speed versus position
+
+The configured 435-RPM profile uses **384.5 ticks per output-shaft revolution**.
+`GateMotorSubsystem.getActualRpm()` computes `raw ticks/s × 60 / ticks per revolution`.
+Both Test: Gate Motor and TeleTourney show the raw speed, accumulated position,
+and fixed resolution separately. For this calibration, 60 RPM is 384.5 ticks/s;
+120 RPM is 769 ticks/s; 400 ticks/s is about 62.4 RPM. Encoder position is an
+accumulated count and need not match speed. The resolution remains 384.5 at all
+speeds. HOLD retains its position and should read near zero speed after settling.
+
+In Test: Gate Motor, D-pad LEFT/RIGHT changes the gate target by 10 RPM per press;
+UP/DOWN changes the shooter. Compare selected RPM, applied RPM and measured speed
+while the recovery state is RUNNING. If raw speed stays near 400 while selected
+speed changes, the observation needs a hardware/control check, rather than a
+change to the conversion formula. If the position remains fixed while the shaft
+rotates, check its encoder cable on Expansion Hub motor port 1.
+
+The operator confirmed the physical gate motor is 435 RPM. The reference XML has
+an older 1500-RPM comment; the source calibration is 435 RPM / 384.5 ticks/rev.
+
+## Checking a fixed measured RPM at different targets
+
+The subsystem explicitly installs REV velocity PIDF starting gains after setting
+motor metadata. Changing a generic motor's metadata alone does not install a
+matching velocity PIDF controller. `RobotConfig.GateMotor.VELOCITY_*` defines the
+starting gains: `F = 32767 / (435 × 384.5 / 60)`, `P = 0.1F`, `I = 0.1P`, `D = 0`.
+These affect feeding velocity; position HOLD and the jam state machine are unchanged.
+The test displays the hub's actual PIDF coefficients during INIT. Tune gains under
+load if measured speed still overshoots or oscillates; they are not hardware-verified.
+
+Run **Test: Gate Encoder Only** to isolate gate feedback. It initializes only the
+gate, leaving intake and Shoot1 unpowered. B toggles START/HOLD, A reverses, and
+D-pad LEFT/RIGHT adjusts the selected gate speed by 10 RPM. Check 60, 70, and 80
+RPM while recovery reports RUNNING. Expected commanded encoder speeds are
+384.5, 448.6, and 512.7 ticks/s. Telemetry also compares SDK velocity with RPM
+computed independently from encoder position changes over a 250-ms window.
+
+Both gate power and encoder cables must use **Expansion Hub port 1**. The older
+combined test runs intake continuously and Shoot1 by default: an encoder cable
+from one of those motors plugged into the gate encoder port can report its speed
+instead of the gate's. If the gate physically spins in this isolated test but its
+position count does not advance, check that wiring. If both speed estimates
+remain near 396 RPM with only the gate powered, the discrepancy is real and needs
+on-hardware PIDF/encoder inspection. A unit test verifies conversions/commands,
+not the physical response of the controller or motor.
 
 ## Automatic jam recovery
 

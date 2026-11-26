@@ -45,13 +45,22 @@ angle feedback and may resist or be damaged. Keep the tag within view: if lost,
 the test holds its last position, then reacquires a visible tag; it does not scan
 for an off-screen tag.
 
-The servo centers the tag horizontally within a **2-degree deadband**, not
-vertically: pitch is fixed. Corrections are limited to **0.01** per step, at least
-**0.05 seconds** apart (up to 20 corrections/second), using fresh frames without
-a servo-settling pause. `IMAGE_UPDATE_INTERVAL_SECONDS` sets that cadence;
-`IMAGE_SETTLE_SECONDS = 0` selects continuous feedback while the camera and robot
-move. Calibrated robot-space pose gating retains its separate settling settings. Lost targets hold position;
-there is no blind sweep. A tag beyond the safe travel limits cannot be centered.
+The servo centers the tag horizontally within **2 degrees**, then holds its commanded
+position. It resumes only after **two fresh frames** show an error of at least
+**4 degrees** on the same side. A reversal during tracking also needs two fresh
+frames; duplicate frames cannot confirm it. This hysteresis avoids chasing noise
+around image center. Pitch remains fixed.
+
+Image corrections are limited to **0.005** per step at least **0.1 seconds** apart
+(up to 10 corrections/second). `IMAGE_POSITION_GAIN_PER_TX_DEGREE = 0.0005`
+applies to the error remaining outside the 2-degree deadband, so steps taper near
+center. These settings and `IMAGE_RESUME_TX_DEGREES` / `IMAGE_CONFIRMATION_FRAMES`
+are in `CameraPanConfig`; `imageTracker()` applies them to TeleTourney and the
+image-only tests. Driving and tracking continue together without a blocking wait.
+Calibrated robot-space pose gating retains separate settling settings. Lost
+targets hold position; there is no blind sweep. A tag beyond the safe travel
+limits cannot be centered. Tune on the actual mount: simulated camera/servo delay
+checks do not measure the physical servo speed or camera latency.
 
 ## Commissioning
 
@@ -124,8 +133,8 @@ position/yaw display NaN until the automatic controller has actually started.
 ## Tracking and measurement safety
 
 Tracking uses image-space AprilTag `tx`, not the robot-space left offset. A bounded
-proportional correction moves the servo by at most `MAX_POSITION_STEP`; a deadband
-reduces chatter. It keeps the selected ID through short losses, then can choose an
+proportional image correction moves the servo by at most `IMAGE_MAX_POSITION_STEP`;
+centering hysteresis and fresh-frame confirmation reduce chatter. It keeps the selected ID through short losses, then can choose an
 actually visible tag nearest the image center. Losing all tags holds the last
 position; there is no blind search sweep. Center requests work even without a tag.
 

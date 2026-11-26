@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.config;
 
 import org.firstinspires.ftc.teamcode.control.PanCalibration;
+import org.firstinspires.ftc.teamcode.control.ImagePanTracker;
 
 /** Image centering needs verified travel/sign; robot-space poses also need yaw calibration. */
 public final class CameraPanConfig {
@@ -39,10 +40,14 @@ public final class CameraPanConfig {
   public static final double POSITION_GAIN_PER_TX_DEGREE = 0.001;
   public static final double MAX_POSITION_STEP = 0.01;
   public static final double TX_DEADBAND_DEGREES = 2;
-  // Continuous image feedback while driving: fresh frames, up to 20 corrections/second.
+  // Bounded image feedback while driving; allow the servo/camera response to catch up.
   // Unlike robot-space pose measurements, tx does not require a stationary camera.
   public static final double IMAGE_SETTLE_SECONDS = 0;
-  public static final double IMAGE_UPDATE_INTERVAL_SECONDS = 0.05;
+  public static final double IMAGE_UPDATE_INTERVAL_SECONDS = 0.1;
+  public static final double IMAGE_POSITION_GAIN_PER_TX_DEGREE = 0.0005;
+  public static final double IMAGE_MAX_POSITION_STEP = 0.005;
+  public static final double IMAGE_RESUME_TX_DEGREES = 4;
+  public static final int IMAGE_CONFIRMATION_FRAMES = 2;
   // Keep separate settling/configuration timing for calibrated robot-space poses.
   public static final double SETTLE_SECONDS = 0.35;
   public static final double MIN_UPDATE_INTERVAL_SECONDS = 0.5;
@@ -57,6 +62,17 @@ public final class CameraPanConfig {
         && CENTER_POSITION < MAX_POSITION && MAX_POSITION <= 1
         && Double.isFinite(START_POSITION)
         && START_POSITION >= MIN_POSITION && START_POSITION <= MAX_POSITION;
+  }
+
+  /** Shared feedback tuning for TeleTourney and all image-only camera tests. */
+  public static ImagePanTracker imageTracker() {
+    ImagePanTracker tracker = new ImagePanTracker(MIN_POSITION, CENTER_POSITION,
+        MAX_POSITION, START_POSITION, IMAGE_POSITION_GAIN_PER_TX_DEGREE,
+        IMAGE_MAX_POSITION_STEP, TX_DEADBAND_DEGREES, IMAGE_SETTLE_SECONDS,
+        IMAGE_UPDATE_INTERVAL_SECONDS, LOST_TARGET_HOLD_SECONDS);
+    tracker.configureStability(IMAGE_RESUME_TX_DEGREES, IMAGE_CONFIRMATION_FRAMES);
+    tracker.setDirection(TX_TO_POSITION_SIGN);
+    return tracker;
   }
 
   public static PanCalibration calibration() {

@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import static org.junit.Assert.*;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.MotorControlAlgorithm;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import org.junit.Test;
 
 public final class GateMotorSubsystemTest {
   private final List<Double> velocities = new ArrayList<>();
+  private final List<String> commands = new ArrayList<>();
   private MotorConfigurationType profile = new MotorConfigurationType();
   private DcMotor.Direction direction;
   private DcMotor.RunMode mode;
@@ -22,6 +25,7 @@ public final class GateMotorSubsystemTest {
   private int position;
   private int targetPosition, targetWrites, tolerance;
   private double power;
+  private PIDFCoefficients pidf;
 
   private DcMotorEx motor() {
     return (DcMotorEx) Proxy.newProxyInstance(DcMotorEx.class.getClassLoader(),
@@ -30,12 +34,20 @@ public final class GateMotorSubsystemTest {
             case "getMotorType": return profile;
             case "setMotorType": profile = (MotorConfigurationType) args[0]; break;
             case "setDirection": direction = (DcMotor.Direction) args[0]; break;
-            case "setMode": mode = (DcMotor.RunMode) args[0]; break;
-            case "setTargetPosition": targetPosition = (int) args[0]; targetWrites++; break;
+            case "setMode": mode = (DcMotor.RunMode) args[0]; commands.add("mode:" + mode); break;
+            case "getMode": return mode;
+            case "setVelocityPIDFCoefficients":
+              pidf = new PIDFCoefficients((double) args[0], (double) args[1],
+                  (double) args[2], (double) args[3], MotorControlAlgorithm.PIDF); break;
+            case "getPIDFCoefficients":
+              assertEquals(DcMotor.RunMode.RUN_USING_ENCODER, args[0]); return pidf;
+            case "setTargetPosition": targetPosition = (int) args[0]; targetWrites++;
+              commands.add("target:" + targetPosition); break;
             case "setTargetPositionTolerance": tolerance = (int) args[0]; break;
-            case "setPower": power = (double) args[0]; break;
+            case "setPower": power = (double) args[0]; commands.add("power:" + power); break;
             case "setZeroPowerBehavior": zeroPower = (DcMotor.ZeroPowerBehavior) args[0]; break;
-            case "setVelocity": velocities.add((double) args[0]); break;
+            case "setVelocity": velocities.add((double) args[0]);
+              commands.add("velocity:" + args[0]); break;
             case "getVelocity": return measuredVelocity;
             case "getCurrentPosition": return position;
             default: throw new AssertionError("Unexpected hardware access: " + method.getName());
@@ -89,6 +101,24 @@ public final class GateMotorSubsystemTest {
     assertEquals(0, gate.getOutputRpm(), 0);
   }
 
+  @Test public void runToHoldCutsFeedPowerBeforeLockingPositionAndNeverRestartsOnHeldState() {
+    GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 435, 384.5, 60);
+    gate.setState(true, false, 60, 0);
+    position = 123;
+    commands.clear();
+    gate.setState(false, false, 60, 0.1);
+    assertEquals(Arrays.asList("power:0.0", "velocity:0.0", "target:123",
+        "mode:RUN_TO_POSITION", "power:" + RobotConfig.GateMotor.HOLD_POWER), commands);
+    assertTrue(gate.isHolding()); assertFalse(gate.isActive());
+    assertEquals(0, gate.getCommandedRpm(), 0);
+    assertEquals(0, gate.getOutputRpm(), 0);
+    position = 120;
+    commands.clear();
+    gate.setState(false, false, 60, 0.2);
+    assertTrue(commands.isEmpty());
+    assertEquals(123, targetPosition); assertEquals(3, gate.getHoldErrorTicks());
+  }
+
   @Test public void restartReturnsToVelocityAndNextHoldCapturesNewPosition() {
     GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 435, 384.5, 100);
     position = 10; gate.setState(false, false, 100, 0);
@@ -136,6 +166,43 @@ public final class GateMotorSubsystemTest {
     assertEquals(435 * 384.5 / 60, velocities.get(velocities.size() - 1), 1e-9);
     gate.setState(true, false, -25);
     assertEquals(0, gate.getCommandedRpm(), 0);
+  }
+
+  @Test public void measuredRpmTracksRawEncoderVelocityIndependentlyOfPositionAndSelectedSpeed() {
+    GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 435, 384.5, 60);
+    position = 400;
+    for (double measuredRpm : new double[] {0, 60, 120, 435, -120}) {
+      measuredVelocity = measuredRpm * 384.5 / 60;
+      assertEquals(measuredVelocity, gate.getRawEncoderTicksPerSecond(), 1e-9);
+      assertEquals(measuredRpm, gate.getActualRpm(), 1e-9);
+      assertEquals(400, gate.getPositionTicks());
+      assertEquals(384.5, gate.getEncoderTicksPerRevolution(), 0);
+      assertEquals(60, gate.getTargetRpm(), 0);
+    }
+    measuredVelocity = 400;
+    assertEquals(62.4187256, gate.getActualRpm(), 1e-6);
+  }
+
+  @Test public void initInstallsMotorScaledVelocityPidfRatherThanInheritingGenericGains() {
+    pidf = new PIDFCoefficients(1000, 1000, 0, 1000);
+    GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 435, 384.5, 60);
+    assertEquals(32767.0 / (435 * 384.5 / 60), gate.getVelocityPidf().f, 1e-9);
+    assertEquals(0.1 * pidf.f, pidf.p, 1e-9);
+    assertEquals(0.1 * pidf.p, pidf.i, 1e-9);
+    assertEquals(0, pidf.d, 0);
+    assertEquals(MotorControlAlgorithm.PIDF, pidf.algorithm);
+    assertEquals(DcMotor.RunMode.RUN_USING_ENCODER, gate.getRunMode());
+  }
+
+  @Test public void distinctGateTargetsSendDistinctRawVelocityCommands() {
+    GateMotorSubsystem gate = new GateMotorSubsystem(motor(), 435, 384.5, 60);
+    velocities.clear();
+    gate.setState(true, false, 60, 0);
+    gate.setState(true, false, 70, .1);
+    gate.setState(true, false, 80, .2);
+    assertEquals(384.5, velocities.get(0), 1e-9);
+    assertEquals(448.5833333, velocities.get(1), 1e-6);
+    assertEquals(512.6666667, velocities.get(2), 1e-6);
   }
 
   @Test public void invalidCalibrationRejectedBeforeCommands() {

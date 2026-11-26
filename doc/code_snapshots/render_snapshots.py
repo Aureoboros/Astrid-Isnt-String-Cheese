@@ -104,7 +104,8 @@ render("02_limelight_servo_aiming.png", "02 / Limelight error to servo position"
     ("Verified servo range and feedback settings", [
         excerpt("config/CameraPanConfig.java", "public static final double MIN_POSITION", count=4),
         excerpt("config/CameraPanConfig.java", "  // Verified: increasing servo", count=2),
-        excerpt("config/CameraPanConfig.java", "public static final double POSITION_GAIN_PER_TX_DEGREE", count=6),
+        excerpt("config/CameraPanConfig.java", "public static final double TX_DEADBAND_DEGREES", count=1),
+        excerpt("config/CameraPanConfig.java", "public static final double IMAGE_UPDATE_INTERVAL_SECONDS", count=5),
     ]),
     ("Read the tag's horizontal angular error", [
         excerpt("localization/AprilTagTracker.java", "    for (LLResultTypes.FiducialResult", count=4),

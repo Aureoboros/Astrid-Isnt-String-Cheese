@@ -20,13 +20,7 @@ public class SpinSpinServoPositions extends LinearOpMode {
         Servo servo = hardwareMap.get(Servo.class, RobotConfig.Hardware.SERVO_MOTOR);
         AprilTagTracker tags = new AprilTagTracker(hardwareMap);
         tags.attachPanGate(new PanPoseGate(CameraPanConfig.SETTLE_SECONDS));
-        ImagePanTracker aim = new ImagePanTracker(CameraPanConfig.MIN_POSITION,
-                CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION,
-                CameraPanConfig.START_POSITION, CameraPanConfig.POSITION_GAIN_PER_TX_DEGREE,
-                CameraPanConfig.MAX_POSITION_STEP, CameraPanConfig.TX_DEADBAND_DEGREES,
-                CameraPanConfig.IMAGE_SETTLE_SECONDS, CameraPanConfig.IMAGE_UPDATE_INTERVAL_SECONDS,
-                CameraPanConfig.LOST_TARGET_HOLD_SECONDS);
-        aim.setDirection(CameraPanConfig.TX_TO_POSITION_SIGN);
+        ImagePanTracker aim = CameraPanConfig.imageTracker();
         int target = -1;
         boolean previousB = false, previousX = false, previousY = false;
         try {

@@ -8,41 +8,88 @@ import org.junit.Test;
 
 public final class ImagePanTrackerTest {
   private static ImagePanTracker continuousTracker() {
-    ImagePanTracker t = new ImagePanTracker(CameraPanConfig.MIN_POSITION,
-        CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION,
-        CameraPanConfig.START_POSITION, CameraPanConfig.POSITION_GAIN_PER_TX_DEGREE,
-        CameraPanConfig.MAX_POSITION_STEP, CameraPanConfig.TX_DEADBAND_DEGREES,
-        CameraPanConfig.IMAGE_SETTLE_SECONDS, CameraPanConfig.IMAGE_UPDATE_INTERVAL_SECONDS,
-        CameraPanConfig.LOST_TARGET_HOLD_SECONDS);
-    t.setDirection(CameraPanConfig.TX_TO_POSITION_SIGN);
+    ImagePanTracker t = CameraPanConfig.imageTracker();
     t.start(0, 1); t.toggleTracking();
     return t;
   }
 
   @Test public void continuousTrackingFollowsChangingBearingWithoutSettlingBarrier() {
     ImagePanTracker t = continuousTracker();
-    t.update(tag(35, 20), 2, 0.051);
-    assertEquals(0.19, t.getPosition(), 1e-9); // First eligible fresh frame corrects.
-    t.update(tag(35, 20), 3, 0.102);
-    assertEquals(0.18, t.getPosition(), 1e-9);
-    t.update(tag(35, -20), 4, 0.153); // Bearing changes as the robot turns/passes the tag.
+    t.update(tag(35, 20), 2, 0.101);
+    assertEquals(0.195, t.getPosition(), 1e-9); // First eligible fresh frame corrects.
+    t.update(tag(35, 20), 3, 0.202);
     assertEquals(0.19, t.getPosition(), 1e-9);
-    t.update(tag(35, 0), 5, 0.204);
-    assertEquals(0.19, t.getPosition(), 1e-9);
+    t.update(tag(35, -20), 4, 0.303); // Bearing changes as the robot turns/passes the tag.
+    assertEquals(0.19, t.getPosition(), 1e-9); // One opposite frame cannot reverse.
+    t.update(tag(35, -20), 5, 0.314);
+    assertEquals(0.195, t.getPosition(), 1e-9);
+    t.update(tag(35, 0), 6, 0.415);
+    assertEquals(0.195, t.getPosition(), 1e-9);
     assertTrue(t.getStatus().contains("centered"));
   }
 
   @Test public void continuousTrackingStillRejectsDuplicatesAndLimitsCorrectionRate() {
     ImagePanTracker t = continuousTracker();
-    t.update(tag(35, 20), 2, 0.051);
-    t.update(tag(35, 20), 3, 0.06); // Fresh but too soon.
-    t.update(tag(35, 20), 2, 0.11); // Old frame, even after interval elapsed.
-    t.update(tag(35, 20), Double.NaN, 0.12);
+    t.update(tag(35, 20), 2, 0.101);
+    t.update(tag(35, 20), 3, 0.11); // Fresh but too soon.
+    t.update(tag(35, 20), 2, 0.22); // Old frame, even after interval elapsed.
+    t.update(tag(35, 20), Double.NaN, 0.23);
+    assertEquals(0.195, t.getPosition(), 1e-9);
+    t.update(tag(35, 20), 4, 0.24);
     assertEquals(0.19, t.getPosition(), 1e-9);
-    t.update(tag(35, 20), 4, 0.13);
-    assertEquals(0.18, t.getPosition(), 1e-9);
-    t.update(Collections.emptyList(), Double.NaN, 0.2);
-    assertEquals(0.18, t.getPosition(), 1e-9);
+    t.update(Collections.emptyList(), Double.NaN, 0.35);
+    assertEquals(0.19, t.getPosition(), 1e-9);
+  }
+
+  @Test public void centeredHoldIgnoresNoiseAndResumesOnlyOnTwoFreshFramesOutsideFourDegrees() {
+    ImagePanTracker t = continuousTracker();
+    t.update(tag(35, 1), 2, 0.11);
+    for (int i = 0; i < 20; i++) {
+      t.update(tag(35, i % 2 == 0 ? 3.5 : -3.5), 3 + i, 0.22 + i * 0.11);
+      assertEquals(0.2, t.getPosition(), 0);
+    }
+    t.update(tag(35, 8), 30, 3);
+    t.update(tag(35, 8), 30, 3.1); // Duplicate cannot confirm a real departure.
+    assertEquals(0.2, t.getPosition(), 0);
+    t.update(tag(35, 8), 31, 3.2);
+    assertEquals(0.197, t.getPosition(), 1e-9);
+  }
+
+  @Test public void singleOppositeOutlierCannotReverseCorrectionAndSmallErrorsGetSmallerSteps() {
+    ImagePanTracker t = continuousTracker();
+    t.update(tag(35, 20), 2, 0.11);
+    t.update(tag(35, -20), 3, 0.22);
+    assertEquals(0.195, t.getPosition(), 1e-9);
+    t.update(tag(35, 3), 4, 0.23); // Returns to the previous bearing sign.
+    assertEquals(0.1945, t.getPosition(), 1e-9);
+    t.update(tag(35, -20), 5, 0.34);
+    assertEquals(0.1945, t.getPosition(), 1e-9);
+    t.update(tag(35, -20), 6, 0.35);
+    assertEquals(0.1995, t.getPosition(), 1e-9);
+  }
+
+  @Test public void delayedServoAndCameraSimulationConvergesThenHoldsWithImageNoise() {
+    // Models a range of mounts, not a measured calibration of the real servo.
+    for (double degreesPerPosition : new double[] {180, 360, 600}) {
+      for (int cameraDelaySteps : new int[] {8, 15}) {
+        ImagePanTracker t = continuousTracker();
+        double actualPosition = 0.2;
+        double[] capturedError = new double[1000];
+        double heldPosition = Double.NaN;
+        for (int i = 0; i < capturedError.length; i++) {
+          double now = i * 0.01;
+          actualPosition += (t.getPosition() - actualPosition) * (1 - Math.exp(-0.01 / 0.08));
+          capturedError[i] = 20 + degreesPerPosition * (actualPosition - 0.2);
+          int capturedIndex = Math.max(0, i - cameraDelaySteps);
+          double noise = i % 2 == 0 ? 0.4 : -0.4;
+          t.update(tag(35, capturedError[capturedIndex] + noise), i + 2, now);
+          if (i == 800) { heldPosition = t.getPosition(); }
+          if (i > 800) { assertEquals("Must hold after convergence", heldPosition, t.getPosition(), 1e-9); }
+        }
+        assertTrue("Final error must be inside resume threshold", Math.abs(capturedError[999]) < 4);
+        assertTrue(t.getStatus().contains("holding position"));
+      }
+    }
   }
 
   @Test public void continuousTrackingResumesQuicklyAfterManualPanAndHonorsLimits() {
@@ -50,10 +97,10 @@ public final class ImagePanTrackerTest {
     ServoTrackingTestControls controls = new ServoTrackingTestControls(t, 0.005, 0.1);
     controls.update(false, false, true, false, tag(35, 20), 2, 0.1);
     assertEquals(0.205, t.getPosition(), 1e-9);
-    controls.update(false, false, false, false, tag(35, 20), 3, 0.151);
-    assertEquals(0.195, t.getPosition(), 1e-9);
+    controls.update(false, false, false, false, tag(35, 20), 3, 0.201);
+    assertEquals(0.2, t.getPosition(), 1e-9);
     for (int i = 0; i < 50; i++) {
-      t.update(tag(35, 30), 4 + i, 0.21 + i * 0.06);
+      t.update(tag(35, 30), 4 + i, 0.31 + i * 0.11);
       assertTrue(t.getPosition() >= CameraPanConfig.MIN_POSITION);
     }
     assertEquals(CameraPanConfig.MIN_POSITION, t.getPosition(), 1e-9);

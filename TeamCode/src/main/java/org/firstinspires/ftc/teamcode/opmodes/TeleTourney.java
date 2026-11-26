@@ -113,11 +113,15 @@ public final class TeleTourney extends LinearOpMode {
           telemetry.addData("Intake", "%s / %s", intake.isEnabled() ? "ON" : "OFF", intake.getDirection());
           telemetry.addData("Gate requested", mechanisms.isGateEnabled() ? "RUN / FORWARD" : "HOLD");
           telemetry.addData("Gate mode", gateMotor.isHolding() ? "HOLD POSITION" : "VELOCITY / RECOVERY");
+          telemetry.addData("Gate hub mode", gateMotor.getRunMode());
           if (gateMotor.isHolding()) {
             telemetry.addData("Gate hold target / error", "%d / %d ticks",
                 gateMotor.getHoldPositionTicks(), gateMotor.getHoldErrorTicks());
           }
           telemetry.addData("Gate target / actual RPM", "%.0f / %.0f", gateMotor.getTargetRpm(), gateMotor.getActualRpm());
+          telemetry.addData("Gate raw encoder speed", "%.1f ticks/s (signed)", gateMotor.getRawEncoderTicksPerSecond());
+          telemetry.addData("Gate encoder position", "%d ticks (accumulated)", gateMotor.getPositionTicks());
+          telemetry.addData("Gate encoder resolution", "%.1f ticks/rev (fixed)", gateMotor.getEncoderTicksPerRevolution());
           telemetry.addData("Gate applied RPM", "%.0f", gateMotor.getOutputRpm());
           telemetry.addData("Gate recovery / retries", "%s / %d", gateMotor.getRecoveryState(), gateMotor.getRecoveryAttempts());
           if (gateMotor.getRecoveryState() == GateJamRecoveryController.State.FAULT) {

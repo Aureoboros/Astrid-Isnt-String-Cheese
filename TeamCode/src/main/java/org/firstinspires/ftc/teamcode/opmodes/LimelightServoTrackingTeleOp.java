@@ -25,12 +25,7 @@ public final class LimelightServoTrackingTeleOp extends LinearOpMode {
     AprilTagTracker tags = new AprilTagTracker(hardwareMap);
     // Permanently closed in this image-only test. No yaw/offset calibration is assumed or uploaded.
     tags.attachPanGate(new PanPoseGate(CameraPanConfig.SETTLE_SECONDS));
-    ImagePanTracker aim = new ImagePanTracker(CameraPanConfig.MIN_POSITION,
-        CameraPanConfig.CENTER_POSITION, CameraPanConfig.MAX_POSITION, CameraPanConfig.START_POSITION,
-        CameraPanConfig.POSITION_GAIN_PER_TX_DEGREE, CameraPanConfig.MAX_POSITION_STEP,
-        CameraPanConfig.TX_DEADBAND_DEGREES, CameraPanConfig.IMAGE_SETTLE_SECONDS,
-        CameraPanConfig.IMAGE_UPDATE_INTERVAL_SECONDS, CameraPanConfig.LOST_TARGET_HOLD_SECONDS);
-    aim.setDirection(CameraPanConfig.TX_TO_POSITION_SIGN);
+    ImagePanTracker aim = CameraPanConfig.imageTracker();
     ServoTrackingTestControls controls = new ServoTrackingTestControls(aim,
         CameraPanConfig.MANUAL_POSITION_STEP, 0.1);
     try {

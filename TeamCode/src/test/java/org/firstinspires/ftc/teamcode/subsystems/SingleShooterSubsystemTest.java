@@ -108,20 +108,20 @@ public final class SingleShooterSubsystemTest {
     assertEquals(5600, shooter.getTargetRpm(), EPSILON);
   }
 
-  @Test public void teleTourneyDefaultCommandsReverse4800AndStaysOffUntilEnabled() {
+  @Test public void teleTourneyDefaultCommandsReverse3200AndStaysOffUntilEnabled() {
     FakeMotor motor = new FakeMotor();
     SingleShooterSubsystem shooter = new SingleShooterSubsystem(motor.device);
     shooter.setState(false, RobotConfig.TeleTourney.SHOOTER_REVERSED,
         RobotConfig.TeleTourney.SHOOTER_INITIAL_RPM);
-    assertEquals(4800, shooter.getTargetRpm(), EPSILON);
+    assertEquals(3200, shooter.getTargetRpm(), EPSILON);
     assertTrue(shooter.isReversed());
     assertEquals(0, motor.commandedVelocity, EPSILON);
     shooter.setActive(true);
-    assertEquals(-4800, shooter.getCommandedRpm(), EPSILON);
-    assertEquals(-28800, motor.commandedVelocity, EPSILON);
+    assertEquals(-3200, shooter.getCommandedRpm(), EPSILON);
+    assertEquals(-19200, motor.commandedVelocity, EPSILON);
     shooter.stop();
     shooter.setActive(true);
-    assertEquals(-28800, motor.commandedVelocity, EPSILON);
+    assertEquals(-19200, motor.commandedVelocity, EPSILON);
   }
 
   @Test public void rpmSetterKeepsStoppedMotorOffAndRetainsReverseWhileRunning() {

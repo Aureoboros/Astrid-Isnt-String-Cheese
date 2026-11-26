@@ -106,6 +106,11 @@ public final class RobotConfig {
     // Closed-loop (encoder) diagnostic speed.
     public static final double TEST_INITIAL_RPM = 60.0;
     public static final double TEST_RPM_STEP = 10.0;
+    // REV hub PIDF output uses a 32767 full-scale command. Starting gains need load testing.
+    public static final double VELOCITY_F = 32767.0 / (MAX_RPM * TICKS_PER_REVOLUTION / 60.0);
+    public static final double VELOCITY_P = 0.1 * VELOCITY_F;
+    public static final double VELOCITY_I = 0.1 * VELOCITY_P;
+    public static final double VELOCITY_D = 0;
     // Position hold when feeding is toggled off; maximum position-controller power.
     public static final double HOLD_POWER = 0.25;
     public static final int HOLD_POSITION_TOLERANCE_TICKS = 2;
@@ -157,7 +162,7 @@ public final class RobotConfig {
   public static final class TeleTourney {
     /** Temporary drive power limit for testing (1.0 restores full power). */
     public static final double MAX_DRIVE_POWER = 0.35;
-    public static final double SHOOTER_INITIAL_RPM = 4800.0;
+    public static final double SHOOTER_INITIAL_RPM = 3200.0;
     public static final boolean SHOOTER_REVERSED = true;
 
     private TeleTourney() {}

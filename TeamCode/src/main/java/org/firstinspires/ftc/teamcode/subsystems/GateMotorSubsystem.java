@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 import org.firstinspires.ftc.teamcode.config.RobotConfig;
 import org.firstinspires.ftc.teamcode.control.GateJamRecoveryController;
@@ -56,8 +57,7 @@ public final class GateMotorSubsystem {
         RobotConfig.GateMotor.JAM_RESTART_PAUSE_SECONDS, RobotConfig.GateMotor.JAM_REVERSE_MAX_RPM,
         RobotConfig.GateMotor.JAM_HEALTHY_RESET_SECONDS, RobotConfig.GateMotor.JAM_MIN_COMMAND_RPM,
         RobotConfig.GateMotor.JAM_MAX_ATTEMPTS);
-    // The hub XML lists a generic Motor; give this instance the real 435 RPM profile so the
-    // hub's velocity controller is tuned for it. Cloned so no shared SDK profile changes.
+    // Correct the generic XML metadata without modifying another motor's shared profile.
     MotorConfigurationType type = motor.getMotorType().clone();
     type.setTicksPerRev(ticksPerRevolution);
     type.setMaxRPM(maxRpm);
@@ -67,6 +67,11 @@ public final class GateMotorSubsystem {
     motor.setTargetPositionTolerance(RobotConfig.GateMotor.HOLD_POSITION_TOLERANCE_TICKS);
     motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     stop();
+    // Metadata alone does not select PIDF gains for a generic XML motor. Explicitly
+    // initialize the hub's velocity controller rather than inherit unknown coefficients.
+    motor.setVelocityPIDFCoefficients(RobotConfig.GateMotor.VELOCITY_P,
+        RobotConfig.GateMotor.VELOCITY_I, RobotConfig.GateMotor.VELOCITY_D,
+        RobotConfig.GateMotor.VELOCITY_F);
   }
 
   /** Apply simultaneous direction/enable changes together, without an intermediate running command. */
@@ -91,6 +96,9 @@ public final class GateMotorSubsystem {
     if (command == 0) {
       jam.stop(); // HOLD cancels recovery and clears the retry latch as OFF did previously.
       if (!holding) {
+        // Cut feeding power before capturing the lock point and changing control mode.
+        // HOLD_POWER below is a correction limit, not a continuous rotation command.
+        motor.setPower(0);
         motor.setVelocity(0);
         holdPositionTicks = motor.getCurrentPosition();
         motor.setTargetPosition(holdPositionTicks);
@@ -120,7 +128,15 @@ public final class GateMotorSubsystem {
   /** Signed feed target: positive forward, negative reverse, zero when holding/stopped. */
   public double getCommandedRpm() { return active ? (reversed ? -targetRpm : targetRpm) : 0; }
   /** Measured output-shaft RPM from the encoder (signed). */
-  public double getActualRpm() { return motor.getVelocity() * 60.0 / ticksPerRevolution; }
+  public double getActualRpm() { return getRawEncoderTicksPerSecond() * 60.0 / ticksPerRevolution; }
+  /** SDK encoder velocity in ticks/second, not RPM or accumulated position ticks. */
+  public double getRawEncoderTicksPerSecond() { return motor.getVelocity(); }
+  /** Fixed calibration: encoder ticks for one output-shaft revolution, independent of speed. */
+  public double getEncoderTicksPerRevolution() { return ticksPerRevolution; }
+  public DcMotor.RunMode getRunMode() { return motor.getMode(); }
+  public PIDFCoefficients getVelocityPidf() {
+    return motor.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER);
+  }
   /** Actual command can be zero or temporarily reversed while recovery is active. */
   public double getOutputRpm() {
     return RobotConfig.GateMotor.JAM_RECOVERY_ENABLED ? jam.getOutputRpm() : getCommandedRpm();
