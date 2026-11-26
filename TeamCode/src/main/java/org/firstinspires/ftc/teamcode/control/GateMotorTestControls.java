@@ -5,11 +5,12 @@ import org.firstinspires.ftc.teamcode.config.RobotConfig;
 
 /**
  * Gate diagnostic, shared by both controllers (fresh presses only): A swaps gate direction,
- * B toggles gate start/stop, X toggles the shooter (starts ON), D-pad left/right steps gate RPM,
+ * B toggles gate start/hold, X toggles the shooter (starts ON), D-pad left/right steps gate RPM,
  * D-pad up/down steps shooter RPM.
  */
 public final class GateMotorTestControls {
-  private boolean active, reversed, previousA, previousB;
+  private boolean active, previousA, previousB;
+  private boolean reversed = RobotConfig.GateMotor.START_REVERSED;
   private boolean shooterActive = true, previousX;
   private boolean previousUp, previousDown, previousLeft, previousRight;
   private double gateRpm = clamp(RobotConfig.GateMotor.TEST_INITIAL_RPM, RobotConfig.GateMotor.MAX_RPM);

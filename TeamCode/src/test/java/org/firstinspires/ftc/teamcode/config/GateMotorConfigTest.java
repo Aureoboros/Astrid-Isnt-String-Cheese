@@ -22,7 +22,7 @@ public final class GateMotorConfigTest {
     assertEquals(1, RobotConfig.GateMotor.EXPANSION_HUB_PORT);
     assertEquals(435, RobotConfig.GateMotor.MAX_RPM, 0);
     assertEquals(384.5, RobotConfig.GateMotor.TICKS_PER_REVOLUTION, 0);
-    assertEquals(60, RobotConfig.GateMotor.TEST_INITIAL_RPM, 0);
+    assertEquals(190, RobotConfig.GateMotor.TEST_INITIAL_RPM, 0);
     assertEquals(10, RobotConfig.GateMotor.TEST_RPM_STEP, 0);
     assertEquals("Shoot1", RobotConfig.Hardware.SHOOTER_1);
     assertEquals(6000, RobotConfig.ShooterMotor.MAX_RPM, 0);

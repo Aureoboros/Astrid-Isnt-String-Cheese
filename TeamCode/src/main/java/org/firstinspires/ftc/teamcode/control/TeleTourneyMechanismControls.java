@@ -10,6 +10,9 @@ public final class TeleTourneyMechanismControls {
   private boolean shooterEnabled;
   private boolean gateEnabled, previousB, previousA;
   private boolean previousX, previousY, previousUp, previousDown;
+  private boolean previousLeft, previousRight;
+  private double gateRpm = Math.max(0, Math.min(RobotConfig.GateMotor.MAX_RPM,
+      RobotConfig.GateMotor.TEST_INITIAL_RPM));
   private double shooterRpm = Math.max(0, Math.min(6000, RobotConfig.TeleTourney.SHOOTER_INITIAL_RPM));
 
   public void update(Gamepad gamepad1, Gamepad gamepad2) {
@@ -17,6 +20,16 @@ public final class TeleTourneyMechanismControls {
         gamepad2.x, gamepad2.y, gamepad2.dpad_up, gamepad2.dpad_down);
     updateGateButton(gamepad1.b, gamepad2.b);
     updateIntakeReverse(gamepad1.a, gamepad2.a);
+    updateGateSpeed(gamepad1.dpad_left || gamepad2.dpad_left,
+        gamepad1.dpad_right || gamepad2.dpad_right);
+  }
+
+  private void updateGateSpeed(boolean left, boolean right) {
+    int steps = (right && !previousRight ? 1 : 0) - (left && !previousLeft ? 1 : 0);
+    gateRpm = Math.max(0, Math.min(RobotConfig.GateMotor.MAX_RPM,
+        gateRpm + steps * RobotConfig.GateMotor.TEST_RPM_STEP));
+    previousLeft = left;
+    previousRight = right;
   }
 
   /** Flip the selected direction without changing ON/OFF, including while stopped. */
@@ -58,5 +71,6 @@ public final class TeleTourneyMechanismControls {
   public boolean isShooterReversed() { return RobotConfig.TeleTourney.SHOOTER_REVERSED; }
   public double getShooterRpm() { return shooterRpm; }
   public boolean isGateEnabled() { return gateEnabled; }
-  public double getGateRpm() { return RobotConfig.GateMotor.TEST_INITIAL_RPM; }
+  public boolean isGateReversed() { return RobotConfig.GateMotor.START_REVERSED; }
+  public double getGateRpm() { return gateRpm; }
 }

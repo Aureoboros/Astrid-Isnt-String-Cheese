@@ -5,6 +5,54 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import org.junit.Test;
 
 public final class TeleTourneyMechanismControlsTest {
+  @Test public void gateDpadStepsOncePerPressAcrossBothControllersAndOpposingFreshPressesCancel() {
+    TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
+    Gamepad first = new Gamepad(), second = new Gamepad();
+    second.dpad_right = true; c.update(first, second);
+    assertEquals(200, c.getGateRpm(), 0);
+    first.dpad_right = true; c.update(first, second);
+    second.dpad_right = false; c.update(first, second);
+    assertEquals(200, c.getGateRpm(), 0);
+    first.dpad_right = false; c.update(first, second);
+    first.dpad_left = true; c.update(first, second);
+    assertEquals(190, c.getGateRpm(), 0);
+    first.dpad_left = false; c.update(first, second);
+    first.dpad_left = second.dpad_right = true; c.update(first, second);
+    assertEquals(190, c.getGateRpm(), 0);
+    assertFalse(c.isGateEnabled()); assertTrue(c.isGateReversed());
+  }
+
+  @Test public void gateRpmSelectionWorksWhileHeldOrRunningAndIsIndependentOfShooter() {
+    TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
+    Gamepad first = new Gamepad(), second = new Gamepad();
+    first.dpad_left = second.dpad_up = true; c.update(first, second);
+    assertEquals(180, c.getGateRpm(), 0); assertEquals(3250, c.getShooterRpm(), 0);
+    assertFalse(c.isGateEnabled()); assertFalse(c.isShooterEnabled());
+    first.dpad_left = second.dpad_up = false; c.update(first, second);
+    second.b = second.dpad_right = true; c.update(first, second);
+    assertTrue(c.isGateEnabled()); assertEquals(190, c.getGateRpm(), 0);
+    second.b = second.dpad_right = false; c.update(first, second);
+    first.b = first.dpad_right = true; c.update(first, second);
+    assertFalse(c.isGateEnabled()); assertEquals(200, c.getGateRpm(), 0);
+    assertFalse(c.isIntakeEnabled()); assertFalse(c.isShooterEnabled());
+  }
+
+  @Test public void gateDpadSpeedIsClampedToZeroAndRated435Rpm() {
+    TeleTourneyMechanismControls c = new TeleTourneyMechanismControls();
+    Gamepad first = new Gamepad(), second = new Gamepad();
+    for (int i = 0; i < 50; i++) {
+      first.dpad_right = true; c.update(first, second);
+      first.dpad_right = false; c.update(first, second);
+    }
+    assertEquals(435, c.getGateRpm(), 0);
+    for (int i = 0; i < 50; i++) {
+      second.dpad_left = true; c.update(first, second);
+      second.dpad_left = false; c.update(first, second);
+    }
+    assertEquals(0, c.getGateRpm(), 0);
+    assertFalse(c.isGateEnabled()); assertEquals(3200, c.getShooterRpm(), 0);
+  }
+
   private static void release(TeleTourneyMechanismControls controls) {
     controls.updateButtons(false, false, false, false, false, false, false, false);
   }
@@ -15,7 +63,8 @@ public final class TeleTourneyMechanismControlsTest {
     assertFalse(controls.isIntakeReversed());
     assertFalse(controls.isShooterEnabled());
     assertFalse(controls.isGateEnabled());
-    assertEquals(60, controls.getGateRpm(), 0);
+    assertTrue(controls.isGateReversed());
+    assertEquals(190, controls.getGateRpm(), 0);
     assertEquals(3200, controls.getShooterRpm(), 0);
     assertTrue(controls.isShooterReversed());
   }

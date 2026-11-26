@@ -43,7 +43,7 @@ public final class GateMotorTestTeleOp extends LinearOpMode {
       telemetry.update();
       waitForStart();
       if (opModeIsActive()) {
-        gate.setState(false, false, controls.getGateRpm());
+        gate.setState(false, controls.isReversed(), controls.getGateRpm());
         intake.setState(true, IntakeSubsystem.Direction.FORWARD);
       }
       while (opModeIsActive()) {

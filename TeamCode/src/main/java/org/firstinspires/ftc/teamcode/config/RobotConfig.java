@@ -104,7 +104,9 @@ public final class RobotConfig {
     /** Motor direction that the code calls FORWARD; REVERSE flips the physical spin. */
     public static final DcMotorSimple.Direction MOTOR_DIRECTION = DcMotorSimple.Direction.FORWARD;
     // Closed-loop (encoder) diagnostic speed.
-    public static final double TEST_INITIAL_RPM = 60.0;
+    public static final double TEST_INITIAL_RPM = 190.0;
+    /** Initial feed direction for TeleTourney and gate controller tests. */
+    public static final boolean START_REVERSED = true;
     public static final double TEST_RPM_STEP = 10.0;
     // REV hub PIDF output uses a 32767 full-scale command. Starting gains need load testing.
     public static final double VELOCITY_F = 32767.0 / (MAX_RPM * TICKS_PER_REVOLUTION / 60.0);

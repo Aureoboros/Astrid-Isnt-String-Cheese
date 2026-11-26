@@ -19,14 +19,14 @@ the encoder profile at runtime. This rating does not calibrate one-ball travel.
 ## Controller test
 
 Run **Test: Gate Motor** under Diagnostics. It initializes `gateMotor`, `intake`, and `Shoot1`.
-The gate is unpowered during INIT. At Play it enters **HOLD/FORWARD**; B starts feeding. The intake starts
+The gate is unpowered during INIT. At Play it enters **HOLD/REVERSE**; B starts feeding. The intake starts
 running **FORWARD continuously at 100% power** on Play (`RobotConfig.Mechanisms.INTAKE_POWER`).
 Shoot1 starts ON at Play at its selected RPM; X toggles it. No drive, servo or
 camera is initialized. Keep hands clear before Play.
 
 - **A** swaps FORWARD/REVERSE without changing whether the motor is running.
 - **B** toggles gate START/HOLD; releasing it keeps the selected state.
-- **D-pad left/right** decreases/increases gate RPM by 10; it starts selected at 60 RPM.
+- **D-pad left/right** decreases/increases gate RPM by 10; it starts selected at 190 RPM.
 - **X** toggles Shoot1; **D-pad up/down** increases/decreases shooter RPM by 50.
 - Either controller works. Held/overlapping buttons toggle only once until released.
 - Driver Station STOP or exiting the test stops all three motors.
@@ -95,6 +95,34 @@ remain near 396 RPM with only the gate powered, the discrepancy is real and need
 on-hardware PIDF/encoder inspection. A unit test verifies conversions/commands,
 not the physical response of the controller or motor.
 
+## Negative measured speed with a positive applied target
+
+If the applied target is positive (for example +60 RPM) but both measured speed
+and encoder travel are negative, the feedback direction is inconsistent with
+the commanded motor direction. The controller can increase power trying to
+correct an error that gets larger, causing near-full-speed rotation. Increasing
+PIDF gains, taking an absolute value, or changing `setDirection` does not correct
+the relative polarity: the FTC SDK reverses both commands and encoder readings.
+
+Run **Test: Gate Polarity** unloaded to check the motor/encoder pair without a
+closed-loop controller. Only gateMotor is initialized. It uses
+`RUN_WITHOUT_ENCODER` and at most **10% open-loop power**. Hold **B** for a positive
+pulse or **A** for a negative pulse on either controller; release stops immediately.
+A pulse ends after **1 second** even if held, and both buttons must be released
+before another pulse starts. Opposing buttons cancel. Driver Station STOP removes
+power. This diagnostic intentionally uses no position HOLD.
+
+Check **Encoder position / pulse travel** as well as velocity. A positive pulse
+should increase the count; a negative pulse should decrease it. If the sign is
+opposite, inspect the motor power lead polarity and encoder extension/cable pinout.
+Both cables must belong to gateMotor and connect to Expansion Hub port 1. Restore
+correct manufacturer wiring or replace the suspect cable; changing displayed signs
+only hides the mismatch. If velocity reports -400 while the position count does not
+change, it is not evidence of the gate actually rotating at -400 RPM. If the shaft
+turns but its encoder count does not, inspect encoder pairing, cable and sensor.
+Confirm the polarity test before resuming closed-loop feeding/holding. Hardware
+polarity cannot be verified or repaired through source changes alone.
+
 ## Automatic jam recovery
 
 Jam recovery is enabled in `GateMotorSubsystem`, used by **Test: Gate Motor**,
@@ -130,8 +158,14 @@ credits pulse progress from encoder travel. Shoot1 is 2900 RPM, reverse. See
 ## TeleTourney controls
 
 TeleTourney initializes gateMotor unpowered, then holds its position at Play.
-**B** on either controller toggles START/HOLD at **60 RPM forward**, using
-`RobotConfig.GateMotor.TEST_INITIAL_RPM`.
+**B** on either controller toggles START/HOLD at **190 RPM reverse**, using
+`RobotConfig.GateMotor.TEST_INITIAL_RPM` and `START_REVERSED = true`.
+The controller gate tests share this initial direction; A swaps it in those tests.
+D-pad LEFT/RIGHT on either controller decreases/increases the selected gate speed
+by 10 RPM per fresh press, bounded to 0–435 RPM. Speed selection works during
+feeding and HOLD; changing RPM during HOLD does not start the motor. These buttons
+now control gate speed in TeleTourney, while camera tag tracking continues automatically.
+Autonomous feed direction is explicitly set by `PreloadedHiveAutoConfig.GATE_REVERSED`.
 Held or overlapping B presses toggle only once until both controllers release B.
 The gate runs independently of X (shooter) and Y (intake), with automatic jam
 recovery. A gate fault stays stopped until B HOLD then B START resets it. Driver
