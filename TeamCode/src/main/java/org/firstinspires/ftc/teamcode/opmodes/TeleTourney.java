@@ -48,7 +48,6 @@ public final class TeleTourney extends LinearOpMode {
       shooter.setState(false, mechanisms.isShooterReversed(), mechanisms.getShooterRpm());
       intake = new IntakeSubsystem(hardwareMap);
       gateMotor = new GateMotorSubsystem(hardwareMap);
-      gateMotor.setState(false, false, mechanisms.getGateRpm());
       telemetry.setMsTransmissionInterval(50);
       telemetry.addData("Status", "Drive, intake, Shoot1, gateMotor, odometry, and Limelight initialized");
       telemetry.addLine("Left stick: drive/strafe | Triggers: rotate");
@@ -56,7 +55,7 @@ public final class TeleTourney extends LinearOpMode {
       telemetry.addLine("Y: intake ON/OFF (preserves selected direction)");
       telemetry.addLine("A: reverse intake direction (keeps current ON/OFF state)");
       telemetry.addLine("X: Shoot1 ON/OFF | D-pad up/down: +/-50 RPM");
-      telemetry.addLine("B: gateMotor ON/OFF (forward) | Either gamepad");
+      telemetry.addLine("B: gateMotor START/HOLD (forward) | Either gamepad");
       telemetry.addLine("Hold D-pad left/right: pan camera left/right | Release: resume tag tracking");
       telemetry.addLine("First visible tag anchors the check. Left bumper: re-anchor | Back: clear");
       telemetry.addLine("Camera pan: horizontal image tracking; robot-space poses need calibration");
@@ -77,6 +76,7 @@ public final class TeleTourney extends LinearOpMode {
       follower.startTeleopDrive(true);
       aprilTags.start();
       pan.start();
+      gateMotor.setState(false, false, mechanisms.getGateRpm());
       long lastTelemetryNanos = 0;
       long previousLoopNanos = System.nanoTime();
       while (opModeIsActive()) {
@@ -111,14 +111,19 @@ public final class TeleTourney extends LinearOpMode {
           telemetry.addData("Camera control", pan.isManualPan() ? "MANUAL: D-pad left/right"
               : pan.isTracking() ? "AUTO: tag tracking" : "HOLD");
           telemetry.addData("Intake", "%s / %s", intake.isEnabled() ? "ON" : "OFF", intake.getDirection());
-          telemetry.addData("Gate requested", mechanisms.isGateEnabled() ? "ON / FORWARD" : "OFF");
+          telemetry.addData("Gate requested", mechanisms.isGateEnabled() ? "RUN / FORWARD" : "HOLD");
+          telemetry.addData("Gate mode", gateMotor.isHolding() ? "HOLD POSITION" : "VELOCITY / RECOVERY");
+          if (gateMotor.isHolding()) {
+            telemetry.addData("Gate hold target / error", "%d / %d ticks",
+                gateMotor.getHoldPositionTicks(), gateMotor.getHoldErrorTicks());
+          }
           telemetry.addData("Gate target / actual RPM", "%.0f / %.0f", gateMotor.getTargetRpm(), gateMotor.getActualRpm());
           telemetry.addData("Gate applied RPM", "%.0f", gateMotor.getOutputRpm());
           telemetry.addData("Gate recovery / retries", "%s / %d", gateMotor.getRecoveryState(), gateMotor.getRecoveryAttempts());
           if (gateMotor.getRecoveryState() == GateJamRecoveryController.State.FAULT) {
-            telemetry.addLine("Gate jam fault: clear obstruction, then B OFF and B ON to retry");
+            telemetry.addLine("Gate jam fault: clear obstruction, then B HOLD and B START to retry");
           }
-          telemetry.addLine("A: intake reverse | B: gate on/off | Left bumper: re-anchor | Back: clear check");
+          telemetry.addLine("A: intake reverse | B: gate start/hold | Left bumper: re-anchor | Back: clear check");
           telemetry.addData("Shoot1", shooter.isActive() ? "ON" : "OFF");
           telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");
           telemetry.addData("Shoot1 Selected RPM", "%.0f", shooter.getTargetRpm());

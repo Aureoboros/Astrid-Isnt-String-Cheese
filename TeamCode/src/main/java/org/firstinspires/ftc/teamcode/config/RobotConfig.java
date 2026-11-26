@@ -106,6 +106,9 @@ public final class RobotConfig {
     // Closed-loop (encoder) diagnostic speed.
     public static final double TEST_INITIAL_RPM = 60.0;
     public static final double TEST_RPM_STEP = 10.0;
+    // Position hold when feeding is toggled off; maximum position-controller power.
+    public static final double HOLD_POWER = 0.25;
+    public static final int HOLD_POSITION_TOLERANCE_TICKS = 2;
 
     // Continuous-velocity gate jam recovery (Test: Gate Motor). All timings are nonblocking.
     public static final boolean JAM_RECOVERY_ENABLED = true;

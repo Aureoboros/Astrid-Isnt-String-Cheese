@@ -19,20 +19,28 @@ the encoder profile at runtime. This rating does not calibrate one-ball travel.
 ## Controller test
 
 Run **Test: Gate Motor** under Diagnostics. It initializes `gateMotor`, `intake`, and `Shoot1`.
-The gate starts **OFF/FORWARD** and waits for Play and a B press. The intake starts
+The gate is unpowered during INIT. At Play it enters **HOLD/FORWARD**; B starts feeding. The intake starts
 running **FORWARD continuously at 100% power** on Play (`RobotConfig.Mechanisms.INTAKE_POWER`).
 Shoot1 starts ON at Play at its selected RPM; X toggles it. No drive, servo or
 camera is initialized. Keep hands clear before Play.
 
 - **A** swaps FORWARD/REVERSE without changing whether the motor is running.
-- **B** toggles gate start/stop; releasing it does not stop the gate or intake.
+- **B** toggles gate START/HOLD; releasing it keeps the selected state.
 - **D-pad left/right** decreases/increases gate RPM by 10; it starts selected at 60 RPM.
 - **X** toggles Shoot1; **D-pad up/down** increases/decreases shooter RPM by 50.
 - Either controller works. Held/overlapping buttons toggle only once until released.
 - Driver Station STOP or exiting the test stops all three motors.
 
-The test uses closed-loop encoder velocity control, with BRAKE while stopped.
-Telemetry shows ON/OFF, direction, selected and measured RPM for gate and shooter.
+Feeding uses closed-loop encoder velocity control. HOLD captures the current encoder
+position once, switches to `RUN_TO_POSITION`, and applies up to
+`RobotConfig.GateMotor.HOLD_POWER = 0.25` power. The hub corrects displacement back
+toward that target; repeated updates and direction/RPM selection while holding do
+not move the target. `HOLD_POSITION_TOLERANCE_TICKS = 2` sets the tolerance.
+Telemetry shows RUN/HOLD, hold target/error ticks, direction, and selected/measured RPM.
+Test holding torque under load and adjust HOLD_POWER if needed. Holding the current
+angle does not find a mechanically closed gate position; stop feeding with the
+separator positioned to block nectar. The encoder cable is required for holding.
+Driver Station STOP/cleanup releases holding power and uses BRAKE.
 The gate's configured base motor direction is FORWARD. Stop and allow coast-down before
 reversing; keep hands clear. Check the separator unloaded first.
 Telemetry also shows the continuously running intake and configured odometry
@@ -50,12 +58,14 @@ a stall; a short speed dip alone does not trigger recovery.
 Each recovery stops for 100 ms, reverses for 150 ms at up to 60 RPM (never faster
 than the selected speed), pauses for 100 ms, and resumes the original direction
 and selected RPM. The loop continues updating the other mechanisms throughout.
-Changing direction or speed cancels the recovery pulse; B OFF and Driver Station
-STOP stop the gate immediately.
+Changing direction or speed cancels the recovery pulse; B HOLD cancels recovery
+and holds the current position. Driver Station STOP removes motor power.
+Temporary recovery pauses remain zero-velocity pauses, retaining the existing
+stop/reverse/retry sequence.
 
 Three consecutive retry cycles are allowed. If it remains stalled after those,
 the gate latches **FAULT** and commands zero velocity. Clear the obstruction, then
-press B to select OFF and again to select ON to retry. Two seconds of sustained
+press B to select HOLD and again to select START to retry. Two seconds of sustained
 healthy encoder movement reset the consecutive retry count. Telemetry shows
 recovery state, retry count, total recovery cycles started, and signed applied RPM.
 
@@ -63,20 +73,21 @@ All thresholds and timings are in `RobotConfig.GateMotor.JAM_*`; tune the revers
 duration on the actual separator. The encoder cable must be connected. This detects
 a stalled motor, not a slipping wheel that jams while the motor shaft still turns.
 The indexed `AutomaticNectarSeparator` helper remains disabled until calibrated;
-this change applies to continuous-velocity gate control. In Red/Blue autos the gate
+this change applies to continuous-velocity gate control and its inactive position hold. In Red/Blue autos the gate
 runs during shooting feed pulses at 60 RPM, pauses the intake during recovery, and
 credits pulse progress from encoder travel. Shoot1 is 2900 RPM, reverse. See
 [live Red/Blue auto setup](BIOBUZZ_PRELOADED_HIVE_AUTO.md).
 
 ## TeleTourney controls
 
-TeleTourney initializes gateMotor stopped. **B** on either controller toggles it
-ON/OFF at **60 RPM forward**, using `RobotConfig.GateMotor.TEST_INITIAL_RPM`.
+TeleTourney initializes gateMotor unpowered, then holds its position at Play.
+**B** on either controller toggles START/HOLD at **60 RPM forward**, using
+`RobotConfig.GateMotor.TEST_INITIAL_RPM`.
 Held or overlapping B presses toggle only once until both controllers release B.
 The gate runs independently of X (shooter) and Y (intake), with automatic jam
-recovery. A gate fault stays stopped until B OFF then B ON resets it. Driver
+recovery. A gate fault stays stopped until B HOLD then B START resets it. Driver
 Station STOP stops the gate with the other motors. Telemetry shows requested
-state, target/actual/applied RPM, recovery state and retry count.
+state, hold target/error ticks, target/actual/applied RPM, recovery state and retry count.
 
 **Y** only toggles intake ON/OFF, retaining its selected direction.
 **A** reverses intake direction while preserving its current ON/OFF state.
