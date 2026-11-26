@@ -14,6 +14,7 @@ import org.firstinspires.ftc.teamcode.control.DualGamepadDriveControls;
 import org.firstinspires.ftc.teamcode.control.DualGamepadDriveControls.DriveCommand;
 import org.firstinspires.ftc.teamcode.localization.AprilTagObservation;
 import org.firstinspires.ftc.teamcode.localization.AprilTagTracker;
+import org.firstinspires.ftc.teamcode.localization.AutoPoseHandoff;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.PedroAprilTagValidation;
 import org.firstinspires.ftc.teamcode.telemetry.PedroValidationTelemetry;
@@ -72,6 +73,7 @@ public final class TeleTourney extends LinearOpMode {
       if (isStopRequested()) {
         return;
       }
+      AutoPoseHandoff.clear(); // This mode seeds its own origin and may drive away from the auto end pose.
       follower.setStartingPose(new Pose(0, 0, 0));
       follower.setPose(new Pose(0, 0, 0));
       follower.startTeleopDrive(true);

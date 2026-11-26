@@ -29,7 +29,7 @@ import org.firstinspires.ftc.teamcode.telemetry.OdometryTelemetry;
 /**
  * Competition TeleOp.
  * Left stick: drive/strafe | Triggers: rotate | A: drive to the autonomous shooting pose
- * Y: intake toggle (starts ON) | X: gate toggle (starts OFF) | B (hold): spit
+ * Y: intake toggle (starts ON) | X: gate START/HOLD (starts HOLD at Play) | B (hold): spit
  * D-pad up/down: launcher RPM. Launcher (Shoot1) runs the whole match from 3200 RPM.
  * The gate uses automatic jam recovery.
  */
@@ -60,11 +60,10 @@ public final class TeleOpTourney extends LinearOpMode {
       gate = new GateMotorSubsystem(hardwareMap);
       shooter.setState(false, RobotConfig.TeleTourney.SHOOTER_REVERSED,
           controls.getShooterRpm());
-      gate.setState(false, RobotConfig.TeleOpTourney.GATE_REVERSED, RobotConfig.TeleOpTourney.GATE_RPM);
 
       while (opModeInInit()) {
-        if (gamepad1.dpad_left || gamepad2.dpad_left) { alliance = Alliance.RED; }
-        if (gamepad1.dpad_right || gamepad2.dpad_right) { alliance = Alliance.BLUE; }
+        if (gamepad1.dpad_left || gamepad2.dpad_left) { alliance = Alliance.RED; useAutoPose = false; }
+        if (gamepad1.dpad_right || gamepad2.dpad_right) { alliance = Alliance.BLUE; useAutoPose = false; }
         if (gamepad1.dpad_down || gamepad2.dpad_down) { useAutoPose = false; }
         if ((gamepad1.dpad_up || gamepad2.dpad_up) && AutoPoseHandoff.hasPose()) {
           useAutoPose = true;
@@ -82,7 +81,7 @@ public final class TeleOpTourney extends LinearOpMode {
         telemetry.addData("Shoot pose (A)", "X %.1f, Y %.1f, %.0f°",
             shoot.getX(), shoot.getY(), shoot.getHeadingDegrees());
         telemetry.addLine("Left stick: drive | Triggers: rotate | A: go to shoot pose");
-        telemetry.addLine("Y: intake on/off (starts ON) | X: gate on/off (starts OFF)");
+        telemetry.addLine("Y: intake on/off (starts ON) | X: gate START/HOLD (holds at Play)");
         telemetry.addLine("B (hold): spit - intake + gate reversed");
         telemetry.addData("Launcher", "ON whole match, starts at %.0f RPM (D-pad up/down: +/-%.0f)",
             controls.getShooterRpm(), RobotConfig.TeleOpTourney.SHOOTER_RPM_STEP);
@@ -99,6 +98,7 @@ public final class TeleOpTourney extends LinearOpMode {
       follower.setStartingPose(toPose(start));
       follower.setPose(toPose(start));
       follower.startTeleopDrive(true);
+      gate.setState(false, RobotConfig.TeleOpTourney.GATE_REVERSED, RobotConfig.TeleOpTourney.GATE_RPM);
 
       while (opModeIsActive()) {
         controls.update(gamepad1, gamepad2);
@@ -140,14 +140,18 @@ public final class TeleOpTourney extends LinearOpMode {
             shoot.getX(), shoot.getY(), shoot.getHeadingDegrees());
         telemetry.addData("Spit (B)", controls.isSpitting() ? "ACTIVE" : "off");
         telemetry.addData("Intake (Y)", intake.isEnabled() ? "ON / " + intake.getDirection() : "OFF");
-        telemetry.addData("Gate (X)", "%s %s", gate.isActive() ? "ON" : "OFF",
+        telemetry.addData("Gate (X)", "%s %s", gate.isHolding() ? "HOLD" : "RUN / RECOVERY",
             gate.isReversed() ? "REVERSE" : "FORWARD");
-        telemetry.addData("Gate target / actual", "%.0f / %.0f RPM",
-            gate.getTargetRpm(), Math.abs(gate.getActualRpm()));
+        telemetry.addData("Gate selected / applied / measured RPM", "%.0f / %.0f / %.0f",
+            gate.getTargetRpm(), gate.getOutputRpm(), gate.getActualRpm());
+        if (gate.isHolding()) {
+          telemetry.addData("Gate hold target / error", "%d / %d ticks",
+              gate.getHoldPositionTicks(), gate.getHoldErrorTicks());
+        }
         telemetry.addData("Gate recovery", "%s (retry %d/%d, total %d)", gate.getRecoveryState(),
             gate.getRecoveryAttempts(), RobotConfig.GateMotor.JAM_MAX_ATTEMPTS, gate.getRecoveryCount());
         if (gate.getRecoveryState() == GateJamRecoveryController.State.FAULT) {
-          telemetry.addLine("GATE JAMMED: clear it, then X off and X on to retry.");
+          telemetry.addLine("GATE JAMMED: clear it, then X HOLD and X START to retry.");
         }
         telemetry.addData("Launcher (D-pad up/down) target / actual", "%.0f / %.0f RPM",
             shooter.getTargetRpm(), Math.abs(shooter.getActualRpm()));
@@ -217,7 +221,7 @@ public final class TeleOpTourney extends LinearOpMode {
   }
 
   private static Waypoint startPose(BiobuzzFieldMap field, Alliance alliance, boolean useAutoPose) {
-    if (useAutoPose && AutoPoseHandoff.hasPose()) { return AutoPoseHandoff.getPose(); }
+    if (useAutoPose && AutoPoseHandoff.hasPoseFor(alliance)) { return AutoPoseHandoff.getPose(); }
     return field.startPose(new PreloadedHiveAutoRoute(alliance).start());
   }
 

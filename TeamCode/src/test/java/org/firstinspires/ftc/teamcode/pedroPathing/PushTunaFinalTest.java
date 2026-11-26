@@ -92,4 +92,18 @@ public final class PushTunaFinalTest {
     assertEquals(PushTunaFinal.State.DRIVING, control.getState());
     assertEquals(1, drive.stops);
   }
+
+  @Test public void resetAfterAutomaticMoveDropsOldHoldAndRearmsAtNewLocation() {
+    bump();
+    drive.pose = new Pose(10, 0, 0);
+    control.reset();
+    assertEquals(PushTunaFinal.State.DRIVING, control.getState());
+    assertFalse(control.isRecovering());
+    control.update(0, 0, 0, 500);
+    control.update(0, 0, 0, 850);
+    drive.pose = new Pose(12, 0, 0);
+    control.update(0, 0, 0, 900);
+    assertTrue(control.isRecovering());
+    assertEquals(10, drive.target.getX(), 1e-9);
+  }
 }

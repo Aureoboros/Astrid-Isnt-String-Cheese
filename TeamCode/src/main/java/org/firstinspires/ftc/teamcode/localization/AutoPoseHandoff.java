@@ -16,6 +16,7 @@ public final class AutoPoseHandoff {
   public static synchronized void save(Waypoint endPose, Alliance endAlliance) {
     if (endPose == null || endAlliance == null || !Double.isFinite(endPose.getX())
         || !Double.isFinite(endPose.getY()) || !Double.isFinite(endPose.getHeadingDegrees())) {
+      clear(); // An invalid new result must not leave an older run's pose available.
       return;
     }
     pose = endPose;
@@ -23,6 +24,9 @@ public final class AutoPoseHandoff {
   }
 
   public static synchronized boolean hasPose() { return pose != null; }
+  public static synchronized boolean hasPoseFor(Alliance selectedAlliance) {
+    return pose != null && alliance == selectedAlliance;
+  }
   public static synchronized Waypoint getPose() { return pose; }
   public static synchronized Alliance getAlliance() { return alliance; }
   public static synchronized void clear() { pose = null; alliance = null; }

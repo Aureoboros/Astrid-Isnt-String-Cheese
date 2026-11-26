@@ -41,6 +41,7 @@ the custom XML profile keeps Expansion motor port 2. See [Shooter setup](SHOOTER
 
 | Controls / OpMode | Where to edit |
 | --- | --- |
+| TeleTourney vs pulled TeleOpTourney | These are separate Driver Station entries with different buttons and defaults. See [git pull review](GIT_PULL_REVIEW.md). TeleTourney retains the mappings below; TeleOpTourney adds A drive-to-shoot, X gate, B held spit, and an always-on shooter. |
 | Shared driving: left stick Y forward/back, X strafe, triggers rotate | [DualGamepadDriveControls.java](../TeamCode/src/main/java/org/firstinspires/ftc/teamcode/control/DualGamepadDriveControls.java): `read(...)`, `fromInputs(...)`, deadband and rotation shaping. Gamepad 1 takes priority while active. TeleTourney converts right/CW commands to Pedro's left/CCW convention. |
 | TeleTourney drive power limit | `RobotConfig.TeleTourney.MAX_DRIVE_POWER = 0.35` caps drive/strafe/rotation and push recovery at 35% for testing. `TeleTourney` applies it through Pedro's `setMaxPower(...)`; telemetry shows the limit. Set to `1.0` to restore full power. |
 | Camera tracking response while driving | `CameraPanConfig.imageTracker()` shares tuning across TeleTourney and image-only tests: interval 0.1 s, gain 0.0005 per degree outside the 2-degree deadband, max step 0.005. Hold within 2 degrees; resume beyond 4 degrees after two fresh frames. Reversing correction also needs two fresh frames. Travel remains 0.05–0.35. Driving/tracking run every loop; telemetry at 10 Hz. Calibrated pose settling uses separate settings. |

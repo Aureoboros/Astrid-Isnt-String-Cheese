@@ -93,6 +93,7 @@ public class BiobuzzHiveAuto extends LinearOpMode {
   }
 
   @Override public void runOpMode() {
+    AutoPoseHandoff.clear(); // Even a cancelled INIT invalidates the preceding autonomous run.
     telemetry.setMsTransmissionInterval(50);
     telemetry.addLine("Commissioning draft. Keep robot still during Pinpoint calibration.");
     OdometryTelemetry.add(telemetry);
@@ -243,14 +244,22 @@ public class BiobuzzHiveAuto extends LinearOpMode {
       follower.breakFollowing();
       show();
     } finally {
-      stopMechanisms();
-      if (follower != null) {
-        follower.breakFollowing();
-        // Only a run that began from the known start pose has a meaningful end pose.
-        if (routeStarted) { AutoPoseHandoff.save(waypoint(follower.getPose()), alliance); }
+      try {
+        stopMechanisms();
+      } finally {
+        try {
+          if (follower != null) {
+            follower.breakFollowing();
+            if (routeStarted && pinpoint != null
+                && pinpoint.getDeviceStatus() == GoBildaPinpointDriver.DeviceStatus.READY) {
+              AutoPoseHandoff.save(waypoint(follower.getPose()), alliance);
+            } else { AutoPoseHandoff.clear(); }
+          }
+        } finally {
+          try { if (pan != null) { pan.close(); } }
+          finally { if (tags != null) { tags.stop(); } }
+        }
       }
-      if (pan != null) { pan.close(); }
-      if (tags != null) { tags.stop(); }
     }
   }
 
