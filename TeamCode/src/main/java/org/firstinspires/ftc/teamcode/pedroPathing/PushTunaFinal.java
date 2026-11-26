@@ -144,6 +144,8 @@ public class PushTunaFinal {
         return Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
     }
     private static Pose copyPose(Pose p) { return new Pose(p.getX(), p.getY(), p.getHeading()); }
+    /** Forget any held pose, e.g. after an automatic move put the robot somewhere new. */
+    public void reset() { cancelRecovery(); }
     public State getState() { return state; }
     public boolean isRecovering() { return state == State.RECOVERING; }
 }
