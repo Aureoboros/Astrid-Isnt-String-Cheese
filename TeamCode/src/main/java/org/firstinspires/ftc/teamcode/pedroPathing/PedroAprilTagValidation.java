@@ -63,7 +63,7 @@ public final class PedroAprilTagValidation {
 
   public String getStatus() {
     if (!connected) return "DISCONNECTED";
-    if (!validator.hasBaseline()) return "WAITING - press A with a tag visible";
+    if (!validator.hasBaseline()) return "WAITING - capture baseline with a tag visible";
     if (result == null || !result.isAvailable()) return "NO DATA - baseline tag not visible";
     return result.isPassing() ? "PASS - Pedro and Limelight agree" : "FAIL - measurements disagree";
   }
@@ -75,4 +75,8 @@ public final class PedroAprilTagValidation {
   public ValidationResult getResult() { return result; }
 
   public PoseEstimate getVisionPose() { return visionPose; }
+  public void resetBaseline() {
+    validator.clearBaseline(); autoCapture = true;
+    result = null; visionPose = null; previousA = previousB = false;
+  }
 }

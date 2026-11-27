@@ -155,33 +155,26 @@ runs during shooting feed pulses at 60 RPM, pauses the intake during recovery, a
 credits pulse progress from encoder travel. Shoot1 is 2900 RPM, reverse. See
 [live Red/Blue auto setup](BIOBUZZ_PRELOADED_HIVE_AUTO.md).
 
-## TeleTourney controls
+## Tournament controls
 
-TeleTourney initializes gateMotor unpowered, then holds its position at Play.
-**B** on either controller toggles START/HOLD at **190 RPM reverse**, using
-`RobotConfig.GateMotor.TEST_INITIAL_RPM` and `START_REVERSED = true`.
-The controller gate tests share this initial direction; A swaps it in those tests.
-D-pad LEFT/RIGHT on either controller decreases/increases the selected gate speed
-by 10 RPM per fresh press, bounded to 0–435 RPM. Speed selection works during
-feeding and HOLD; changing RPM during HOLD does not start the motor. These buttons
-now control gate speed in TeleTourney, while camera tag tracking continues automatically.
-Autonomous feed direction is explicitly set by `PreloadedHiveAutoConfig.GATE_REVERSED`.
-Held or overlapping B presses toggle only once until both controllers release B.
-The gate runs independently of X (shooter) and Y (intake), with automatic jam
-recovery. A gate fault stays stopped until B HOLD then B START resets it. Driver
-Station STOP stops the gate with the other motors. Telemetry shows requested
-state, hold target/error ticks, target/actual/applied RPM, recovery state and retry count.
+Both TeleTourney and TeleOpTourney initialize gateMotor unpowered, then hold its
+position at Play. **X** toggles START/HOLD at **190 RPM reverse** on either
+controller. D-pad LEFT/RIGHT decreases/increases selected speed by 10 RPM,
+bounded to 0–435. Speed changes during HOLD do not start the motor. A fresh
+X HOLD then X START clears a latched recovery fault. Existing automatic jam
+recovery and encoder position holding are unchanged.
 
-**Y** only toggles intake ON/OFF, retaining its selected direction.
-**A** reverses intake direction while preserving its current ON/OFF state.
-**Left bumper** re-anchors the tag/odometry check; **Back** clears it.
-B is exclusively the gate toggle in TeleTourney.
+Y toggles intake ON/OFF; B reverses intake. Back toggles Shoot1, which starts ON
+at 3200 RPM reverse. A resets absolute field pose from mapped Limelight data;
+left bumper re-anchors the relative tag/odometry comparison. See
+[current tournament controls](TOURNAMENT_CONTROLS.md) for the full map and defaults.
+The isolated Test: Gate Motor retains A direction / B START/HOLD / X shooter.
 
 The indexed separator helper's settings live in `RobotConfig.GateMotor`.
 Automatic feeding remains disabled and uncalibrated (`AUTO_FEED_ENABLED = false`,
 `TICKS_PER_INDEX = 0`); these settings do not change this manual test's A/B controls.
 
-Red/Blue autos use real gated feeding. TeleTourney uses the manual B gate toggle.
+Red/Blue autos use real gated feeding. Tournament modes use the manual X gate toggle.
 Motor travel alone cannot count actual nectar or guarantee that two pieces will not
 arrive together. Automatic feed and recovery keep updating the drivetrain without sleeps.
 

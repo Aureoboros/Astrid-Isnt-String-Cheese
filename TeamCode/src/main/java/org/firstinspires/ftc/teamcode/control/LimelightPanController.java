@@ -26,6 +26,7 @@ public final class LimelightPanController implements AutoCloseable {
   private Future<?> pending;
   private boolean started, tracking = true, waitingForFrame, fault, centerRequested;
   private boolean manualPan;
+  private boolean measuringFieldPose, restoreTracking, measurementFailed;
   private double position = CameraPanConfig.START_POSITION;
   private double lastMove = Double.NEGATIVE_INFINITY;
   private double lastAimTimestamp = Double.NaN;
@@ -44,8 +45,9 @@ public final class LimelightPanController implements AutoCloseable {
         manualImageControls = new ServoTrackingTestControls(imageAim,
             CameraPanConfig.MANUAL_POSITION_STEP, CameraPanConfig.MANUAL_REPEAT_SECONDS);
         servo = hardwareMap.get(Servo.class, RobotConfig.Hardware.SERVO_MOTOR);
-        // Never acknowledge this gate: unknown yaw must not publish misleading robot poses.
-        tags.attachPanGate(new PanPoseGate(CameraPanConfig.SETTLE_SECONDS));
+        // Closed during image tracking; only a centered measurement may acknowledge the gate.
+        gate = new PanPoseGate(CameraPanConfig.SETTLE_SECONDS);
+        tags.attachPanGate(gate);
         status = "READY: image-only tracking after Play; robot poses WITHHELD";
       } catch (IllegalArgumentException invalid) {
         servo = null;
@@ -88,12 +90,70 @@ public final class LimelightPanController implements AutoCloseable {
       servo.setPosition(imageAim.getPosition());
       return;
     }
+    ensureWorker();
+    move(CameraPanConfig.START_POSITION);
+  }
+
+  private void ensureWorker() {
+    if (worker != null) { return; }
     worker = Executors.newSingleThreadExecutor(task -> {
       Thread thread = new Thread(task, "FTC-Limelight-Pan-Config");
       thread.setDaemon(true);
       return thread;
     });
-    move(CameraPanConfig.START_POSITION);
+  }
+
+  /** Temporarily center/hold the camera to obtain valid robot field poses at known mount yaw. */
+  public boolean beginFieldPoseMeasurement() {
+    if (!started || fault || servo == null || measuringFieldPose) { return false; }
+    restoreTracking = tracking;
+    setTrackingEnabled(false);
+    measuringFieldPose = true;
+    measurementFailed = false;
+    if (imageAim == null) { centerRequested = true; return true; }
+    try {
+      CameraMountPose mount = new CameraMountPose(
+          CameraPanConfig.PIVOT_FORWARD_METERS + CameraPanConfig.LENS_FORWARD_FROM_PIVOT_METERS,
+          CameraPanConfig.PIVOT_RIGHT_METERS + CameraPanConfig.LENS_RIGHT_FROM_PIVOT_METERS,
+          CameraPanConfig.PIVOT_UP_METERS + CameraPanConfig.LENS_UP_FROM_PIVOT_METERS,
+          CameraPanConfig.FIXED_ROLL_DEGREES, CameraPanConfig.FIXED_PITCH_DEGREES,
+          CameraPanConfig.YAW_AT_CENTER_DEGREES);
+      CameraMountPose expected = mount.getYawDegrees() == 0 ? mount
+          : mount.forResultYawSign(CameraPanConfig.RESULT_YAW_SIGN);
+      gate.beginMove(expected, tags.getAimFrameTimestamp());
+      imageAim.center(now(), tags.getAimFrameTimestamp());
+      position = imageAim.getPosition();
+      servo.setPosition(position);
+      ensureWorker();
+      status = "MEASURING: configuring known centered mount";
+      pending = worker.submit(() -> {
+        LimelightPipelineConfiguration.applyMount(RobotConfig.Localization.LIMELIGHT_API_HOST,
+            RobotConfig.Localization.APRILTAG_PIPELINE, mount);
+        return null;
+      });
+      return true;
+    } catch (IllegalArgumentException invalid) {
+      endFieldPoseMeasurement();
+      status = "No field pose: " + invalid.getMessage();
+      return false;
+    }
+  }
+
+  public boolean isFieldPoseMeasurementReady() {
+    return measuringFieldPose && !measurementFailed && pending == null && !centerRequested
+        && tags.isRobotPoseReady();
+  }
+
+  public void endFieldPoseMeasurement() {
+    if (!measuringFieldPose) { return; }
+    measuringFieldPose = false;
+    if (imageAim != null) {
+      if (pending != null) { pending.cancel(true); pending = null; }
+      // Unknown pan yaw is again withheld BEFORE image tracking can command any movement.
+      gate = new PanPoseGate(CameraPanConfig.SETTLE_SECONDS);
+      tags.attachPanGate(gate);
+    }
+    setTrackingEnabled(restoreTracking);
   }
 
   public void toggleTracking() { setTrackingEnabled(!tracking); }
@@ -119,6 +179,23 @@ public final class LimelightPanController implements AutoCloseable {
     if (!started || fault) { return; }
     manualPan = manualLeft || manualRight;
     if (imageAim != null) {
+      if (measuringFieldPose) {
+        if (pending != null) {
+          if (!pending.isDone()) { return; }
+          try {
+            pending.get(); pending = null;
+            gate.acknowledgeUpdate(now());
+          } catch (Exception failed) {
+            pending = null; measurementFailed = true;
+            status = "No field pose: centered-mount update failed";
+          }
+        }
+        if (!measurementFailed) {
+          status = tags.isRobotPoseReady() ? "MEASURING: centered, fresh mount frame"
+              : "MEASURING: waiting for centered camera to settle";
+        }
+        return;
+      }
       double before = imageAim.getPosition();
       if (centerRequested) {
         centerRequested = false;
@@ -171,6 +248,7 @@ public final class LimelightPanController implements AutoCloseable {
       if (!tags.isRobotPoseReady()) { return; }
       waitingForFrame = false;
     }
+    if (measuringFieldPose) { status = "MEASURING: centered camera"; return; }
     if (!tracking) { status = "HOLD: tracking OFF"; return; }
     AprilTagAim target = selector.select(tags.getAimTargets(), now());
     if (target == null) { status = "HOLD: no tag (no blind search)"; return; }
@@ -203,7 +281,7 @@ public final class LimelightPanController implements AutoCloseable {
   }
 
   public String getStatus() {
-    return started && imageAim != null
+    return started && imageAim != null && !measuringFieldPose
         ? "IMAGE ONLY: " + imageAim.getStatus() + "; robot poses WITHHELD" : status;
   }
   public boolean isImageOnly() { return imageAim != null; }

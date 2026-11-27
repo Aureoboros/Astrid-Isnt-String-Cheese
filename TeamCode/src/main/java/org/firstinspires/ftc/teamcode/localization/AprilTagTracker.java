@@ -5,6 +5,7 @@ import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +22,8 @@ public final class AprilTagTracker {
   private CameraMountPose frameMount;
   private PanPoseGate panGate;
   private double resultTimestamp = Double.NaN;
+  private PoseEstimate fieldPose;
+  private int mappedTagCount;
   private final boolean pipelineSwitchSucceeded;
   private final String idFilterStatus;
 
@@ -52,6 +55,7 @@ public final class AprilTagTracker {
     aimTargets = Collections.emptyList();
     frameMount = null;
     resultTimestamp = Double.NaN;
+    fieldPose = null; mappedTagCount = 0;
   }
 
   public void update() {
@@ -63,13 +67,17 @@ public final class AprilTagTracker {
       aimTargets = Collections.emptyList();
       frameMount = null;
       resultTimestamp = Double.NaN;
+      fieldPose = null; mappedTagCount = 0;
       return;
     }
 
     List<AprilTagObservation> currentObservations = new ArrayList<>();
     List<AprilTagAim> currentAimTargets = new ArrayList<>();
+    fieldPose = null;
     try {
-      frameMount = CameraMountPose.fromFrame(new JsonParser().parse(result.toString()).getAsJsonObject());
+      JsonObject frame = new JsonParser().parse(result.toString()).getAsJsonObject();
+      frameMount = CameraMountPose.fromFrame(frame);
+      fieldPose = LimelightFieldPose.fromFrame(frame);
     } catch (RuntimeException malformed) { frameMount = null; }
     for (LLResultTypes.FiducialResult fiducial : result.getFiducialResults()) {
       if (Double.isFinite(fiducial.getTargetXDegrees())) {
@@ -93,6 +101,7 @@ public final class AprilTagTracker {
     observations = Collections.unmodifiableList(currentObservations);
     aimTargets = Collections.unmodifiableList(currentAimTargets);
     resultTimestamp = result.getTimestamp();
+    mappedTagCount = result.getBotposeTagCount();
   }
 
   /** Limelight frame timestamp; repeated polls of one frame must not count as new evidence. */
@@ -100,6 +109,8 @@ public final class AprilTagTracker {
 
   public double getAimFrameTimestamp() { return resultTimestamp; }
   public List<AprilTagAim> getAimTargets() { return aimTargets; }
+  public int getMappedTagCount() { return mappedTagCount; }
+  public PoseEstimate getFieldPose() { return isRobotPoseReady() ? fieldPose : null; }
   public void attachPanGate(PanPoseGate gate) { panGate = gate; }
   public boolean isRobotPoseReady() {
     return panGate == null || panGate.ready(frameMount, resultTimestamp, System.nanoTime() / 1e9);

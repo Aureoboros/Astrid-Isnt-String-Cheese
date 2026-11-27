@@ -166,24 +166,17 @@ public final class RobotConfig {
     public static final double MAX_DRIVE_POWER = 0.35;
     public static final double SHOOTER_INITIAL_RPM = 3200.0;
     public static final boolean SHOOTER_REVERSED = true;
+    public static final int POSE_RESET_FRAMES = 5;
+    public static final double POSE_RESET_TIMEOUT_SECONDS = 4;
+    public static final double POSE_RESET_SPREAD_INCHES = 2;
+    public static final double POSE_RESET_HEADING_SPREAD_DEGREES = 5;
 
     private TeleTourney() {}
   }
 
-  /** TeleOpTourney: launcher always on; A drives to the autonomous shooting pose. */
+  /** TeleOpTourney retains full manual power; mechanisms use the shared tournament settings. */
   public static final class TeleOpTourney {
-    /** Launcher speed at Play; D-pad up/down adjusts it by SHOOTER_RPM_STEP. */
-    public static final double SHOOTER_INITIAL_RPM = 3200.0;
-    public static final double SHOOTER_RPM_STEP = 50.0;
-    public static final double SHOOTER_MAX_RPM = 6000.0;
-    public static final double GATE_RPM = PreloadedHiveAutoConfig.GATE_RPM;
-    /** Normal gate feed runs reversed in TeleOpTourney; spit (B) runs the opposite way. */
-    public static final boolean GATE_REVERSED = true;
-    /** Pedro power cap while A drives to the shooting pose. Driver input always cancels. */
-    public static final double DRIVE_TO_SHOOT_MAX_POWER = 0.7;
-    public static final double DRIVE_TO_SHOOT_POSITION_TOLERANCE_INCHES = 1.5;
-    public static final double DRIVE_TO_SHOOT_HEADING_TOLERANCE_DEGREES = 3.0;
-    public static final double DRIVE_TO_SHOOT_TIMEOUT_SECONDS = 4.0;
+    public static final double MAX_DRIVE_POWER = 1.0;
 
     private TeleOpTourney() {}
   }

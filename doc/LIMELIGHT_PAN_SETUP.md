@@ -2,7 +2,8 @@
 
 `servoMotor` is a **Full Range Servo** on **Control Hub servo port 0**. It pans
 left/right about a vertical pivot; upward pitch is fixed. It is not a pollen feeder.
-Pinpoint remains the robot-position source; camera pan never changes Pedro's pose.
+Pinpoint remains the robot-position source. Tournament A can explicitly reset Pedro's
+field position/heading from mapped Limelight data at the known centered mount.
 
 Horizontal image-only tracking is enabled in `config/CameraPanConfig.java` with
 `IMAGE_ONLY_ENABLED = true`. The operator confirmed increasing servo position
@@ -18,7 +19,10 @@ Yaw/geometry-aware tracking remains disabled (`ENABLED = false`,
 `GEOMETRY_VERIFIED = false`). While image-only tracking is active, robot-relative
 forward/left/range/height and AprilTag-versus-odometry validation are **withheld**
 because the camera yaw is not calibrated. Pinpoint positioning continues normally.
-This mode does not upload guessed camera mounting angles. Do not turn the geometry
+Tournament A temporarily centers the camera, verifies the known center mount, and
+collects fresh mapped field poses; it then closes the pose gate before resuming
+image tracking. See [absolute pose reset](TOURNAMENT_CONTROLS.md).
+This mode does not upload guessed off-center camera mounting angles. Do not turn the geometry
 flags on to bypass calibration.
 
 ## Quick tracking test
@@ -106,7 +110,7 @@ checks do not measure the physical servo speed or camera latency.
 
 | OpMode | Camera controls |
 | --- | --- |
-| TeleTourney | Automatic image-only tracking after Play. D-pad LEFT/RIGHT decreases/increases gate RPM by 10; automatic camera tracking continues while those buttons are used. X toggles Shoot1; Y only toggles intake ON/OFF and retains direction; A reverses intake; B toggles gateMotor START/HOLD; left bumper re-anchors and Back clears the tag/odo check. |
+| TeleTourney / TeleOpTourney | Automatic image tracking alongside driving. A temporarily centers the camera for absolute mapped field-pose reset. X gate; Y intake; B intake reverse; Back shooter ON/OFF (starts ON). D-pad L/R gate ±10 RPM, U/D shooter ±50 RPM. Left bumper comparison re-anchor. See [current controls](TOURNAMENT_CONTROLS.md). |
 | Test: Limelight | X toggles tracking; Y requests center; A freezes display only |
 | Limelight TeleOp (legacy) | B toggles tracking request; movement/mechanism workers remain separate |
 | BIOBUZZ: Two Hive Tips + Park | Automatic, no gamepad controls after Play; restricts target to active cell cluster |

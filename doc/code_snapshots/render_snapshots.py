@@ -93,11 +93,11 @@ render("01_odometry_coordinates.png", "01 / Odometry and field coordinates",
     ("Read and update the fused pose through Pedro", [
         excerpt("pedroPathing/PushTunaFinal.java", "public void updatePose()", count=2),
         excerpt("pedroPathing/PushTunaFinal.java", "        io.updatePose();", count=2),
-        excerpt("opmodes/TeleTourney.java", "      follower.setStartingPose(new Pose(0", count=3),
+        excerpt("opmodes/TeleTourney.java", "      follower.setStartingPose(startingPose)", count=3),
         excerpt("opmodes/TeleTourney.java", "        Pose pose = follower.getPose();", count=1),
     ]),
 ], "Pinpoint hardware integrates the two odometry pods and onboard IMU. The active app reads its fused pose through Pedro; "
-   "these files do not manually integrate individual wheel deltas. TeleTourney starts at (0,0,0); autos seed the alliance field start.")
+   "these files do not manually integrate individual wheel deltas. TeleTourney starts at (0,0,0); autos seed the alliance field start. A can reset from a mapped Limelight field pose.")
 
 render("02_limelight_servo_aiming.png", "02 / Limelight error to servo position",
        "Horizontal image error tx (degrees) becomes a bounded positional-servo correction. Increasing servo position turns left.", [
@@ -118,7 +118,7 @@ render("02_limelight_servo_aiming.png", "02 / Limelight error to servo position"
         excerpt("control/LimelightPanController.java", "        manualImageControls.update(false, false", count=2),
         excerpt("control/LimelightPanController.java", "      position = imageAim.getPosition();", count=2),
     ]),
-], "Correction: delta = clamp(-0.001 * tx, -0.01, +0.01); position stays within 0.05-0.35. "
+], "Correction: delta = clamp(-0.0005 * error outside deadband, -0.005, +0.005); position stays within 0.05-0.35. "
    "This aims left/right only. TeleTourney uses this tracking; live Red/Blue autos hold center for tag-height confirmation.")
 
 render("03_gate_jam_recovery.png", "03 / Gate motor jam recovery",

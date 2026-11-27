@@ -11,7 +11,9 @@ public final class CameraPanTelemetry {
     telemetry.addData("Pan tracking", pan.isTracking());
     if (pan.isImageOnly()) {
       telemetry.addData("Pan servo", "%.3f (commanded)", pan.getPosition());
-      telemetry.addData("Pan yaw / range / height", "WITHHELD: yaw calibration required");
+      telemetry.addData("Pan yaw / range / height", tags.isRobotPoseReady()
+          ? "KNOWN CENTER: pose measurement window"
+          : "WITHHELD: yaw calibration required");
       telemetry.addData("Pan target tx", "%.1f deg", pan.getTargetTxDegrees());
     } else {
       telemetry.addData("Pan servo / yaw", "%.3f / %.1f deg (commanded)",

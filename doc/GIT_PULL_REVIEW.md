@@ -1,4 +1,9 @@
-# Git pull review
+# Git pull review (historical snapshot)
+
+**The button comparison below describes the pull at review time.** Subsequent
+requested changes unify both tournament button maps and add absolute Limelight
+pose reset. Use [current tournament controls](TOURNAMENT_CONTROLS.md) for operation.
+The old A drive-to-shoot and held-B spit actions have been replaced.
 
 Reviewed merge `2337f42` against its pre-pull parent `71dbf30`.
 The pull adds a separate `TeleOpTourney`, automatic-to-teleop pose handoff,

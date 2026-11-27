@@ -15,6 +15,8 @@ import org.firstinspires.ftc.teamcode.control.DualGamepadDriveControls.DriveComm
 import org.firstinspires.ftc.teamcode.localization.AprilTagObservation;
 import org.firstinspires.ftc.teamcode.localization.AprilTagTracker;
 import org.firstinspires.ftc.teamcode.localization.AutoPoseHandoff;
+import org.firstinspires.ftc.teamcode.localization.AbsolutePoseReset;
+import org.firstinspires.ftc.teamcode.localization.PoseEstimate;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.PedroAprilTagValidation;
 import org.firstinspires.ftc.teamcode.telemetry.PedroValidationTelemetry;
@@ -27,11 +29,16 @@ import org.firstinspires.ftc.teamcode.subsystems.GateMotorSubsystem;
 import org.firstinspires.ftc.teamcode.control.GateJamRecoveryController;
 /** Competition drive TeleOp with live two-wheel odometry and Limelight AprilTag telemetry. */
 @TeleOp(name = "TeleTourney", group = "Competition")
-public final class TeleTourney extends LinearOpMode {
+public class TeleTourney extends LinearOpMode {
+  protected double getDrivePowerLimit() { return RobotConfig.TeleTourney.MAX_DRIVE_POWER; }
+  protected TeleTourneyMechanismControls createMechanismControls() { return new TeleTourneyMechanismControls(); }
+  protected Pose awaitStartingPose() { waitForStart(); return new Pose(0, 0, 0); }
+
   @Override
   public void runOpMode() {
     Follower follower = Constants.createFollower(hardwareMap);
-    follower.setMaxPower(RobotConfig.TeleTourney.MAX_DRIVE_POWER);
+    double drivePowerLimit = getDrivePowerLimit();
+    follower.setMaxPower(drivePowerLimit);
     PushTunaFinal pushTuna = new PushTunaFinal(follower);
     GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, RobotConfig.Hardware.PINPOINT);
     AprilTagTracker aprilTags = new AprilTagTracker(hardwareMap);
@@ -43,7 +50,10 @@ public final class TeleTourney extends LinearOpMode {
     SingleShooterSubsystem shooter = null;
     IntakeSubsystem intake = null;
     GateMotorSubsystem gateMotor = null;
-    TeleTourneyMechanismControls mechanisms = new TeleTourneyMechanismControls();
+    TeleTourneyMechanismControls mechanisms = createMechanismControls();
+    AbsolutePoseReset poseReset = new AbsolutePoseReset(RobotConfig.TeleTourney.POSE_RESET_FRAMES,
+        RobotConfig.TeleTourney.POSE_RESET_TIMEOUT_SECONDS, RobotConfig.TeleTourney.POSE_RESET_SPREAD_INCHES,
+        RobotConfig.TeleTourney.POSE_RESET_HEADING_SPREAD_DEGREES, 72);
     try {
       shooter = new SingleShooterSubsystem(hardwareMap);
       shooter.setState(false, mechanisms.isShooterReversed(), mechanisms.getShooterRpm());
@@ -52,14 +62,14 @@ public final class TeleTourney extends LinearOpMode {
       telemetry.setMsTransmissionInterval(50);
       telemetry.addData("Status", "Drive, intake, Shoot1, gateMotor, odometry, and Limelight initialized");
       telemetry.addLine("Left stick: drive/strafe | Triggers: rotate");
-      telemetry.addData("Drive power limit", "%.0f%%", RobotConfig.TeleTourney.MAX_DRIVE_POWER * 100);
+      telemetry.addData("Drive power limit", "%.0f%%", drivePowerLimit * 100);
       telemetry.addLine("Y: intake ON/OFF (preserves selected direction)");
-      telemetry.addLine("A: reverse intake direction (keeps current ON/OFF state)");
-      telemetry.addLine("X: Shoot1 ON/OFF | D-pad up/down: +/-50 RPM");
-      telemetry.addData("B: gateMotor START/HOLD", "%s | Either gamepad",
+      telemetry.addLine("B: reverse intake direction | A: absolute Limelight field pose reset");
+      telemetry.addLine("Back: Shoot1 ON/OFF (starts ON at Play) | D-pad up/down: +/-50 RPM");
+      telemetry.addData("X: gateMotor START/HOLD", "%s | Either gamepad",
           mechanisms.isGateReversed() ? "REVERSE" : "FORWARD");
       telemetry.addLine("D-pad left/right: gate speed -/+10 RPM | Camera: automatic tag tracking");
-      telemetry.addLine("First visible tag anchors the check. Left bumper: re-anchor | Back: clear");
+      telemetry.addLine("Left bumper: re-anchor tag comparison | A reset requires a mapped tag and neutral drive");
       telemetry.addLine("Camera pan: horizontal image tracking; robot-space poses need calibration");
       telemetry.addData("Intake / Shoot1", "OFF / OFF");
       telemetry.addData("GateMotor", "OFF / %.0f RPM selected", mechanisms.getGateRpm());
@@ -69,16 +79,18 @@ public final class TeleTourney extends LinearOpMode {
       CameraPanTelemetry.add(telemetry, pan, aprilTags);
       OdometryTelemetry.add(telemetry);
       telemetry.update();
-      waitForStart();
+      Pose startingPose = awaitStartingPose();
       if (isStopRequested()) {
         return;
       }
-      AutoPoseHandoff.clear(); // This mode seeds its own origin and may drive away from the auto end pose.
-      follower.setStartingPose(new Pose(0, 0, 0));
-      follower.setPose(new Pose(0, 0, 0));
+      AutoPoseHandoff.clear(); // Consume/invalidate the handoff before driving away from this starting pose.
+      follower.setStartingPose(startingPose);
+      follower.setPose(startingPose);
       follower.startTeleopDrive(true);
       aprilTags.start();
       pan.start();
+      shooter.setState(mechanisms.isShooterEnabled(), mechanisms.isShooterReversed(), mechanisms.getShooterRpm());
+      intake.setState(mechanisms.isIntakeEnabled(), IntakeSubsystem.Direction.FORWARD);
       gateMotor.setState(false, mechanisms.isGateReversed(), mechanisms.getGateRpm());
       long lastTelemetryNanos = 0;
       long previousLoopNanos = System.nanoTime();
@@ -96,19 +108,35 @@ public final class TeleTourney extends LinearOpMode {
             ? IntakeSubsystem.Direction.REVERSE : IntakeSubsystem.Direction.FORWARD);
         shooter.setState(mechanisms.isShooterEnabled(), mechanisms.isShooterReversed(), mechanisms.getShooterRpm());
         gateMotor.setState(mechanisms.isGateEnabled(), mechanisms.isGateReversed(), mechanisms.getGateRpm());
+        if (mechanisms.isOdometryResetRequested() && !poseReset.isActive()) {
+          if (!aprilTags.isConnected()) { poseReset.unavailable("Limelight disconnected"); }
+          else if (pan.beginFieldPoseMeasurement()) { poseReset.begin(System.nanoTime() / 1e9); }
+          else { poseReset.unavailable("camera cannot provide a centered field measurement"); }
+        }
         pan.update();
         Pose pose = follower.getPose();
         List<AprilTagObservation> visibleTags = aprilTags.getObservations();
         AprilTagObservation nearestTag = aprilTags.getNearestObservation();
+        poseReset.update(System.nanoTime() / 1e9, aprilTags.isConnected(), pan.isFieldPoseMeasurementReady(),
+            command.isActive(), aprilTags.getResultTimestamp(),
+            new PoseEstimate(pose.getX(), pose.getY(), Math.toDegrees(pose.getHeading())), aprilTags.getFieldPose());
+        PoseEstimate corrected = poseReset.takeCorrection();
+        if (corrected != null) {
+          pushTuna.reset();
+          follower.setPose(new Pose(corrected.getX(), corrected.getY(), Math.toRadians(corrected.getHeadingDegrees())));
+          pose = follower.getPose();
+          validation.resetBaseline();
+        }
+        if (!poseReset.isActive()) { pan.endFieldPoseMeasurement(); }
         validation.update(pose, visibleTags, aprilTags.isConnected(),
-            gamepad1.left_bumper || gamepad2.left_bumper, gamepad1.back || gamepad2.back);
+            gamepad1.left_bumper || gamepad2.left_bumper, false);
 
         // Control and aiming run every loop; expensive telemetry reads/formatting run at 10 Hz.
         if (loopNanos - lastTelemetryNanos >= 100_000_000L) {
           lastTelemetryNanos = loopNanos;
           telemetry.addData("Control loop", "%.1f ms (drive + camera active)", loopMilliseconds);
           telemetry.addData("Active Driver", "Gamepad %d", command.getGamepadNumber());
-          telemetry.addData("Drive power limit", "%.0f%%", RobotConfig.TeleTourney.MAX_DRIVE_POWER * 100);
+          telemetry.addData("Drive power limit", "%.0f%%", drivePowerLimit * 100);
           telemetry.addData("Position recovery", pushTuna.getState());
           telemetry.addData("Camera control", pan.isTracking() ? "AUTO: tag tracking" : "HOLD");
           telemetry.addData("Intake", "%s / %s", intake.isEnabled() ? "ON" : "OFF", intake.getDirection());
@@ -127,9 +155,11 @@ public final class TeleTourney extends LinearOpMode {
           telemetry.addData("Gate applied RPM", "%.0f", gateMotor.getOutputRpm());
           telemetry.addData("Gate recovery / retries", "%s / %d", gateMotor.getRecoveryState(), gateMotor.getRecoveryAttempts());
           if (gateMotor.getRecoveryState() == GateJamRecoveryController.State.FAULT) {
-            telemetry.addLine("Gate jam fault: clear obstruction, then B HOLD and B START to retry");
+            telemetry.addLine("Gate jam fault: clear obstruction, then X HOLD and X START to retry");
           }
-          telemetry.addLine("A: intake reverse | B: gate start/hold | Left bumper: re-anchor | Back: clear check");
+          telemetry.addLine("Y: intake | X: gate START/HOLD | B: intake reverse | Back: shooter ON/OFF");
+          telemetry.addData("A: absolute pose reset", poseReset.getStatus());
+          telemetry.addData("Mapped tags for field pose", aprilTags.getMappedTagCount());
           telemetry.addLine("D-pad L/R: gate -/+10 RPM | D-pad U/D: shooter +/-50 RPM");
           telemetry.addData("Shoot1", shooter.isActive() ? "ON" : "OFF");
           telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");

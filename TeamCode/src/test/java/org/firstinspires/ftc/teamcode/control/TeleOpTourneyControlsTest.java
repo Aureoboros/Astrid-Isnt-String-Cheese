@@ -1,61 +1,22 @@
 package org.firstinspires.ftc.teamcode.control;
-
 import static org.junit.Assert.*;
-
+import com.qualcomm.robotcore.hardware.Gamepad;
 import org.junit.Test;
-
 public final class TeleOpTourneyControlsTest {
-  @Test public void startsWithIntakeOnAndGateOff() {
+  @Test public void importedEntryRetainsIntakeOnButUsesSameShooterAndGateDefaults() {
     TeleOpTourneyControls c = new TeleOpTourneyControls();
-    assertTrue(c.isIntakeEnabled());
-    assertFalse(c.isIntakeReversed());
-    assertFalse(c.isGateEnabled());
-    assertFalse(c.isDriveToShootRequested());
+    assertTrue(c.isIntakeEnabled()); assertFalse(c.isIntakeReversed());
+    assertTrue(c.isShooterEnabled()); assertTrue(c.isShooterReversed());
+    assertEquals(3200, c.getShooterRpm(), 0); assertEquals(190, c.getGateRpm(), 0);
+    assertFalse(c.isGateEnabled()); assertTrue(c.isGateReversed());
   }
-
-  @Test public void yAndXToggleOncePerPress() {
+  @Test public void sameMapHandlesResetReverseGateAndShooterWithoutSpitOrAutoDrive() {
     TeleOpTourneyControls c = new TeleOpTourneyControls();
-    c.updateButtons(false, false, true, true);
-    assertFalse(c.isIntakeEnabled());
-    assertTrue(c.isGateEnabled());
-    c.updateButtons(false, false, true, true); // held: no repeat toggle
-    assertFalse(c.isIntakeEnabled());
-    assertTrue(c.isGateEnabled());
-    c.updateButtons(false, false, false, false);
-    c.updateButtons(false, false, true, true);
-    assertTrue(c.isIntakeEnabled());
-    assertFalse(c.isGateEnabled());
-  }
-
-  @Test public void holdingBSpitsThenRestoresToggles() {
-    TeleOpTourneyControls c = new TeleOpTourneyControls();
-    c.updateButtons(false, false, false, true); // intake off
-    c.updateButtons(false, true, false, false);
-    assertTrue(c.isIntakeEnabled() && c.isIntakeReversed());
-    assertTrue(c.isGateEnabled() && c.isGateReversed());
-    c.updateButtons(false, false, false, false);
-    assertFalse(c.isIntakeEnabled());
-    assertFalse(c.isGateEnabled());
-    assertFalse(c.isGateReversed());
-  }
-
-  @Test public void aRequestsOnlyOnNewPress() {
-    TeleOpTourneyControls c = new TeleOpTourneyControls();
-    c.updateButtons(true, false, false, false);
-    assertTrue(c.isDriveToShootRequested());
-    c.updateButtons(true, false, false, false);
-    assertFalse(c.isDriveToShootRequested());
-  }
-
-  @Test public void launcherStartsAt3200AndDpadStepsOncePerPress() {
-    TeleOpTourneyControls c = new TeleOpTourneyControls();
-    assertEquals(3200, c.getShooterRpm(), 0);
-    c.updateButtons(false, false, false, false, true, false);
-    c.updateButtons(false, false, false, false, true, false); // held: one step only
-    assertEquals(3250, c.getShooterRpm(), 0);
-    c.updateButtons(false, false, false, false, false, true);
-    c.updateButtons(false, false, false, false, false, false);
-    c.updateButtons(false, false, false, false, false, true);
-    assertEquals(3150, c.getShooterRpm(), 0);
+    Gamepad p = new Gamepad(), q = new Gamepad();
+    q.a = q.b = q.x = q.back = true; c.update(p, q);
+    assertTrue(c.isOdometryResetRequested()); assertTrue(c.isIntakeEnabled());
+    assertTrue(c.isIntakeReversed()); assertTrue(c.isGateEnabled()); assertFalse(c.isShooterEnabled());
+    c.update(p, q); assertFalse(c.isOdometryResetRequested());
+    q.y = true; c.update(p, q); assertFalse(c.isIntakeEnabled()); assertTrue(c.isIntakeReversed());
   }
 }
