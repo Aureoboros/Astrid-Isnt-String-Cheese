@@ -12,7 +12,7 @@ public final class TeleTourneyMechanismControlsTest {
     assertEquals(3200, c.getShooterRpm(), 0);
     assertFalse(c.isIntakeEnabled()); assertFalse(c.isIntakeReversed());
     assertFalse(c.isGateEnabled()); assertTrue(c.isGateReversed());
-    assertEquals(190, c.getGateRpm(), 0);
+    assertEquals(40, c.getGateRpm(), 0);
   }
   @Test public void yTogglesIntakeOnlyAndDoesNotRepeatWhileHeld() {
     p.y = true; update(); update();
@@ -62,14 +62,14 @@ public final class TeleTourneyMechanismControlsTest {
     p.left_bumper = q.right_bumper = true; update();
     assertTrue(c.isShooterEnabled()); assertFalse(c.isGateEnabled()); assertFalse(c.isOdometryResetRequested());
   }
-  @Test public void dpadStepsOnceAcrossControllersAndOpposingFreshPressesCancel() {
+  @Test public void shooterStepsOnceAndTurretInputsDoNotChangeGateSpeed() {
     q.dpad_right = q.dpad_up = true; update(); update();
     p.dpad_right = p.dpad_up = true; update();
     q.dpad_right = q.dpad_up = false; update();
-    assertEquals(200, c.getGateRpm(), 0); assertEquals(3250, c.getShooterRpm(), 0);
+    assertEquals(40, c.getGateRpm(), 0); assertEquals(3250, c.getShooterRpm(), 0);
     p.dpad_right = p.dpad_up = false; update();
     p.dpad_left = p.dpad_down = q.dpad_right = q.dpad_up = true; update();
-    assertEquals(200, c.getGateRpm(), 0); assertEquals(3250, c.getShooterRpm(), 0);
+    assertEquals(40, c.getGateRpm(), 0); assertEquals(3250, c.getShooterRpm(), 0);
   }
   @Test public void rpmSelectionSurvivesMechanismToggles() {
     p.back = p.dpad_down = p.dpad_left = true; update();
@@ -77,16 +77,27 @@ public final class TeleTourneyMechanismControlsTest {
     p.back = p.dpad_down = p.dpad_left = false; update();
     q.back = q.x = true; update();
     assertTrue(c.isShooterEnabled()); assertTrue(c.isGateEnabled());
-    assertEquals(3150, c.getShooterRpm(), 0); assertEquals(180, c.getGateRpm(), 0);
+    assertEquals(3150, c.getShooterRpm(), 0); assertEquals(40, c.getGateRpm(), 0);
   }
-  @Test public void speedsClampToMotorRatingsAndZero() {
+  @Test public void shooterClampsToRatingAndZeroWhileGateRemains40() {
     for (int i=0; i<150; i++) {
       p.dpad_up = p.dpad_right = true; update(); p.dpad_up = p.dpad_right = false; update();
     }
-    assertEquals(6000, c.getShooterRpm(), 0); assertEquals(435, c.getGateRpm(), 0);
+    assertEquals(6000, c.getShooterRpm(), 0); assertEquals(40, c.getGateRpm(), 0);
     for (int i=0; i<150; i++) {
       q.dpad_down = q.dpad_left = true; update(); q.dpad_down = q.dpad_left = false; update();
     }
-    assertEquals(0, c.getShooterRpm(), 0); assertEquals(0, c.getGateRpm(), 0);
+    assertEquals(0, c.getShooterRpm(), 0); assertEquals(40, c.getGateRpm(), 0);
+  }
+  @Test public void turretPanUsesHeldInputsFromBothControllersAndReleaseClearsThem() {
+    q.dpad_left = true; update(); update();
+    assertTrue(c.isTurretLeftRequested()); assertFalse(c.isTurretRightRequested());
+    p.dpad_right = true; update();
+    assertTrue(c.isTurretLeftRequested()); assertTrue(c.isTurretRightRequested());
+    q.dpad_left = false; update();
+    assertFalse(c.isTurretLeftRequested()); assertTrue(c.isTurretRightRequested());
+    p.dpad_right = false; update();
+    assertFalse(c.isTurretLeftRequested()); assertFalse(c.isTurretRightRequested());
+    assertEquals(40,c.getGateRpm(),0); assertFalse(c.isGateEnabled());
   }
 }

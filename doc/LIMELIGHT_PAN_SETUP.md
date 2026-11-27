@@ -110,7 +110,7 @@ checks do not measure the physical servo speed or camera latency.
 
 | OpMode | Camera controls |
 | --- | --- |
-| TeleTourney / TeleOpTourney | Automatic image tracking alongside driving. A temporarily centers the camera for absolute mapped field-pose reset. X gate; Y intake; B intake reverse; Back shooter ON/OFF (starts ON). D-pad L/R gate ±10 RPM, U/D shooter ±50 RPM. Left bumper comparison re-anchor. See [current controls](TOURNAMENT_CONTROLS.md). |
+| TeleTourney / TeleOpTourney | Automatic image tracking alongside driving. A temporarily centers the camera for absolute mapped field-pose reset. X gate; Y intake START/HOLD; B intake reverse; Back shooter ON/OFF (starts ON). D-pad L/R pans the turret left/right while held; release resumes tracking. Gate runs at 40 RPM reverse. D-pad U/D shooter ±50 RPM. Left bumper comparison re-anchor. See [current controls](TOURNAMENT_CONTROLS.md). |
 | Test: Limelight | X toggles tracking; Y requests center; A freezes display only |
 | Limelight TeleOp (legacy) | B toggles tracking request; movement/mechanism workers remain separate |
 | BIOBUZZ: Two Hive Tips + Park | Automatic, no gamepad controls after Play; restricts target to active cell cluster |

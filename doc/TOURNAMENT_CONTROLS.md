@@ -7,19 +7,44 @@ Buttons act once per press; overlapping presses on both controllers count once.
 | --- | --- |
 | Left stick Y / X | Forward/back / strafe |
 | Left / right trigger | Rotate left / right |
-| Y | Intake ON/OFF, retaining the selected direction |
-| B | Reverse intake direction, retaining ON/OFF |
+| Y | Intake START/HOLD, retaining the selected direction |
+| B | Reverse intake direction, retaining RUN/HOLD |
 | X | Gate START/HOLD; HOLD captures and holds the stopped encoder position |
 | Back | Shoot1 ON/OFF; starts ON at Play, 3200 RPM reverse |
 | D-pad up / down | Shooter + / −50 RPM, bounded to 0–6000 |
-| D-pad right / left | Gate + / −10 RPM, bounded to 0–435 |
+| D-pad left / right | Pan turret left / right while held; automatic tracking resumes on release |
 | A | One-shot absolute Limelight field position **and heading** reset |
 | Left bumper | Re-anchor the relative tag/odometry comparison |
 
-The gate starts in HOLD at Play with 190 RPM reverse selected. Its existing jam
-recovery remains active while feeding. Selected speeds survive START/HOLD and
-ON/OFF toggles. Motors remain unpowered during INIT and stop on Driver Station STOP.
-Automatic camera tracking runs alongside driving and mechanism controls.
+The gate starts in HOLD at Play with 40 RPM reverse selected. Its existing jam
+recovery remains active while feeding. Selected speeds survive mechanism toggles. Motors remain unpowered during INIT and stop on Driver Station STOP.
+Automatic camera tracking runs alongside driving and mechanism controls. Manual
+D-pad panning takes priority while held; opposing left/right inputs hold position.
+Travel stays within 0.05–0.35, with 0.005 steps every 0.1 seconds. Tournament
+gate feeding is fixed at 40 RPM (`RobotConfig.TeleTourney.GATE_RPM`).
+
+Intake running speed defaults to **435 RPM** in both tournament entries and
+**Test: Intake** (`RobotConfig.Mechanisms.INTAKE_TARGET_RPM`). The confirmed
+435-RPM goBILDA intake uses **384.5 ticks per output-shaft revolution**, configured
+in `RobotConfig.IntakeMotor`. Its cloned motor profile and explicit velocity PIDF
+apply to this intake without changing the gate or drive motor profiles. Running
+uses `RUN_USING_ENCODER`; reversing requests −435 RPM. Telemetry shows selected,
+signed target and measured RPM, plus encoder ticks per revolution. The controller
+uses initial PIDF gains that can be tuned under the actual intake load.
+
+Intake HOLD captures the current encoder position once when running stops, then
+uses `RUN_TO_POSITION` to resist movement. B changes the direction for the next
+start while retaining the held target. It does not continuously recapture the
+position. Hold power is **0.25**, with **2 ticks** of position tolerance, configured
+in `RobotConfig.Mechanisms.INTAKE_HOLD_POWER` / `INTAKE_HOLD_TOLERANCE_TICKS`.
+Telemetry shows intake RUN/HOLD, selected direction and hold target/error ticks.
+The intake encoder must be connected to Expansion Hub motor port 0's matching
+encoder input. Driver Station STOP releases active holding torque.
+
+**Test: Intake** exercises the same holding behavior independently: **A** START/HOLD,
+**Y** forward/reverse. Holding begins after Play. `IntakeSubsystem` enables holding
+explicitly for these tournament/test modes; other users retain their existing
+inactive behavior.
 
 ## What A does
 
@@ -29,6 +54,9 @@ mapped `botpose` (meters converted to inches, yaw in degrees), rather than the
 tag's relative distance or a previously captured odometry baseline. A visible
 tag must be included in the uploaded field map (`botpose_tagcount > 0`). An
 unmapped tag can still be tracked but cannot supply this absolute reset.
+
+During an A measurement, manual pan is temporarily suppressed so the camera
+can stay centered; held D-pad inputs take effect again after the attempt.
 
 A briefly holds the camera at CENTER **0.2**, applies/verifies the known center
 mount (forward 1 inch, right −3.75 inches, up 17 inches, pitch 45°, yaw 0°),
@@ -55,7 +83,7 @@ uncalibrated. Pinpoint stays the position source between explicit A resets.
 
 | Setting | TeleTourney | TeleOpTourney |
 | --- | --- | --- |
-| Intake at Play | OFF | ON (retains imported default) |
+| Intake at Play | HOLD | RUN (retains imported default) |
 | Drive/push recovery cap | 35% | 100% (retains imported manual cap) |
 | Initial pose | (0,0,0) | Saved autonomous end pose or selected Red/Blue start |
 

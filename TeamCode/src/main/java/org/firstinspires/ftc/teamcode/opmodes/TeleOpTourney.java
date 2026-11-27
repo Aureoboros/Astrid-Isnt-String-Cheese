@@ -35,8 +35,8 @@ public final class TeleOpTourney extends TeleTourney {
       telemetry.addData("Starting pose", "X %.1f, Y %.1f, %.0f deg",
           start.getX(), start.getY(), start.getHeadingDegrees());
       telemetry.addLine("INIT: D-pad up restores auto pose; down selects alliance start");
-      telemetry.addLine("At Play: Y intake | X gate | B intake reverse | A absolute LL pose reset");
-      telemetry.addLine("Back: shooter ON/OFF (starts ON); D-pad adjusts gate/shooter RPM");
+      telemetry.addLine("At Play: Y intake START/HOLD | X gate | B intake reverse | A absolute LL pose reset");
+      telemetry.addLine("Back: shooter ON/OFF (starts ON); D-pad L/R turret, U/D shooter RPM");
       telemetry.update();
       idle();
     }

@@ -57,18 +57,18 @@ public class TeleTourney extends LinearOpMode {
     try {
       shooter = new SingleShooterSubsystem(hardwareMap);
       shooter.setState(false, mechanisms.isShooterReversed(), mechanisms.getShooterRpm());
-      intake = new IntakeSubsystem(hardwareMap);
+      intake = new IntakeSubsystem(hardwareMap, true);
       gateMotor = new GateMotorSubsystem(hardwareMap);
       telemetry.setMsTransmissionInterval(50);
       telemetry.addData("Status", "Drive, intake, Shoot1, gateMotor, odometry, and Limelight initialized");
       telemetry.addLine("Left stick: drive/strafe | Triggers: rotate");
       telemetry.addData("Drive power limit", "%.0f%%", drivePowerLimit * 100);
-      telemetry.addLine("Y: intake ON/OFF (preserves selected direction)");
-      telemetry.addLine("B: reverse intake direction | A: absolute Limelight field pose reset");
+      telemetry.addLine("Y: intake START/HOLD (preserves selected direction)");
+      telemetry.addLine("Intake HOLD requires its encoder | B: reverse intake | A: absolute LL pose reset");
       telemetry.addLine("Back: Shoot1 ON/OFF (starts ON at Play) | D-pad up/down: +/-50 RPM");
       telemetry.addData("X: gateMotor START/HOLD", "%s | Either gamepad",
           mechanisms.isGateReversed() ? "REVERSE" : "FORWARD");
-      telemetry.addLine("D-pad left/right: gate speed -/+10 RPM | Camera: automatic tag tracking");
+      telemetry.addLine("D-pad left/right: turret pan left/right | Release: automatic tag tracking");
       telemetry.addLine("Left bumper: re-anchor tag comparison | A reset requires a mapped tag and neutral drive");
       telemetry.addLine("Camera pan: horizontal image tracking; robot-space poses need calibration");
       telemetry.addData("Intake / Shoot1", "OFF / OFF");
@@ -113,7 +113,9 @@ public class TeleTourney extends LinearOpMode {
           else if (pan.beginFieldPoseMeasurement()) { poseReset.begin(System.nanoTime() / 1e9); }
           else { poseReset.unavailable("camera cannot provide a centered field measurement"); }
         }
-        pan.update();
+        // A needs a stationary centered camera; manual panning resumes after that attempt.
+        pan.update(!poseReset.isActive() && mechanisms.isTurretLeftRequested(),
+            !poseReset.isActive() && mechanisms.isTurretRightRequested());
         Pose pose = follower.getPose();
         List<AprilTagObservation> visibleTags = aprilTags.getObservations();
         AprilTagObservation nearestTag = aprilTags.getNearestObservation();
@@ -138,8 +140,17 @@ public class TeleTourney extends LinearOpMode {
           telemetry.addData("Active Driver", "Gamepad %d", command.getGamepadNumber());
           telemetry.addData("Drive power limit", "%.0f%%", drivePowerLimit * 100);
           telemetry.addData("Position recovery", pushTuna.getState());
-          telemetry.addData("Camera control", pan.isTracking() ? "AUTO: tag tracking" : "HOLD");
-          telemetry.addData("Intake", "%s / %s", intake.isEnabled() ? "ON" : "OFF", intake.getDirection());
+          telemetry.addData("Camera control", pan.isManualPan() ? "MANUAL: D-pad pan"
+              : pan.isTracking() ? "AUTO: tag tracking" : "HOLD");
+          telemetry.addData("Intake", "%s / %s", intake.isEnabled() ? "RUN" : "HOLD", intake.getDirection());
+          telemetry.addData("Intake target / actual RPM", "%.0f / %.0f (signed)",
+              intake.getCommandedRpm(), intake.getActualRpm());
+          telemetry.addData("Intake selected RPM / ticks per rev", "%.0f / %.1f",
+              intake.getTargetRpm(), intake.getEncoderTicksPerRevolution());
+          if (intake.isHolding()) {
+            telemetry.addData("Intake hold target / error", "%d / %d ticks",
+                intake.getHoldPositionTicks(), intake.getHoldErrorTicks());
+          }
           telemetry.addData("Gate requested", "%s / %s", mechanisms.isGateEnabled() ? "RUN" : "HOLD",
               mechanisms.isGateReversed() ? "REVERSE" : "FORWARD");
           telemetry.addData("Gate mode", gateMotor.isHolding() ? "HOLD POSITION" : "VELOCITY / RECOVERY");
@@ -157,10 +168,10 @@ public class TeleTourney extends LinearOpMode {
           if (gateMotor.getRecoveryState() == GateJamRecoveryController.State.FAULT) {
             telemetry.addLine("Gate jam fault: clear obstruction, then X HOLD and X START to retry");
           }
-          telemetry.addLine("Y: intake | X: gate START/HOLD | B: intake reverse | Back: shooter ON/OFF");
+          telemetry.addLine("Y: intake START/HOLD | X: gate START/HOLD | B: intake reverse | Back: shooter ON/OFF");
           telemetry.addData("A: absolute pose reset", poseReset.getStatus());
           telemetry.addData("Mapped tags for field pose", aprilTags.getMappedTagCount());
-          telemetry.addLine("D-pad L/R: gate -/+10 RPM | D-pad U/D: shooter +/-50 RPM");
+          telemetry.addLine("D-pad L/R: turret left/right | D-pad U/D: shooter +/-50 RPM");
           telemetry.addData("Shoot1", shooter.isActive() ? "ON" : "OFF");
           telemetry.addData("Shoot1 Direction", shooter.isReversed() ? "REVERSE" : "FORWARD");
           telemetry.addData("Shoot1 Selected RPM", "%.0f", shooter.getTargetRpm());

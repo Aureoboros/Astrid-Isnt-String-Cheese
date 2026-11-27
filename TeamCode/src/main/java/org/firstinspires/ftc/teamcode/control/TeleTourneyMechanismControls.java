@@ -9,8 +9,9 @@ public class TeleTourneyMechanismControls {
   private boolean shooterEnabled = true;
   private boolean odometryResetRequested;
   private boolean previousY, previousX, previousB, previousA, previousBack;
-  private boolean previousUp, previousDown, previousLeft, previousRight;
-  private double gateRpm = clamp(RobotConfig.GateMotor.TEST_INITIAL_RPM, RobotConfig.GateMotor.MAX_RPM);
+  private boolean previousUp, previousDown;
+  private boolean turretLeft, turretRight;
+  private final double gateRpm = clamp(RobotConfig.TeleTourney.GATE_RPM, RobotConfig.GateMotor.MAX_RPM);
   private double shooterRpm = clamp(RobotConfig.TeleTourney.SHOOTER_INITIAL_RPM, 6000);
 
   public TeleTourneyMechanismControls() { this(false); }
@@ -21,18 +22,17 @@ public class TeleTourneyMechanismControls {
     boolean b = first.b || second.b, a = first.a || second.a;
     boolean back = first.back || second.back;
     boolean up = first.dpad_up || second.dpad_up, down = first.dpad_down || second.dpad_down;
-    boolean left = first.dpad_left || second.dpad_left, right = first.dpad_right || second.dpad_right;
+    turretLeft = first.dpad_left || second.dpad_left;
+    turretRight = first.dpad_right || second.dpad_right;
     if (y && !previousY) { intakeEnabled = !intakeEnabled; }
     if (x && !previousX) { gateEnabled = !gateEnabled; }
     if (b && !previousB) { intakeReversed = !intakeReversed; }
     if (back && !previousBack) { shooterEnabled = !shooterEnabled; }
     odometryResetRequested = a && !previousA;
     int shooterSteps = (up && !previousUp ? 1 : 0) - (down && !previousDown ? 1 : 0);
-    int gateSteps = (right && !previousRight ? 1 : 0) - (left && !previousLeft ? 1 : 0);
     shooterRpm = clamp(shooterRpm + shooterSteps * RobotConfig.Diagnostics.SHOOTER_RPM_STEP, 6000);
-    gateRpm = clamp(gateRpm + gateSteps * RobotConfig.GateMotor.TEST_RPM_STEP, RobotConfig.GateMotor.MAX_RPM);
     previousY = y; previousX = x; previousB = b; previousA = a; previousBack = back;
-    previousUp = up; previousDown = down; previousLeft = left; previousRight = right;
+    previousUp = up; previousDown = down;
   }
 
   public boolean isIntakeEnabled() { return intakeEnabled; }
@@ -44,5 +44,7 @@ public class TeleTourneyMechanismControls {
   public boolean isOdometryResetRequested() { return odometryResetRequested; }
   public double getShooterRpm() { return shooterRpm; }
   public double getGateRpm() { return gateRpm; }
+  public boolean isTurretLeftRequested() { return turretLeft; }
+  public boolean isTurretRightRequested() { return turretRight; }
   private static double clamp(double rpm, double max) { return Math.max(0, Math.min(max, rpm)); }
 }

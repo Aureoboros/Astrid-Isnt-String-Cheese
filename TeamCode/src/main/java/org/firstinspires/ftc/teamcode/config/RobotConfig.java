@@ -79,10 +79,26 @@ public final class RobotConfig {
 
   public static final class Mechanisms {
     public static final double INTAKE_POWER = 1.0;
+    /** Tournament and isolated intake test velocity target, using the configured motor profile. */
+    public static final double INTAKE_TARGET_RPM = 435.0;
+    /** Encoder holding torque limit while tournament/test intake is inactive. */
+    public static final double INTAKE_HOLD_POWER = 0.25;
+    public static final int INTAKE_HOLD_TOLERANCE_TICKS = 2;
     public static final double SHOOTER_TARGET_RPM = 6000.0;
     public static final double SERVO_POWER = 1.0;
 
     private Mechanisms() {}
+  }
+
+  /** Confirmed intake: goBILDA 435 RPM, 13.7:1. Separate from drive/gate/shooter profiles. */
+  public static final class IntakeMotor {
+    public static final double MAX_RPM = 435.0;
+    public static final double TICKS_PER_REVOLUTION = 384.5;
+    public static final double VELOCITY_F = 32767.0 / (MAX_RPM * TICKS_PER_REVOLUTION / 60.0);
+    public static final double VELOCITY_P = 0.1 * VELOCITY_F;
+    public static final double VELOCITY_I = 0.1 * VELOCITY_P;
+    public static final double VELOCITY_D = 0;
+    private IntakeMotor() {}
   }
 
   /** Confirmed Shoot1: goBILDA 5202/3/4, 1:1, 6000 RPM. Not drive/intake motor metadata. */
@@ -166,6 +182,8 @@ public final class RobotConfig {
     public static final double MAX_DRIVE_POWER = 0.35;
     public static final double SHOOTER_INITIAL_RPM = 3200.0;
     public static final boolean SHOOTER_REVERSED = true;
+    /** Fixed tournament gate feed speed; D-pad left/right now controls the turret. */
+    public static final double GATE_RPM = 40.0;
     public static final int POSE_RESET_FRAMES = 5;
     public static final double POSE_RESET_TIMEOUT_SECONDS = 4;
     public static final double POSE_RESET_SPREAD_INCHES = 2;

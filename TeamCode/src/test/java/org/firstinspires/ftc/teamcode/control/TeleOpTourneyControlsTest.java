@@ -7,7 +7,7 @@ public final class TeleOpTourneyControlsTest {
     TeleOpTourneyControls c = new TeleOpTourneyControls();
     assertTrue(c.isIntakeEnabled()); assertFalse(c.isIntakeReversed());
     assertTrue(c.isShooterEnabled()); assertTrue(c.isShooterReversed());
-    assertEquals(3200, c.getShooterRpm(), 0); assertEquals(190, c.getGateRpm(), 0);
+    assertEquals(3200, c.getShooterRpm(), 0); assertEquals(40, c.getGateRpm(), 0);
     assertFalse(c.isGateEnabled()); assertTrue(c.isGateReversed());
   }
   @Test public void sameMapHandlesResetReverseGateAndShooterWithoutSpitOrAutoDrive() {

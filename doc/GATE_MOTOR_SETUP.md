@@ -158,13 +158,13 @@ credits pulse progress from encoder travel. Shoot1 is 2900 RPM, reverse. See
 ## Tournament controls
 
 Both TeleTourney and TeleOpTourney initialize gateMotor unpowered, then hold its
-position at Play. **X** toggles START/HOLD at **190 RPM reverse** on either
-controller. D-pad LEFT/RIGHT decreases/increases selected speed by 10 RPM,
-bounded to 0–435. Speed changes during HOLD do not start the motor. A fresh
+position at Play. **X** toggles START/HOLD at a fixed **40 RPM reverse** on either
+controller (`RobotConfig.TeleTourney.GATE_RPM`). D-pad LEFT/RIGHT pans the turret
+left/right while held; release resumes automatic tag tracking. A fresh
 X HOLD then X START clears a latched recovery fault. Existing automatic jam
 recovery and encoder position holding are unchanged.
 
-Y toggles intake ON/OFF; B reverses intake. Back toggles Shoot1, which starts ON
+Y toggles intake START/HOLD; B reverses intake without releasing its held target. Back toggles Shoot1, which starts ON
 at 3200 RPM reverse. A resets absolute field pose from mapped Limelight data;
 left bumper re-anchors the relative tag/odometry comparison. See
 [current tournament controls](TOURNAMENT_CONTROLS.md) for the full map and defaults.
