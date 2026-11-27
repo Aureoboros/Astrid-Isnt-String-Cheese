@@ -184,6 +184,14 @@ public final class RobotConfig {
     public static final boolean SHOOTER_REVERSED = true;
     /** Fixed tournament gate feed speed; D-pad left/right now controls the turret. */
     public static final double GATE_RPM = 40.0;
+    /** Strafe heading feedback: gains use degrees, output is normalized Pedro CCW turn. */
+    public static final boolean STRAFE_HEADING_HOLD_ENABLED = true;
+    public static final double STRAFE_HEADING_KP = 0.03;
+    public static final double STRAFE_HEADING_KI = 0.001;
+    public static final double STRAFE_HEADING_KD = 0.0;
+    public static final double STRAFE_HEADING_MAX_TURN = 0.30;
+    public static final double STRAFE_HEADING_MAX_INTEGRAL = 20.0;
+    public static final double STRAFE_HEADING_DEADBAND_DEGREES = 1.0;
     public static final int POSE_RESET_FRAMES = 5;
     public static final double POSE_RESET_TIMEOUT_SECONDS = 4;
     public static final double POSE_RESET_SPREAD_INCHES = 2;

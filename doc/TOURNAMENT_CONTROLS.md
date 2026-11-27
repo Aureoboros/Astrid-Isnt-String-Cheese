@@ -46,6 +46,36 @@ encoder input. Driver Station STOP releases active holding torque.
 explicitly for these tournament/test modes; other users retain their existing
 inactive behavior.
 
+## Heading hold during strafing
+
+Both tournament entries capture Pinpoint heading when strafe input starts with
+no rotation command. While strafing continues, a separate heading PID adds a
+bounded Pedro counterclockwise turn correction. This includes diagonal movement
+with a strafe component. It holds the captured heading; it does not align the
+robot to field zero. A start at −5° therefore holds −5°.
+
+Any accepted trigger rotation, including a small squared command, immediately
+overrides and clears heading hold. Releasing the triggers while still strafing
+captures the new heading. Releasing strafe clears the target, so forward-only
+movement and idle do not receive this correction. Existing stopped-position push
+recovery remains active after the robot settles. A successful absolute field-pose
+reset and a Pinpoint fault also clear the heading target.
+
+Telemetry shows **Strafe heading hold**, **Heading target / error**, and **Heading
+correction**. Correction is normalized Pedro CCW turn before the entry's overall
+drive power cap. At TeleTourney's 35% cap, a 0.30 heading correction is limited
+along with the rest of the drive command.
+
+Tune `RobotConfig.TeleTourney.STRAFE_HEADING_*`: enabled=true, P=0.03, I=0.001,
+D=0, maximum turn=0.30, integral limit=20 degree-seconds, deadband=1°. Heading
+errors wrap across ±180° using the shortest turn. Integral is bounded and paused
+when the previous correction is saturated in the error direction. Invalid or
+long (>0.25 s) sample intervals reset integral/derivative history. Gains are initial
+values requiring on-robot tuning; they do not change Pedro autonomous PID settings.
+
+Implementation: `control/StrafeHeadingHold.java`, integrated into the existing
+manual-drive/push-recovery loop in `pedroPathing/PushTunaFinal.java`.
+
 ## What A does
 
 The operator confirmed the Limelight map matches Pedro's field frame: center

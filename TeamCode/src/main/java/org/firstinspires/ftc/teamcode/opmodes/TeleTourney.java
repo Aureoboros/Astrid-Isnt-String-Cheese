@@ -62,6 +62,7 @@ public class TeleTourney extends LinearOpMode {
       telemetry.setMsTransmissionInterval(50);
       telemetry.addData("Status", "Drive, intake, Shoot1, gateMotor, odometry, and Limelight initialized");
       telemetry.addLine("Left stick: drive/strafe | Triggers: rotate");
+      telemetry.addLine("Strafe heading hold: automatic; triggers override immediately");
       telemetry.addData("Drive power limit", "%.0f%%", drivePowerLimit * 100);
       telemetry.addLine("Y: intake START/HOLD (preserves selected direction)");
       telemetry.addLine("Intake HOLD requires its encoder | B: reverse intake | A: absolute LL pose reset");
@@ -140,6 +141,13 @@ public class TeleTourney extends LinearOpMode {
           telemetry.addData("Active Driver", "Gamepad %d", command.getGamepadNumber());
           telemetry.addData("Drive power limit", "%.0f%%", drivePowerLimit * 100);
           telemetry.addData("Position recovery", pushTuna.getState());
+          telemetry.addData("Strafe heading hold", pushTuna.isStrafeHeadingHolding() ? "ACTIVE" : "INACTIVE");
+          if (pushTuna.isStrafeHeadingHolding()) {
+            telemetry.addData("Heading target / error", "%.1f / %.1f deg",
+                pushTuna.getStrafeHeadingTargetDegrees(), pushTuna.getStrafeHeadingErrorDegrees());
+            telemetry.addData("Heading correction", "%.3f (Pedro CCW, before drive power cap)",
+                pushTuna.getStrafeHeadingCorrection());
+          }
           telemetry.addData("Camera control", pan.isManualPan() ? "MANUAL: D-pad pan"
               : pan.isTracking() ? "AUTO: tag tracking" : "HOLD");
           telemetry.addData("Intake", "%s / %s", intake.isEnabled() ? "RUN" : "HOLD", intake.getDirection());

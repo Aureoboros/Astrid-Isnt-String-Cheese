@@ -38,6 +38,32 @@ public final class PushTunaFinalTest {
     assertEquals(-.4, drive.left, 1e-9);
     assertEquals(-.3, drive.rotation, 1e-9);
   }
+  @Test public void strafingAddsCcwCorrectionWithoutChangingTranslationOrArmingRecovery() {
+    drive.pose=new Pose(0,0,Math.toRadians(-5)); control.update(.2,.6,0,0);
+    drive.pose=new Pose(0,0,Math.toRadians(-19)); control.update(.2,.6,0,100);
+    assertEquals(.2,drive.forward,0); assertEquals(.6,drive.left,0); assertTrue(drive.rotation>0);
+    assertTrue(control.isStrafeHeadingHolding()); assertEquals(PushTunaFinal.State.DRIVING,control.getState());
+    assertEquals(0,drive.holds);
+    control.update(.2,.6,-.01,150); assertEquals(-.01,drive.rotation,0);
+    assertFalse(control.isStrafeHeadingHolding());
+  }
+  @Test public void stoppingStrafeLeavesExistingPushRecoveryAvailable() {
+    control.update(0,.6,0,0); assertTrue(control.isStrafeHeadingHolding());
+    control.update(0,0,0,100); assertFalse(control.isStrafeHeadingHolding()); assertEquals(0,drive.rotation,0);
+    control.update(0,0,0,450); drive.pose=new Pose(2,0,0); control.update(0,0,0,500);
+    assertTrue(control.isRecovering());
+  }
+  @Test public void poseResetAndSensorFaultCannotReuseStrafeHeading() {
+    control.update(0,.6,0,0); control.reset(); drive.pose=new Pose(10,5,Math.toRadians(90));
+    control.update(0,.6,0,100); assertEquals(90,control.getStrafeHeadingTargetDegrees(),1e-9);
+    assertEquals(0,drive.rotation,0);
+    drive.ready=false; control.update(0,.6,0,150); assertFalse(control.isStrafeHeadingHolding());
+    assertEquals(0,drive.rotation,0);
+  }
+  @Test public void tinyMappedTriggerCancelsPushRecoveryImmediately() {
+    bump(); control.update(0,0,.01,450);
+    assertFalse(control.isRecovering()); assertEquals(.01,drive.rotation,0);
+  }
   @Test public void rotationMustSettleBeforeArming() {
     control.update(0, 0, 0, 0);
     drive.pose = new Pose(0, 0, Math.toRadians(2));

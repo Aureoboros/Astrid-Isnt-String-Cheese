@@ -4,6 +4,8 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import org.firstinspires.ftc.teamcode.config.RobotConfig;
+import org.firstinspires.ftc.teamcode.control.StrafeHeadingHold;
 
 /** Arms after driver input and motion stop; restores the held pose after an unexpected bump. */
 public class PushTunaFinal {
@@ -21,6 +23,11 @@ public class PushTunaFinal {
     }
 
     private final DriveIO io;
+    private final StrafeHeadingHold headingHold = new StrafeHeadingHold(
+            RobotConfig.TeleTourney.STRAFE_HEADING_KP, RobotConfig.TeleTourney.STRAFE_HEADING_KI,
+            RobotConfig.TeleTourney.STRAFE_HEADING_KD, RobotConfig.TeleTourney.STRAFE_HEADING_MAX_TURN,
+            RobotConfig.TeleTourney.STRAFE_HEADING_MAX_INTEGRAL,
+            RobotConfig.TeleTourney.STRAFE_HEADING_DEADBAND_DEGREES);
     private State state = State.DRIVING;
     private Pose holdTarget, previousPose;
     private long stillSince, recoveryStarted;
@@ -76,7 +83,7 @@ public class PushTunaFinal {
         }
         boolean neutral = Math.abs(forward) < INPUT_DEADBAND
                 && Math.abs(left) < INPUT_DEADBAND
-                && Math.abs(counterclockwise) < INPUT_DEADBAND;
+                && counterclockwise == 0; // Mapped triggers are already deadbanded and squared.
         if (state == State.RECOVERING && !neutral) { cancelRecovery(); }
         if (state == State.RECOVERING) {
             if (now - recoveryStarted >= RECOVERY_TIMEOUT) {
@@ -94,7 +101,11 @@ public class PushTunaFinal {
             return;
         }
 
-        io.drive(forward, left, counterclockwise);
+        double turn = counterclockwise;
+        if (RobotConfig.TeleTourney.STRAFE_HEADING_HOLD_ENABLED) {
+            turn = headingHold.update(left, counterclockwise, current.getHeading(), now / 1000.0, true);
+        }
+        io.drive(forward, left, turn);
         io.update();
         current = io.getPose();
         if (!io.sensorReady() || !finite(current)) { cancelRecovery(); return; }
@@ -128,6 +139,7 @@ public class PushTunaFinal {
     }
 
     private void cancelRecovery() {
+        headingHold.reset();
         io.returnToDriver();
         state = State.DRIVING;
         holdTarget = null;
@@ -148,4 +160,8 @@ public class PushTunaFinal {
     public void reset() { cancelRecovery(); }
     public State getState() { return state; }
     public boolean isRecovering() { return state == State.RECOVERING; }
+    public boolean isStrafeHeadingHolding() { return headingHold.isActive(); }
+    public double getStrafeHeadingTargetDegrees() { return headingHold.getTargetDegrees(); }
+    public double getStrafeHeadingErrorDegrees() { return headingHold.getErrorDegrees(); }
+    public double getStrafeHeadingCorrection() { return headingHold.getCorrection(); }
 }
