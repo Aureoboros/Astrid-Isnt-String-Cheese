@@ -196,6 +196,13 @@ public final class RobotConfig {
     public static final double POSE_RESET_TIMEOUT_SECONDS = 4;
     public static final double POSE_RESET_SPREAD_INCHES = 2;
     public static final double POSE_RESET_HEADING_SPREAD_DEGREES = 5;
+    /** Bumper go-to-point targets, in the field-center frame (inches); heading is held as-is. */
+    public static final double LEFT_BUMPER_TARGET_X_INCHES = 29;
+    public static final double LEFT_BUMPER_TARGET_Y_INCHES = 42;
+    public static final double RIGHT_BUMPER_TARGET_X_INCHES = 29;
+    public static final double RIGHT_BUMPER_TARGET_Y_INCHES = -42;
+    public static final double BUMPER_NAV_ARRIVE_INCHES = 1.5;
+    public static final double BUMPER_NAV_TIMEOUT_SECONDS = 8;
 
     private TeleTourney() {}
   }
