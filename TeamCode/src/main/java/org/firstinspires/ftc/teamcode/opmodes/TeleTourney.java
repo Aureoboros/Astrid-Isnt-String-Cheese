@@ -19,6 +19,7 @@ import org.firstinspires.ftc.teamcode.localization.AprilTagTracker;
 import org.firstinspires.ftc.teamcode.localization.AutoPoseHandoff;
 import org.firstinspires.ftc.teamcode.localization.AbsolutePoseReset;
 import org.firstinspires.ftc.teamcode.localization.PoseEstimate;
+import org.firstinspires.ftc.teamcode.localization.TagPoseCorrector;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.PedroAprilTagValidation;
 import org.firstinspires.ftc.teamcode.telemetry.PedroValidationTelemetry;
@@ -35,6 +36,8 @@ public class TeleTourney extends LinearOpMode {
   protected double getDrivePowerLimit() { return RobotConfig.TeleTourney.MAX_DRIVE_POWER; }
   protected TeleTourneyMechanismControls createMechanismControls() { return new TeleTourneyMechanismControls(); }
   protected Pose awaitStartingPose() { waitForStart(); return new Pose(0, 0, 0); }
+  /** True when odometry is in the field-center frame, so AprilTag field poses may correct it. */
+  protected boolean usesFieldFramePose() { return false; }
 
   @Override
   public void runOpMode() {
@@ -105,6 +108,17 @@ public class TeleTourney extends LinearOpMode {
       double bumperNavTargetX = 0;
       double bumperNavTargetY = 0;
       String bumperNavStatus = "IDLE";
+      boolean tagRelocalize = RobotConfig.TeleTourney.TAG_RELOCALIZE_ENABLED && usesFieldFramePose();
+      TagPoseCorrector tagCorrector = new TagPoseCorrector(RobotConfig.TeleTourney.TAG_RELOCALIZE_GAIN,
+          RobotConfig.TeleTourney.TAG_RELOCALIZE_HEADING_GAIN,
+          RobotConfig.TeleTourney.TAG_RELOCALIZE_DEADBAND_INCHES,
+          RobotConfig.TeleTourney.TAG_RELOCALIZE_MAX_CORRECTION_INCHES,
+          RobotConfig.TeleTourney.TAG_RELOCALIZE_MAX_SPEED_INCHES_PER_SECOND,
+          RobotConfig.TeleTourney.TAG_RELOCALIZE_MAX_TURN_DEGREES_PER_SECOND, 72);
+      boolean tagMeasuring = false;
+      double tagMeasureStartedSeconds = 0;
+      double tagNextMeasureSeconds = 0;
+      int tagMeasureAccepted = 0;
       while (opModeIsActive()) {
         long loopNanos = System.nanoTime();
         double loopMilliseconds = (loopNanos - previousLoopNanos) / 1e6;
@@ -187,6 +201,11 @@ public class TeleTourney extends LinearOpMode {
             ? IntakeSubsystem.Direction.REVERSE : IntakeSubsystem.Direction.FORWARD);
         shooter.setState(mechanisms.isShooterEnabled(), mechanisms.isShooterReversed(), mechanisms.getShooterRpm());
         gateMotor.setState(mechanisms.isGateEnabled(), mechanisms.isGateReversed(), mechanisms.getGateRpm());
+        if (mechanisms.isOdometryResetRequested() && tagMeasuring) {
+          pan.endFieldPoseMeasurement(); // A runs its own centered measurement below.
+          tagMeasuring = false;
+          tagNextMeasureSeconds = loopNanos / 1e9 + RobotConfig.TeleTourney.TAG_RELOCALIZE_INTERVAL_SECONDS;
+        }
         if (mechanisms.isOdometryResetRequested() && !poseReset.isActive() && !bumperNavActive) {
           if (!aprilTags.isConnected()) { poseReset.unavailable("Limelight disconnected"); }
           else if (pan.beginFieldPoseMeasurement()) { poseReset.begin(System.nanoTime() / 1e9); }
@@ -208,7 +227,54 @@ public class TeleTourney extends LinearOpMode {
           pose = follower.getPose();
           validation.resetBaseline();
         }
-        if (!poseReset.isActive()) { pan.endFieldPoseMeasurement(); }
+        if (tagRelocalize) {
+          double nowSeconds = loopNanos / 1e9;
+          boolean resetBusy = poseReset.isActive() || corrected != null;
+          PoseEstimate odometryEstimate = new PoseEstimate(
+              pose.getX(), pose.getY(), Math.toDegrees(pose.getHeading()));
+          // getFieldPose() is null unless the camera's mount yaw is known, so a panned turret is never used.
+          PoseEstimate tagFix = tagCorrector.update(nowSeconds, aprilTags.getResultTimestamp(),
+              odometryEstimate, aprilTags.getFieldPose(), !resetBusy && !bumperNavActive);
+          TagPoseCorrector.Result tagResult = tagCorrector.getResult();
+          if (tagFix != null) {
+            pushTuna.reset(); // A held position target belongs to the old pose.
+            follower.setPose(new Pose(tagFix.getX(), tagFix.getY(), Math.toRadians(tagFix.getHeadingDegrees())));
+            pose = follower.getPose();
+            validation.resetBaseline();
+          }
+          if (tagMeasuring && (tagResult == TagPoseCorrector.Result.APPLIED
+              || tagResult == TagPoseCorrector.Result.IN_AGREEMENT)) {
+            tagMeasureAccepted++;
+          }
+          if (tagMeasuring) {
+            boolean enough = tagMeasureAccepted >= RobotConfig.TeleTourney.TAG_RELOCALIZE_MEASURE_FRAMES;
+            boolean timedOut = nowSeconds - tagMeasureStartedSeconds
+                >= RobotConfig.TeleTourney.TAG_RELOCALIZE_MEASURE_TIMEOUT_SECONDS;
+            boolean interrupted = command.isActive() || mechanisms.isTurretLeftRequested()
+                || mechanisms.isTurretRightRequested() || mechanisms.isGateEnabled()
+                || resetBusy || bumperNavActive;
+            if (enough || timedOut || interrupted) {
+              pan.endFieldPoseMeasurement(); // Resumes automatic tag tracking.
+              tagMeasuring = false;
+              tagNextMeasureSeconds = nowSeconds + (timedOut && tagMeasureAccepted == 0
+                  ? RobotConfig.TeleTourney.TAG_RELOCALIZE_FAILURE_BACKOFF_SECONDS
+                  : RobotConfig.TeleTourney.TAG_RELOCALIZE_INTERVAL_SECONDS);
+            }
+          } else if (!resetBusy && !bumperNavActive && !command.isActive() && !mechanisms.isGateEnabled()
+              && !mechanisms.isTurretLeftRequested() && !mechanisms.isTurretRightRequested()
+              && nowSeconds >= tagNextMeasureSeconds && aprilTags.isConnected()
+              && !aprilTags.isRobotPoseReady() && !aprilTags.getAimTargets().isEmpty()) {
+            // Poses are withheld while the turret tracks, so briefly center it to take a measurement.
+            if (pan.beginFieldPoseMeasurement()) {
+              tagMeasuring = true;
+              tagMeasureStartedSeconds = nowSeconds;
+              tagMeasureAccepted = 0;
+            } else {
+              tagNextMeasureSeconds = nowSeconds + RobotConfig.TeleTourney.TAG_RELOCALIZE_FAILURE_BACKOFF_SECONDS;
+            }
+          }
+        }
+        if (!poseReset.isActive() && !tagMeasuring) { pan.endFieldPoseMeasurement(); }
         validation.update(pose, visibleTags, aprilTags.isConnected(),
             false, false);
 
@@ -220,6 +286,10 @@ public class TeleTourney extends LinearOpMode {
           telemetry.addData("Drive power limit", "%.0f%%", drivePowerLimit * 100);
           telemetry.addData("Position recovery", pushTuna.getState());
           telemetry.addData("Bumper nav (L: 29,42 | R: 29,-42)", bumperNavStatus);
+          telemetry.addData("Tag relocalization", !tagRelocalize ? "OFF (local-origin OpMode)"
+              : String.format("%s%s | tag vs odometry %s", tagMeasuring ? "MEASURING " : "",
+                  tagCorrector.getResult(), Double.isFinite(tagCorrector.getErrorInches())
+                      ? String.format("%.1f in", tagCorrector.getErrorInches()) : "n/a"));
           telemetry.addData("Strafe heading hold", pushTuna.isStrafeHeadingHolding() ? "ACTIVE" : "INACTIVE");
           if (pushTuna.isStrafeHeadingHolding()) {
             telemetry.addData("Heading target / error", "%.1f / %.1f deg",
